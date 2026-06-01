@@ -65,15 +65,6 @@ function clampRating(value) {
   return Number(Math.max(0.1, Math.min(5, value)).toFixed(1));
 }
 
-function pickDemoTarget(board) {
-  const sorted = [...board].sort((a, b) => b.averageRating - a.averageRating || b.voteCount - a.voteCount);
-  const threshold = Math.random();
-  const index = threshold < 0.6
-    ? Math.floor(Math.sqrt(Math.random()) * sorted.length)
-    : Math.floor(Math.random() * sorted.length);
-  return { sorted, index };
-}
-
 function buildDemoEvent(board) {
   const sorted = [...board].sort((a, b) => b.averageRating - a.averageRating || b.voteCount - a.voteCount || a.bagNumber - b.bagNumber);
   if (sorted.length < 2) return null;
@@ -113,7 +104,6 @@ function runDemoVoteStep() {
     return;
   }
 
-  const beforeOrder = state.demoBoard.map((item) => item.bagNumber).join(",");
   const event = buildDemoEvent(state.demoBoard);
   if (!event) return;
 
@@ -408,10 +398,6 @@ function animateTvBoard(oldPositions) {
   });
 }
 
-function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3);
-}
-
 function animateDemoScores() {
   const updates = new Set(state.demoScoreUpdates || []);
   if (!updates.size) return;
@@ -474,6 +460,7 @@ function tvView() {
           <h2 class="screen-title">Bottle race</h2>
           <p class="mt-2 text-amber-50/75">Sleeves move left-to-right by crowd rating. Bottle identities stay blind until reveal.</p>
         </div>
+        ${state.demoBoard ? `<button class="tap-quiet" id="stop-demo" type="button">Stop demo</button>` : ""}
       </div>
       ${state.demoBoard ? `<div class="mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>` : ""}
       ${boardMarkup(state.bootstrap.leaderboard)}
@@ -696,9 +683,7 @@ async function seedDemo() {
   state.view = "tv";
   history.replaceState({}, "", "?view=tv");
   render();
-  setTimeout(() => {
-    if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) startDemoVoting();
-  }, 50);
+  if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) startDemoVoting();
 }
 
 async function scanLabel(form) {
@@ -725,6 +710,16 @@ async function scanLabel(form) {
 function destroyCharts() {
   state.charts.forEach((chart) => chart.destroy());
   state.charts = [];
+}
+
+function stopDemo() {
+  if (state.demoVoteTimer) {
+    clearTimeout(state.demoVoteTimer);
+  }
+  state.demoVoteTimer = null;
+  state.demoBoard = null;
+  state.demoAnimationPending = false;
+  render();
 }
 
 function drawCharts(id) {
@@ -781,6 +776,9 @@ document.addEventListener("click", async (event) => {
   if (event.target.closest("#seed-demo")) {
     seedDemo().catch((error) => notice(error.message));
   }
+  if (event.target.closest("#stop-demo")) {
+    stopDemo();
+  }
 });
 
 document.addEventListener("change", (event) => {
@@ -812,7 +810,9 @@ document.addEventListener("submit", (event) => {
 });
 
 setInterval(() => {
-  if (state.view === "tv") refresh({ reveal: true }).catch(() => {});
+  if (state.view === "tv" && !state.demoBoard) {
+    refresh({ reveal: true }).catch((error) => console.error("TV refresh failed:", error));
+  }
 }, 7000);
 
 refresh({ photos: state.view === "album", reveal: state.view === "tv" }).catch((error) => {
