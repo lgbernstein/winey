@@ -125,12 +125,12 @@ function runDemoVoteStep() {
     target.moving = true;
     target.averageRating = event.newRating;
     target.voteCount = target.voteCount + 1;
-    changedBags.add(target.bagNumber);
+    changedBags.add(String(target.bagNumber));
     if (event.swapWith) {
       const neighbor = state.demoBoard.find((item) => item.bagNumber === event.swapWith);
       if (neighbor) {
         neighbor.moving = true;
-        changedBags.add(neighbor.bagNumber);
+        changedBags.add(String(neighbor.bagNumber));
       }
     }
   }
@@ -138,6 +138,7 @@ function runDemoVoteStep() {
   state.demoBoard.sort((a, b) => b.averageRating - a.averageRating || b.voteCount - a.voteCount || a.bagNumber - b.bagNumber);
   state.demoScoreUpdates = [...changedBags];
   state.demoAnimationPending = true;
+  state.demoVoteTimer = -1;
   render();
 
   state.demoVoteTimer = setTimeout(() => {
@@ -402,7 +403,6 @@ function animateTvBoard(oldPositions) {
     item.getBoundingClientRect();
     requestAnimationFrame(() => {
       item.style.transform = "";
-      item.style.transition = "";
       item.style.willChange = "";
     });
   });
