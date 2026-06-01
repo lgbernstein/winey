@@ -1,5 +1,7 @@
 # Winey
 
+GitHub: https://github.com/lgbernstein/winey
+
 Winey is a kiosk-first blind tasting app for a single party event. Hosts check in incoming bottles and assign numbered sleeves; guests rate each blind bottle with stars and a grape guess; the TV view shows a blind live leaderboard until the host starts the reveal.
 
 ## Run locally
