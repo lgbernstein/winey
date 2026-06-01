@@ -86,17 +86,6 @@ function cloneDemoBoard(items) {
 function clampRating(value) {
   return Number(Math.max(0.1, Math.min(5, value)).toFixed(1));
 }
-function pickDemoTarget(board) {
-  var sorted = _toConsumableArray(board).sort(function (a, b) {
-    return b.averageRating - a.averageRating || b.voteCount - a.voteCount;
-  });
-  var threshold = Math.random();
-  var index = threshold < 0.6 ? Math.floor(Math.sqrt(Math.random()) * sorted.length) : Math.floor(Math.random() * sorted.length);
-  return {
-    sorted: sorted,
-    index: index
-  };
-}
 function buildDemoEvent(board) {
   var sorted = _toConsumableArray(board).sort(function (a, b) {
     return b.averageRating - a.averageRating || b.voteCount - a.voteCount || a.bagNumber - b.bagNumber;
@@ -131,9 +120,6 @@ function runDemoVoteStep() {
     }
     return;
   }
-  var beforeOrder = state.demoBoard.map(function (item) {
-    return item.bagNumber;
-  }).join(",");
   var event = buildDemoEvent(state.demoBoard);
   if (!event) return;
   state.demoBoard.forEach(function (item) {
@@ -149,14 +135,14 @@ function runDemoVoteStep() {
     target.moving = true;
     target.averageRating = event.newRating;
     target.voteCount = target.voteCount + 1;
-    changedBags.add(target.bagNumber);
+    changedBags.add(String(target.bagNumber));
     if (event.swapWith) {
       var neighbor = state.demoBoard.find(function (item) {
         return item.bagNumber === event.swapWith;
       });
       if (neighbor) {
         neighbor.moving = true;
-        changedBags.add(neighbor.bagNumber);
+        changedBags.add(String(neighbor.bagNumber));
       }
     }
   }
@@ -165,6 +151,7 @@ function runDemoVoteStep() {
   });
   state.demoScoreUpdates = _toConsumableArray(changedBags);
   state.demoAnimationPending = true;
+  state.demoVoteTimer = -1;
   render();
   state.demoVoteTimer = setTimeout(function () {
     if (!state.demoBoard || state.view !== "tv") {
@@ -332,11 +319,9 @@ function animateTvBoard(oldPositions) {
     item.getBoundingClientRect();
     requestAnimationFrame(function () {
       item.style.transform = "";
+      item.style.willChange = "";
     });
   });
-}
-function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3);
 }
 function animateDemoScores() {
   var updates = new Set(state.demoScoreUpdates || []);
@@ -370,7 +355,7 @@ function revealMarkup() {
   }).join(""), "</select>\n        </label>\n        <div class=\"chart-shell rounded-lg border border-amber-100/15 bg-stone-950/60 p-4\"><canvas id=\"grape-chart\" aria-label=\"Grape guesses chart\"></canvas></div>\n        <div class=\"chart-shell rounded-lg border border-amber-100/15 bg-stone-950/60 p-4\"><canvas id=\"appearance-chart\" aria-label=\"Appearance chart\"></canvas></div>\n      </div>\n    </div>\n  ");
 }
 function tvView() {
-  return "\n    ".concat(panel("\n      <div class=\"mb-5 flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Live standings</p>\n          <h2 class=\"screen-title\">Bottle race</h2>\n          <p class=\"mt-2 text-amber-50/75\">Sleeves move left-to-right by crowd rating. Bottle identities stay blind until reveal.</p>\n        </div>\n      </div>\n      ".concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
+  return "\n    ".concat(panel("\n      <div class=\"mb-5 flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Live standings</p>\n          <h2 class=\"screen-title\">Bottle race</h2>\n          <p class=\"mt-2 text-amber-50/75\">Sleeves move left-to-right by crowd rating. Bottle identities stay blind until reveal.</p>\n        </div>\n        ".concat(state.demoBoard ? "<button class=\"tap-quiet\" id=\"stop-demo\" type=\"button\">Stop demo</button>" : "", "\n      </div>\n      ").concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
 }
 function hostBottleFields() {
   var _bottle$expertScore;
@@ -686,9 +671,7 @@ function _seedDemo() {
           state.view = "tv";
           history.replaceState({}, "", "?view=tv");
           render();
-          setTimeout(function () {
-            if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) startDemoVoting();
-          }, 50);
+          if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) startDemoVoting();
         case 3:
           return _context9.a(2);
       }
@@ -746,6 +729,15 @@ function destroyCharts() {
     return chart.destroy();
   });
   state.charts = [];
+}
+function stopDemo() {
+  if (state.demoVoteTimer) {
+    clearTimeout(state.demoVoteTimer);
+  }
+  state.demoVoteTimer = null;
+  state.demoBoard = null;
+  state.demoAnimationPending = false;
+  render();
 }
 function drawCharts(id) {
   destroyCharts();
@@ -925,6 +917,9 @@ document.addEventListener("click", /*#__PURE__*/function () {
               return notice(error.message);
             });
           }
+          if (event.target.closest("#stop-demo")) {
+            stopDemo();
+          }
         case 9:
           return _context.a(2);
       }
@@ -972,9 +967,13 @@ document.addEventListener("submit", function (event) {
   });
 });
 setInterval(function () {
-  if (state.view === "tv") refresh({
-    reveal: true
-  }).catch(function () {});
+  if (state.view === "tv" && !state.demoBoard) {
+    refresh({
+      reveal: true
+    }).catch(function (error) {
+      return console.error("TV refresh failed:", error);
+    });
+  }
 }, 7000);
 refresh({
   photos: state.view === "album",
