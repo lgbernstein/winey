@@ -1,0 +1,439 @@
+import { mkdirSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+
+export const EVENT_STATES = ["REGISTRATION", "LIVE_TASTING", "GRAND_REVEAL", "ARCHIVE"];
+export const GRAPES = [
+  "Not sure",
+  "Cabernet Sauvignon",
+  "Merlot",
+  "Pinot Noir",
+  "Syrah / Shiraz",
+  "Malbec",
+  "Zinfandel",
+  "Sangiovese",
+  "Tempranillo",
+  "Grenache"
+];
+
+function uniqueGrapes(grapes) {
+  const seen = new Set();
+  return grapes.filter((grape) => {
+    const key = grape.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+const truthy = (value) => Boolean(Number(value));
+const parseJson = (value, fallback) => {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+function bottleRow(row, includeReveal = false) {
+  const base = {
+    id: row.id,
+    bagNumber: row.bag_number,
+    voteCount: row.vote_count || 0
+  };
+
+  if (!includeReveal) {
+    return base;
+  }
+
+  return {
+    ...base,
+    bottleName: row.bottle_name,
+    grape: row.grape,
+    producer: row.producer || "",
+    region: row.region || "",
+    vintage: row.vintage || "",
+    photoUrl: row.photo_url || "",
+    expertScore: row.professional_rating,
+    expertCommentary: row.professional_commentary || "",
+    isRevealed: truthy(row.is_revealed)
+  };
+}
+
+function entryRow(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    displayName: row.display_name,
+    bottleId: row.bottle_id,
+    bagNumber: row.bag_number,
+    rating: row.rating,
+    grapeGuess: row.grape_guess,
+    appearance: row.selected_appearance || "",
+    nose: parseJson(row.selected_nose, []),
+    palate: parseJson(row.palate_structure, {}),
+    isBookmarked: truthy(row.is_bookmarked),
+    timestamp: row.timestamp
+  };
+}
+
+export function openWineDb({ dbFile }) {
+  mkdirSync(dirname(dbFile), { recursive: true });
+  const sqlite = new DatabaseSync(dbFile);
+  sqlite.exec(`
+    PRAGMA foreign_keys = ON;
+    PRAGMA journal_mode = WAL;
+
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY,
+      display_name TEXT NOT NULL UNIQUE
+    );
+
+    CREATE TABLE IF NOT EXISTS wine_bottles (
+      id INTEGER PRIMARY KEY,
+      bag_number INTEGER NOT NULL UNIQUE,
+      bottle_name TEXT NOT NULL,
+      grape TEXT NOT NULL,
+      producer TEXT,
+      region TEXT,
+      vintage TEXT,
+      photo_url TEXT,
+      professional_rating INTEGER,
+      professional_commentary TEXT,
+      is_revealed BOOLEAN DEFAULT FALSE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS tasting_entries (
+      id INTEGER PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      bottle_id INTEGER NOT NULL REFERENCES wine_bottles(id),
+      rating INTEGER NOT NULL CHECK(rating BETWEEN 0 AND 5),
+      grape_guess TEXT NOT NULL,
+      selected_appearance TEXT,
+      selected_nose TEXT,
+      palate_structure TEXT,
+      is_bookmarked BOOLEAN DEFAULT FALSE,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, bottle_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS party_photos (
+      id INTEGER PRIMARY KEY,
+      uploaded_by_user_id INTEGER REFERENCES users(id),
+      storage_url TEXT NOT NULL,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS event_state (
+      id INTEGER PRIMARY KEY CHECK(id = 1),
+      current_state TEXT NOT NULL
+    );
+
+    INSERT OR IGNORE INTO event_state (id, current_state) VALUES (1, 'LIVE_TASTING');
+  `);
+
+  const getStateStmt = sqlite.prepare("SELECT current_state FROM event_state WHERE id = 1");
+  const guestRowsStmt = sqlite.prepare("SELECT id, display_name FROM users ORDER BY display_name COLLATE NOCASE");
+  const addGuestStmt = sqlite.prepare("INSERT INTO users (display_name) VALUES (?)");
+  const findGuestStmt = sqlite.prepare("SELECT id, display_name FROM users WHERE lower(display_name) = lower(?)");
+  const bottleByBagStmt = sqlite.prepare("SELECT * FROM wine_bottles WHERE bag_number = ?");
+  const bottleByIdStmt = sqlite.prepare("SELECT * FROM wine_bottles WHERE id = ?");
+
+  return {
+    close: () => sqlite.close(),
+    raw: sqlite,
+    getState() {
+      return getStateStmt.get().current_state;
+    },
+    setState(state) {
+      sqlite.prepare("UPDATE event_state SET current_state = ? WHERE id = 1").run(state);
+      sqlite.prepare("UPDATE wine_bottles SET is_revealed = ?").run(state === "GRAND_REVEAL" || state === "ARCHIVE" ? 1 : 0);
+      return this.getState();
+    },
+    listGuests() {
+      return guestRowsStmt.all().map((row) => ({ id: row.id, displayName: row.display_name }));
+    },
+    addGuest(displayName) {
+      const name = displayName.trim().replace(/\s+/g, " ");
+      const found = findGuestStmt.get(name);
+      if (found) {
+        return { id: found.id, displayName: found.display_name };
+      }
+      const result = addGuestStmt.run(name);
+      return { id: Number(result.lastInsertRowid), displayName: name };
+    },
+    nextBagNumber() {
+      return sqlite.prepare("SELECT COALESCE(MAX(bag_number), 0) + 1 AS next FROM wine_bottles").get().next;
+    },
+    listGuessGrapes() {
+      const scanned = sqlite.prepare(`
+        SELECT grape
+        FROM wine_bottles
+        WHERE trim(grape) <> '' AND lower(trim(grape)) <> 'unknown'
+        ORDER BY grape COLLATE NOCASE
+      `).all().map((row) => row.grape.trim());
+      return uniqueGrapes([...GRAPES, ...scanned]);
+    },
+    createBottle(input) {
+      const bagNumber = this.nextBagNumber();
+      const result = sqlite.prepare(`
+        INSERT INTO wine_bottles
+        (bag_number, bottle_name, grape, producer, region, vintage, photo_url, professional_rating, professional_commentary)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        bagNumber,
+        input.bottleName,
+        input.grape,
+        input.producer || null,
+        input.region || null,
+        input.vintage || null,
+        input.photoUrl || null,
+        input.expertScore ?? null,
+        input.expertCommentary || null
+      );
+      return bottleRow(bottleByIdStmt.get(Number(result.lastInsertRowid)), true);
+    },
+    seedDemo() {
+      const sampleBottles = [
+        { bottleName: "Sunset Pinot Noir", grape: "Pinot Noir", producer: "Cedar Hollow", region: "Willamette", vintage: "2021", expertScore: 92, expertCommentary: "Silky and bright." },
+        { bottleName: "Cedar Ridge Cabernet", grape: "Cabernet Sauvignon", producer: "Red Arbor", region: "Napa", vintage: "2019", expertScore: 95, expertCommentary: "Dark fruit with polished tannins." },
+        { bottleName: "Stone Creek Merlot", grape: "Merlot", producer: "Stone Creek", region: "Columbia Valley", vintage: "2022", expertScore: 89, expertCommentary: "Soft, easy-drinking finish." },
+        { bottleName: "Raven Syrah", grape: "Syrah / Shiraz", producer: "Ravenwood", region: "Barossa", vintage: "2020", expertScore: 94, expertCommentary: "Spice and velvet in every sip." },
+        { bottleName: "Velvet Malbec", grape: "Malbec", producer: "Alta Mesa", region: "Mendoza", vintage: "2021", expertScore: 91, expertCommentary: "Plush black fruit and cocoa." },
+        { bottleName: "Crimson Sangiovese", grape: "Sangiovese", producer: "Terra Bella", region: "Tuscany", vintage: "2022", expertScore: 88, expertCommentary: "Cherry and earth with crunchy acidity." },
+        { bottleName: "Twilight Grenache", grape: "Grenache", producer: "Mourne Valley", region: "Rhone", vintage: "2021", expertScore: 87, expertCommentary: "Juicy raspberry with a soft finish." },
+        { bottleName: "Chateau Verde Tempranillo", grape: "Tempranillo", producer: "Chateau Verde", region: "Rioja", vintage: "2018", expertScore: 93, expertCommentary: "Leather, plum, and spice." },
+        { bottleName: "Golden Riesling", grape: "Not sure", producer: "Lakeview", region: "Mosel", vintage: "2023", expertScore: 86, expertCommentary: "Bright, floral, and refreshing." },
+        { bottleName: "Shadow Zinfandel", grape: "Zinfandel", producer: "Caldera", region: "Paso Robles", vintage: "2020", expertScore: 90, expertCommentary: "Bold berry with toasted oak." },
+        { bottleName: "Bright Pinot Gris", grape: "Not sure", producer: "Meadow Lane", region: "Alsace", vintage: "2023", expertScore: 85, expertCommentary: "Crisp citrus and minerality." },
+        { bottleName: "Velour Cabernet Franc", grape: "Not sure", producer: "Black Oak", region: "Loire", vintage: "2020", expertScore: 89, expertCommentary: "Red currant and savory herbs." },
+        { bottleName: "Copper Mourvedre", grape: "Not sure", producer: "Iron Gate", region: "Languedoc", vintage: "2021", expertScore: 88, expertCommentary: "Spicy, earthy, and rich." },
+        { bottleName: "Sugar Plum Rosé", grape: "Not sure", producer: "Rose Hill", region: "Provence", vintage: "2023", expertScore: 84, expertCommentary: "Fresh strawberry and summer flowers." },
+        { bottleName: "Midnight Cabernet", grape: "Cabernet Sauvignon", producer: "Blackstone", region: "Sonoma", vintage: "2019", expertScore: 92, expertCommentary: "Dense, smoky, and polished." }
+      ];
+      const sampleGuests = ["Ari", "Mia", "Noah", "Sam", "Jess", "Taylor", "Kai", "June", "Maria", "Hannah"];
+      const sampleTastings = [
+        { guest: "Ari", bagNumber: 1, grapeGuess: "Pinot Noir", appearance: "Ruby", nose: ["Red Fruits (Cherry/Raspberry)"], palate: { Body: "Light" } },
+        { guest: "Mia", bagNumber: 2, grapeGuess: "Cabernet Sauvignon", appearance: "Garnet", nose: ["Black Fruits (Blackberry/Plum)"], palate: { Tannins: "Medium (Velvety)" } },
+        { guest: "Noah", bagNumber: 3, grapeGuess: "Merlot", appearance: "Purple", nose: ["Earth / Mineral"], palate: { Acidity: "Medium (Fresh)" } },
+        { guest: "Sam", bagNumber: 4, grapeGuess: "Syrah / Shiraz", appearance: "Purple", nose: ["Spice / Oak (Vanilla/Pepper)"], palate: { Tannins: "High (Grippy)" } },
+        { guest: "Jess", bagNumber: 5, grapeGuess: "Malbec", appearance: "Garnet", nose: ["Black Fruits (Blackberry/Plum)"], palate: { Body: "Full-Bodied" } },
+        { guest: "Taylor", bagNumber: 6, grapeGuess: "Sangiovese", appearance: "Ruby", nose: ["Earth / Mineral"], palate: { Acidity: "High (Tart)" } },
+        { guest: "Kai", bagNumber: 7, grapeGuess: "Grenache", appearance: "Purple", nose: ["Red Fruits (Cherry/Raspberry)"], palate: { Sweetness: "Off-Dry" } },
+        { guest: "June", bagNumber: 8, grapeGuess: "Tempranillo", appearance: "Garnet", nose: ["Spice / Oak (Vanilla/Pepper)"], palate: { Tannins: "Medium (Velvety)" } },
+        { guest: "Maria", bagNumber: 9, grapeGuess: "Not sure", appearance: "Ruby", nose: ["Red Fruits (Cherry/Raspberry)"], palate: { Sweetness: "Bone Dry" } },
+        { guest: "Hannah", bagNumber: 10, grapeGuess: "Zinfandel", appearance: "Garnet", nose: ["Black Fruits (Blackberry/Plum)"], palate: { Body: "Full-Bodied" } },
+        { guest: "Ari", bagNumber: 11, grapeGuess: "Not sure", appearance: "Purple", nose: ["Earth / Mineral"], palate: { Acidity: "Medium (Fresh)" } },
+        { guest: "Sam", bagNumber: 12, grapeGuess: "Not sure", appearance: "Garnet", nose: ["Spice / Oak (Vanilla/Pepper)"], palate: { Sweetness: "Off-Dry" } },
+        { guest: "Jess", bagNumber: 13, grapeGuess: "Not sure", appearance: "Purple", nose: ["Earth / Mineral"], palate: { Tannins: "High (Grippy)" } },
+        { guest: "Taylor", bagNumber: 14, grapeGuess: "Not sure", appearance: "Ruby", nose: ["Red Fruits (Cherry/Raspberry)"], palate: { Body: "Medium" } },
+        { guest: "Kai", bagNumber: 15, grapeGuess: "Cabernet Sauvignon", appearance: "Garnet", nose: ["Black Fruits (Blackberry/Plum)"], palate: { Tannins: "High (Grippy)" } },
+        { guest: "June", bagNumber: 2, grapeGuess: "Cabernet Sauvignon", appearance: "Garnet", nose: ["Black Fruits (Blackberry/Plum)"], palate: { Body: "Full-Bodied" } },
+        { guest: "Ari", bagNumber: 4, grapeGuess: "Syrah / Shiraz", appearance: "Purple", nose: ["Spice / Oak (Vanilla/Pepper)"], palate: { Tannins: "High (Grippy)" } },
+        { guest: "Mia", bagNumber: 5, grapeGuess: "Malbec", appearance: "Purple", nose: ["Black Fruits (Blackberry/Plum)"], palate: { Body: "Full-Bodied" } }
+      ];
+      const ratingValue = () => Math.floor(Math.random() * 6);
+
+      sqlite.exec("BEGIN");
+      try {
+        sqlite.prepare("DELETE FROM tasting_entries").run();
+        sqlite.prepare("DELETE FROM wine_bottles").run();
+        sqlite.prepare("UPDATE event_state SET current_state = 'LIVE_TASTING' WHERE id = 1").run();
+        sqlite.prepare("UPDATE wine_bottles SET is_revealed = 0").run();
+
+        sampleGuests.forEach((name) => this.addGuest(name));
+        sampleBottles.forEach((bottle) => this.createBottle(bottle));
+        sampleTastings.forEach((entry) => {
+          const guest = this.addGuest(entry.guest);
+          this.upsertTasting({
+            userId: guest.id,
+            bagNumber: entry.bagNumber,
+            rating: ratingValue(),
+            grapeGuess: entry.grapeGuess,
+            appearance: entry.appearance,
+            nose: entry.nose,
+            palate: entry.palate,
+            isBookmarked: false
+          });
+        });
+
+        sqlite.exec("COMMIT");
+      } catch (error) {
+        sqlite.exec("ROLLBACK");
+        throw error;
+      }
+
+      return {
+        state: this.getState(),
+        bottles: this.listBlindBottles(),
+        leaderboard: this.leaderboard(),
+        guests: this.listGuests()
+      };
+    },
+    updateBottle(id, input) {
+      const current = bottleByIdStmt.get(id);
+      if (!current) return null;
+      sqlite.prepare(`
+        UPDATE wine_bottles
+        SET bottle_name = ?, grape = ?, producer = ?, region = ?, vintage = ?, photo_url = ?,
+            professional_rating = ?, professional_commentary = ?
+        WHERE id = ?
+      `).run(
+        input.bottleName ?? current.bottle_name,
+        input.grape ?? current.grape,
+        input.producer ?? current.producer,
+        input.region ?? current.region,
+        input.vintage ?? current.vintage,
+        input.photoUrl ?? current.photo_url,
+        input.expertScore ?? current.professional_rating,
+        input.expertCommentary ?? current.professional_commentary,
+        id
+      );
+      return bottleRow(bottleByIdStmt.get(id), true);
+    },
+    listBlindBottles() {
+      return sqlite.prepare(`
+        SELECT b.id, b.bag_number, COUNT(t.id) AS vote_count
+        FROM wine_bottles b
+        LEFT JOIN tasting_entries t ON t.bottle_id = b.id
+        GROUP BY b.id
+        ORDER BY b.bag_number
+      `).all().map((row) => bottleRow(row));
+    },
+    listHostBottles() {
+      return sqlite.prepare(`
+        SELECT b.*, COUNT(t.id) AS vote_count
+        FROM wine_bottles b
+        LEFT JOIN tasting_entries t ON t.bottle_id = b.id
+        GROUP BY b.id
+        ORDER BY b.bag_number
+      `).all().map((row) => bottleRow(row, true));
+    },
+    upsertTasting(input) {
+      const bottle = bottleByBagStmt.get(input.bagNumber);
+      if (!bottle) return null;
+      sqlite.prepare(`
+        INSERT INTO tasting_entries
+        (user_id, bottle_id, rating, grape_guess, selected_appearance, selected_nose, palate_structure, is_bookmarked)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, bottle_id) DO UPDATE SET
+          rating = excluded.rating,
+          grape_guess = excluded.grape_guess,
+          selected_appearance = excluded.selected_appearance,
+          selected_nose = excluded.selected_nose,
+          palate_structure = excluded.palate_structure,
+          is_bookmarked = excluded.is_bookmarked,
+          timestamp = CURRENT_TIMESTAMP
+      `).run(
+        input.userId,
+        bottle.id,
+        input.rating,
+        input.grapeGuess,
+        input.appearance || null,
+        JSON.stringify(input.nose || []),
+        JSON.stringify(input.palate || {}),
+        input.isBookmarked ? 1 : 0
+      );
+      const row = sqlite.prepare(`
+        SELECT t.*, u.display_name, b.bag_number
+        FROM tasting_entries t
+        JOIN users u ON u.id = t.user_id
+        JOIN wine_bottles b ON b.id = t.bottle_id
+        WHERE t.user_id = ? AND t.bottle_id = ?
+      `).get(input.userId, bottle.id);
+      return entryRow(row);
+    },
+    addPhoto({ userId, storageUrl }) {
+      const result = sqlite.prepare(`
+        INSERT INTO party_photos (uploaded_by_user_id, storage_url) VALUES (?, ?)
+      `).run(userId || null, storageUrl);
+      return this.listPhotos().find((photo) => photo.id === Number(result.lastInsertRowid));
+    },
+    listPhotos() {
+      return sqlite.prepare(`
+        SELECT p.*, u.display_name
+        FROM party_photos p
+        LEFT JOIN users u ON u.id = p.uploaded_by_user_id
+        ORDER BY p.timestamp DESC, p.id DESC
+      `).all().map((row) => ({
+        id: row.id,
+        storageUrl: row.storage_url,
+        displayName: row.display_name || "Guest",
+        timestamp: row.timestamp
+      }));
+    },
+    leaderboard() {
+      const guesses = sqlite.prepare(`
+        SELECT bottle_id, grape_guess, COUNT(*) AS count
+        FROM tasting_entries
+        GROUP BY bottle_id, grape_guess
+        ORDER BY bottle_id, count DESC, grape_guess COLLATE NOCASE
+      `).all().reduce((counts, row) => {
+        counts[row.bottle_id] ||= [];
+        counts[row.bottle_id].push({ label: row.grape_guess, count: row.count });
+        return counts;
+      }, {});
+      return sqlite.prepare(`
+        SELECT b.id, b.bag_number, COUNT(t.id) AS vote_count,
+               ROUND(COALESCE(AVG(t.rating), 0), 2) AS average_rating
+        FROM wine_bottles b
+        LEFT JOIN tasting_entries t ON t.bottle_id = b.id
+        GROUP BY b.id
+        ORDER BY average_rating DESC, vote_count DESC, b.bag_number ASC
+      `).all().map((row, index) => ({
+        id: row.id,
+        rank: index + 1,
+        bagNumber: row.bag_number,
+        voteCount: row.vote_count,
+        averageRating: row.average_rating,
+        grapeGuesses: guesses[row.id] || []
+      }));
+    },
+    reveal() {
+      const bottles = this.listHostBottles();
+      const rows = sqlite.prepare(`
+        SELECT t.*, u.display_name, b.bag_number
+        FROM tasting_entries t
+        JOIN users u ON u.id = t.user_id
+        JOIN wine_bottles b ON b.id = t.bottle_id
+        ORDER BY b.bag_number, u.display_name
+      `).all().map(entryRow);
+
+      return bottles.map((bottle) => {
+        const entries = rows.filter((entry) => entry.bottleId === bottle.id);
+        const grapeGuesses = Object.entries(entries.reduce((counts, entry) => {
+          counts[entry.grapeGuess] = (counts[entry.grapeGuess] || 0) + 1;
+          return counts;
+        }, {})).map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
+        const appearance = Object.entries(entries.reduce((counts, entry) => {
+          if (entry.appearance) counts[entry.appearance] = (counts[entry.appearance] || 0) + 1;
+          return counts;
+        }, {})).map(([label, count]) => ({ label, count }));
+        const correctGuests = entries
+          .filter((entry) => entry.grapeGuess.toLowerCase() === bottle.grape.toLowerCase())
+          .map((entry) => entry.displayName);
+
+        return {
+          ...bottle,
+          averageRating: entries.length ? Number((entries.reduce((sum, entry) => sum + entry.rating, 0) / entries.length).toFixed(2)) : 0,
+          voteCount: entries.length,
+          grapeGuesses,
+          appearance,
+          correctGuests
+        };
+      });
+    }
+  };
+}
+
+export function resolveDataPaths(dataDir = process.env.DATA_DIR || "./data") {
+  const root = resolve(dataDir);
+  return {
+    root,
+    dbFile: join(root, "wine-party.sqlite"),
+    uploadRoot: join(root, "uploads"),
+    bottleUploads: join(root, "uploads/bottles"),
+    partyUploads: join(root, "uploads/photos")
+  };
+}

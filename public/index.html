@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Winey</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="event-backdrop min-h-screen">
+      <header class="border-b border-amber-100/15 bg-stone-950/70 backdrop-blur">
+        <div class="app-header-inner mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
+          <div class="flex items-center gap-3">
+            <span class="brand-mark" aria-hidden="true">W</span>
+            <div>
+              <p class="kicker">Blind tasting party</p>
+              <h1 class="text-2xl font-semibold text-amber-50">Winey</h1>
+            </div>
+          </div>
+          <nav id="nav" class="nav-shell flex flex-wrap gap-2" aria-label="Views"></nav>
+        </div>
+      </header>
+      <main id="app" class="mx-auto max-w-7xl px-4 py-5 sm:px-6"></main>
+    </div>
+    <div id="toast" class="pointer-events-none fixed bottom-4 left-1/2 z-50 hidden -translate-x-1/2 rounded-md border border-amber-200/30 bg-stone-950 px-4 py-3 text-amber-50 shadow-2xl" role="status"></div>
+    <script src="/vendor/promise-polyfill.min.js"></script>
+    <script src="/vendor/fetch.umd.js"></script>
+    <script src="/vendor/regenerator-runtime.js"></script>
+    <script src="/vendor/legacy-polyfills.js"></script>
+    <script src="/vendor/chart.umd.js"></script>
+    <script defer src="/app.legacy.js"></script>
+  </body>
+</html>

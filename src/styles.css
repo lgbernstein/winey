@@ -1,0 +1,385 @@
+@import "tailwindcss";
+
+* {
+  letter-spacing: 0;
+}
+
+:root {
+  color-scheme: dark;
+  --ink: #191311;
+  --paper: #fff7ec;
+  --gold: #f2bd5d;
+  --wine: #7d1838;
+  --leaf: #2d6a5b;
+  --berry: #d43f63;
+}
+
+body {
+  background: #150f0f;
+  color: var(--paper);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+input,
+select,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.event-backdrop {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(242, 189, 93, .18), transparent 30%),
+    linear-gradient(110deg, rgba(16, 10, 10, .97), rgba(45, 18, 25, .91) 52%, rgba(18, 11, 11, .78)),
+    url("/assets/wine-party-bg.png") center / cover fixed;
+}
+
+.panel {
+  background: rgba(31, 19, 19, .94);
+  border: 1px solid rgba(255, 235, 198, .24);
+  box-shadow: 0 20px 54px rgba(0, 0, 0, .34);
+}
+
+.field {
+  @apply w-full rounded-md border border-amber-100/20 bg-stone-950/70 px-4 py-3 text-base text-amber-50 outline-none ring-0 transition focus:border-amber-300;
+  min-height: 56px;
+  border-color: rgba(255, 235, 198, .28);
+  background: rgba(12, 10, 9, .82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+  font-size: 17px;
+}
+
+.tap {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-md px-4 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  min-height: 56px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .22);
+}
+
+.tap-primary {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-amber-300 px-4 py-3 font-semibold text-stone-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50;
+  min-height: 56px;
+  background: linear-gradient(180deg, #ffd77a, #e6aa42);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .55);
+  color: #23110d;
+}
+
+.tap-quiet {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-amber-100/20 bg-stone-950/50 px-4 py-3 font-semibold text-amber-50 transition hover:border-amber-200/50 disabled:cursor-not-allowed disabled:opacity-50;
+  min-height: 56px;
+  border-color: rgba(255, 235, 198, .24);
+  background: rgba(12, 10, 9, .66);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+.choice:has(input:checked) {
+  border-color: rgba(242, 189, 93, .92);
+  background: rgba(242, 189, 93, .15);
+}
+
+.choice {
+  min-height: 58px;
+}
+
+.choice input:checked + span {
+  color: #ffd77a;
+  font-weight: 700;
+}
+
+.tooltip-note {
+  @apply rounded-md border border-emerald-200/20 bg-emerald-950/45 p-3 text-sm leading-6 text-emerald-50;
+  background: rgba(5, 46, 37, .62);
+}
+
+header {
+  box-shadow: 0 10px 36px rgba(0, 0, 0, .26);
+}
+
+.app-header-inner {
+  min-height: 82px;
+}
+
+.brand-mark {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 215, 122, .42);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(125, 24, 56, .92), rgba(43, 17, 22, .94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16), 0 8px 18px rgba(0, 0, 0, .25);
+  color: #ffd77a;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.nav-shell {
+  gap: .45rem;
+}
+
+.nav-shell .tap-primary,
+.nav-shell .tap-quiet {
+  min-width: 86px;
+  min-height: 48px;
+  padding: .7rem .95rem;
+}
+
+.kicker {
+  color: #ffd77a;
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.screen-title {
+  color: #fff8e8;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.08;
+}
+
+.soft-stat {
+  border: 1px solid rgba(255, 235, 198, .14);
+  background: rgba(12, 10, 9, .58);
+}
+
+.tv-rank {
+  animation: rank-in .65s ease;
+  transition: transform .65s ease, background-color .4s ease, opacity .4s ease;
+}
+
+.tv-bottle-grid {
+  display: grid;
+  align-items: end;
+  gap: 1.4rem 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  padding: .8rem 0 0;
+}
+
+.tv-bottle-card {
+  min-height: 540px;
+  padding: .25rem;
+  text-align: center;
+}
+
+.blind-bottle {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-items: end;
+  filter: drop-shadow(0 24px 22px rgba(0, 0, 0, .34));
+}
+
+.blind-bottle-lip {
+  width: 46px;
+  height: 12px;
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(90deg, #1c4029, #709e6f 52%, #122619);
+}
+
+.blind-bottle-neck {
+  width: 48px;
+  height: 98px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #0f2516, #3f7b51 48%, #111d18);
+  box-shadow: inset -8px 0 16px rgba(0, 0, 0, .28);
+}
+
+.blind-bottle-neck::after {
+  content: "";
+  position: absolute;
+  inset: 10px auto auto 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+}
+
+.blind-bottle-shoulders {
+  width: 148px;
+  height: 58px;
+  margin-top: -4px;
+  border-radius: 80px 80px 12px 12px;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, .08), transparent 28%),
+    linear-gradient(90deg, #11100f, #241f23 54%, #101113);
+}
+
+.blind-bottle-body {
+  position: relative;
+  display: grid;
+  width: 148px;
+  min-height: 262px;
+  place-items: center;
+  margin-top: -10px;
+  border-radius: 24px 24px 34px 34px;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(255, 255, 255, .18), transparent 18%),
+    linear-gradient(100deg, rgba(255, 255, 255, .09), transparent 30%),
+    linear-gradient(90deg, #191617, #2d282a 52%, #100f12);
+  box-shadow: inset 0 0 0 1px rgba(255, 244, 218, .1), 0 20px 44px rgba(0, 0, 0, .4);
+}
+
+.blind-bottle-body::before {
+  content: "";
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58%;
+  height: 18%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+  filter: blur(.5px);
+}
+
+.blind-bottle-body::after {
+  content: "";
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 28px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 0, rgba(255, 255, 255, .12), transparent 65%);
+}
+
+.blind-bottle-body span {
+  display: grid;
+  position: relative;
+  min-width: 104px;
+  min-height: 124px;
+  place-items: center;
+  border: 2px solid #b88944;
+  border-radius: 54px 54px 10px 10px;
+  background:
+    radial-gradient(circle at 50% 13%, #efe1bb 0 7px, transparent 8px),
+    linear-gradient(135deg, rgba(255, 255, 255, .72), transparent 36%),
+    #f5e6c7;
+  box-shadow:
+    inset 0 0 0 3px rgba(72, 33, 28, .12),
+    0 12px 24px rgba(0, 0, 0, .22);
+  color: #34161d;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 250, 231, .88);
+}
+
+.blind-bottle-body span::before,
+.blind-bottle-body span::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(105, 53, 31, .65), transparent);
+}
+
+.blind-bottle-body span::before {
+  top: 28px;
+}
+
+.blind-bottle-body span::after {
+  bottom: 22px;
+}
+
+.tv-bottle-score {
+  margin-top: .9rem;
+  color: #ffd6df;
+  font-size: 1.55rem;
+  font-weight: 700;
+}
+
+.tv-guess-chip {
+  border: 1px solid rgba(164, 244, 207, .22);
+  border-radius: 999px;
+  background: rgba(0, 44, 34, .56);
+  padding: .28rem .55rem;
+  color: #d6fff1;
+  font-size: .78rem;
+}
+
+.star-on {
+  color: var(--gold);
+}
+
+.star-pick {
+  color: rgba(255, 240, 204, .78);
+  text-shadow: 0 0 18px rgba(242, 189, 93, .18);
+  border: 1px solid rgba(255, 235, 198, .16);
+  background: rgba(12, 10, 9, .42);
+}
+
+input:checked + .star-pick,
+.star-filled,
+.star-pick:hover {
+  background: rgba(242, 189, 93, .13);
+  color: var(--gold);
+}
+
+.chart-shell {
+  min-height: 260px;
+}
+
+dialog::backdrop {
+  background: rgba(10, 7, 7, .72);
+}
+
+@media (max-width: 720px) {
+  .event-backdrop {
+    background:
+      linear-gradient(180deg, rgba(18, 11, 11, .98), rgba(45, 18, 25, .94) 56%, rgba(18, 11, 11, .9)),
+      url("/assets/wine-party-bg.png") center / cover fixed;
+  }
+
+  .panel {
+    border-radius: 10px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .3);
+  }
+
+  .screen-title {
+    font-size: 1.65rem;
+  }
+
+  .nav-shell {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .nav-shell .tap-primary,
+  .nav-shell .tap-quiet {
+    min-width: 0;
+    padding-right: .45rem;
+    padding-left: .45rem;
+    font-size: .9rem;
+  }
+}
+
+@keyframes rank-in {
+  from {
+    opacity: .35;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

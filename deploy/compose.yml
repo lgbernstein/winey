@@ -1,0 +1,15 @@
+services:
+  wine-party:
+    build: ..
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DATA_DIR: /app/data
+      HOST_PIN: ${HOST_PIN:?set HOST_PIN}
+    ports:
+      - "3000:3000"
+    volumes:
+      - wine-party-data:/app/data
+
+volumes:
+  wine-party-data:
