@@ -944,46 +944,44 @@ function hostView() {
           <button class="${state.bootstrap.state === "LIVE_TASTING" ? "tap-primary" : "tap-quiet"}" data-event-state="LIVE_TASTING" type="button">Live tasting${state.bootstrap.state === "LIVE_TASTING" ? " ●" : ""}</button>
           <button class="${state.bootstrap.state === "GRAND_REVEAL" ? "tap-primary" : "tap-quiet"}" data-event-state="GRAND_REVEAL" type="button">Grand reveal${state.bootstrap.state === "GRAND_REVEAL" ? " ●" : ""}</button>
         </div>
+        <div class="mt-4">
+          <p class="mb-3 text-sm font-bold text-amber-300 uppercase tracking-widest">Reveal Sequence</p>
+          <div class="reveal-host-buttons">
+            ${[
+              { scene: "podium",         label: "🥇 Top 3 Bottles" },
+              { scene: "reveal-all",     label: "🍷 Reveal All" },
+              { scene: "sommelier",      label: "🏆 The Vine Whisperer" },
+              { scene: "group-accuracy", label: "🎯 How Did We Do?" },
+              { scene: "the-numbers",    label: "📊 The Numbers" }
+            ].map(({ scene, label }) => `
+              <button
+                class="reveal-host-btn ${state.bootstrap.revealScene === scene ? "reveal-host-btn-active" : ""}"
+                data-reveal-scene="${scene}"
+                type="button"
+              >${label}</button>
+            `).join("")}
+            ${state.bootstrap.revealScene === "reveal-all" ? `
+              <div class="reveal-all-controls">
+                <button class="reveal-all-btn" data-reveal-all-step="prev">← Prev</button>
+                <span class="reveal-all-counter">${
+                  (() => {
+                    const total = (state.revealData?.revealAll || state.reveal || []).length;
+                    const step = Math.min(state.bootstrap.revealAllStep || 0, total - 1);
+                    return total ? `${step + 1} / ${total}` : "—";
+                  })()
+                }</span>
+                <button class="reveal-all-btn reveal-all-btn-next" data-reveal-all-step="next">Next →</button>
+              </div>
+            ` : ""}
+            ${state.bootstrap.revealScene ? `
+              <button class="reveal-host-btn-clear" data-reveal-scene="" type="button">✕ Clear scene</button>
+            ` : ""}
+          </div>
+        </div>
         <button class="tap-quiet mt-3 w-full" id="show-join-qr" type="button">Show join QR for guests</button>
         <button class="tap-quiet mt-3 w-full" id="show-guest-bulk" type="button">Pre-load guest list</button>
         <button class="tap-quiet mt-3 w-full" id="seed-demo" type="button">Load 15-bottle demo</button>
         <button class="tap-quiet mt-3 w-full" id="seed-demo-2" type="button">Load 3-bottle demo</button>
-        ${(state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE") ? `
-          <div class="mt-4">
-            <p class="mb-3 text-sm font-bold text-amber-300 uppercase tracking-widest">Reveal Sequence</p>
-            <div class="reveal-host-buttons">
-              ${[
-                { scene: "podium",         label: "🥇 Top 3 Bottles" },
-                { scene: "reveal-all",     label: "🍷 Reveal All" },
-                { scene: "sommelier",      label: "🏆 The Vine Whisperer" },
-                { scene: "group-accuracy", label: "🎯 How Did We Do?" },
-                { scene: "the-numbers",    label: "📊 The Numbers" }
-              ].map(({ scene, label }) => `
-                <button
-                  class="reveal-host-btn ${state.bootstrap.revealScene === scene ? "reveal-host-btn-active" : ""}"
-                  data-reveal-scene="${scene}"
-                  type="button"
-                >${label}</button>
-              `).join("")}
-              ${state.bootstrap.revealScene === "reveal-all" ? `
-                <div class="reveal-all-controls">
-                  <button class="reveal-all-btn" data-reveal-all-step="prev">← Prev</button>
-                  <span class="reveal-all-counter">${
-                    (() => {
-                      const total = (state.revealData?.revealAll || state.reveal || []).length;
-                      const step = Math.min(state.bootstrap.revealAllStep || 0, total - 1);
-                      return total ? `${step + 1} / ${total}` : "—";
-                    })()
-                  }</span>
-                  <button class="reveal-all-btn reveal-all-btn-next" data-reveal-all-step="next">Next →</button>
-                </div>
-              ` : ""}
-              ${state.bootstrap.revealScene ? `
-                <button class="reveal-host-btn-clear" data-reveal-scene="" type="button">✕ Clear scene</button>
-              ` : ""}
-            </div>
-          </div>
-        ` : ""}
         <p class="mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50">Current state: ${escapeHtml(stateLabel(state.host.state))}</p>
         <div class="mt-5 grid grid-cols-2 gap-3">
           <div class="rounded-md bg-stone-950/55 p-4"><p class="text-3xl text-amber-300">${state.host.bottles.length}</p><p>Bottles</p></div>
