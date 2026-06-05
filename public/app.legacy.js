@@ -506,8 +506,11 @@ function renderPodiumScene(podium) {
   });
   return "\n    <div class=\"reveal-scene-shell reveal-podium\">\n      <p class=\"reveal-scene-kicker reveal-podium-kicker\">Top Bottles</p>\n      <div class=\"podium-cards\">".concat(cards.join(""), "</div>\n    </div>\n  ");
 }
-function renderRevealAllScene(r) {
-  return "<div class=\"reveal-scene-shell\"></div>";
+function renderRevealAllScene(revealAll) {
+  var bottles = revealAll.map(function (bottle) {
+    return "\n      <div class=\"bottle-flip\">\n        <div class=\"bottle-flip-inner\" data-flip-bag=\"".concat(bottle.bagNumber, "\">\n          <div class=\"bottle-flip-front\">\n            <div class=\"blind-bottle\" aria-label=\"Sleeve ").concat(bottle.bagNumber, "\">\n              <div class=\"blind-bottle-lip\"></div>\n              <div class=\"blind-bottle-neck\"></div>\n              <div class=\"blind-bottle-shoulders\"></div>\n              <div class=\"blind-bottle-body\"><span>#").concat(bottle.bagNumber, "</span></div>\n            </div>\n          </div>\n          <div class=\"bottle-flip-back\">\n            ").concat(revealedBottleMarkup(bottle), "\n          </div>\n        </div>\n      </div>\n    ");
+  });
+  return "\n    <div class=\"reveal-scene-shell reveal-all-shell\">\n      <p class=\"reveal-scene-kicker mb-6\">The Wines</p>\n      <div class=\"reveal-all-grid\">".concat(bottles.join(""), "</div>\n    </div>\n  ");
 }
 function renderGroupAccuracyScene(g) {
   return "<div class=\"reveal-scene-shell\"></div>";

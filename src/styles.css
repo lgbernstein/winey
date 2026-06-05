@@ -674,3 +674,13 @@ dialog::backdrop {
 .podium-card-rating {
   @apply text-amber-400 mt-2 text-lg;
 }
+
+/* ---- Reveal All scene ---- */
+.reveal-all-shell {
+  @apply flex-col pt-8 pb-8 px-4;
+}
+.reveal-all-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1rem;
+}

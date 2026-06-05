@@ -669,7 +669,33 @@ function renderPodiumScene(podium) {
     </div>
   `;
 }
-function renderRevealAllScene(r) { return `<div class="reveal-scene-shell"></div>`; }
+function renderRevealAllScene(revealAll) {
+  const bottles = revealAll.map(bottle => {
+    return `
+      <div class="bottle-flip">
+        <div class="bottle-flip-inner" data-flip-bag="${bottle.bagNumber}">
+          <div class="bottle-flip-front">
+            <div class="blind-bottle" aria-label="Sleeve ${bottle.bagNumber}">
+              <div class="blind-bottle-lip"></div>
+              <div class="blind-bottle-neck"></div>
+              <div class="blind-bottle-shoulders"></div>
+              <div class="blind-bottle-body"><span>#${bottle.bagNumber}</span></div>
+            </div>
+          </div>
+          <div class="bottle-flip-back">
+            ${revealedBottleMarkup(bottle)}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  return `
+    <div class="reveal-scene-shell reveal-all-shell">
+      <p class="reveal-scene-kicker mb-6">The Wines</p>
+      <div class="reveal-all-grid">${bottles.join("")}</div>
+    </div>
+  `;
+}
 function renderGroupAccuracyScene(g) { return `<div class="reveal-scene-shell"></div>`; }
 function renderTheNumbersScene(n) { return `<div class="reveal-scene-shell"></div>`; }
 
