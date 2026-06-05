@@ -1,5 +1,15 @@
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { mkdirSync } from "node:fs";
+import { networkInterfaces } from "node:os";
+
+function getLanIp() {
+  for (const nets of Object.values(networkInterfaces())) {
+    for (const net of nets) {
+      if (net.family === "IPv4" && !net.internal) return net.address;
+    }
+  }
+  return "localhost";
+}
 import express from "express";
 import multer from "multer";
 import { EVENT_STATES, openWineDb, resolveDataPaths } from "./db.js";
@@ -148,6 +158,7 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
       nowPouring: db.getNowPouring(),
       revealScene: db.getRevealScene(),
       revealAllStep,
+      lanIp: getLanIp(),
       grapes: db.listGuessGrapes(),
       guests: db.listGuests(),
       bottles: db.listBlindBottles(),

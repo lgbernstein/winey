@@ -380,6 +380,21 @@ var podiumTimer = null;
 var grandStandbyQuip = 0;
 var grandStandbyTimer = null;
 var GRAND_REVEAL_QUIPS = ["The results are in. Please pretend you weren't just guessing.", "Gather round, tasters — yes, even you out on the patio.", "Step away from the cheese board. History is about to be made.", "Round up the stragglers — check the kitchen, they're always in the kitchen.", "Find a seat. Or don't. But the Grand Reveal waits for no one."];
+function makeQrSvg(data, size) {
+  if (typeof window.qrcode !== "function") return "";
+  var qr = window.qrcode(0, "M");
+  qr.addData(data);
+  qr.make();
+  return qr.createImgTag(size, 0);
+}
+function renderWelcomeScreen() {
+  var port = window.location.port || "3000";
+  var ip = state.bootstrap && state.bootstrap.lanIp || window.location.hostname;
+  var kioskUrl = "http://".concat(ip, ":").concat(port, "/kiosk.html");
+  var wifiQr = makeQrSvg("WIFI:T:WPA;S:Wine Party Guest;P:hello guest;;", 12);
+  var kioskQr = makeQrSvg(kioskUrl, 12);
+  return "\n    <div class=\"welcome-screen\">\n      <h1 class=\"welcome-title\">Welcome to Winey \uD83C\uDF77</h1>\n      <p class=\"welcome-sub\">Scan to join \u2014 then taste, guess, and compete</p>\n      <div class=\"welcome-qrs\">\n        <div class=\"welcome-qr-block\">\n          <div class=\"welcome-qr-box\" id=\"welcome-qr-wifi\">".concat(wifiQr, "</div>\n          <p class=\"welcome-qr-label\">\uD83D\uDCF6 Join the Wi-Fi</p>\n          <p class=\"welcome-qr-hint\">Wine Party Guest</p>\n        </div>\n        <div class=\"welcome-qr-divider\">then</div>\n        <div class=\"welcome-qr-block\">\n          <div class=\"welcome-qr-box\" id=\"welcome-qr-kiosk\">").concat(kioskQr, "</div>\n          <p class=\"welcome-qr-label\">\uD83D\uDCF1 Open the Kiosk</p>\n          <p class=\"welcome-qr-hint\">Rate wines on your phone</p>\n        </div>\n      </div>\n    </div>\n  ");
+}
 function renderGrandRevealStandby() {
   var quip = GRAND_REVEAL_QUIPS[grandStandbyQuip % GRAND_REVEAL_QUIPS.length];
   return "\n    <div class=\"reveal-scene-shell grand-standby\">\n      <div class=\"grand-standby-glass\">\uD83C\uDF77</div>\n      <h1 class=\"grand-standby-title\">The Grand Reveal</h1>\n      <p class=\"grand-standby-quip\">".concat(escapeHtml(quip), "</p>\n      <p class=\"grand-standby-cue\">Grab a glass and gather round\u2026</p>\n    </div>\n  ");
@@ -625,8 +640,11 @@ function tvView() {
   if (eventState === "GRAND_REVEAL") {
     return renderGrandRevealStandby();
   }
+  if (eventState === "REGISTRATION") {
+    return renderWelcomeScreen();
+  }
 
-  // Live board (LIVE_TASTING / REGISTRATION, or ARCHIVE recap)
+  // Live board (LIVE_TASTING or ARCHIVE recap)
   return "\n    ".concat(tvHeroMarkup(), "\n    ").concat(panel("\n      ".concat(state.demoBoard ? "<div class=\"mb-5 flex justify-end\"><button class=\"tap-quiet\" id=\"stop-demo\" type=\"button\">Stop demo</button></div>" : "", "\n      ").concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(eventState === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
 }
 function hostBottleFields() {

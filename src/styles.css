@@ -713,6 +713,67 @@ dialog::backdrop {
   @apply text-xl italic text-amber-100/70 mt-1;
 }
 
+/* ---- Registration welcome screen (two QR codes) ---- */
+.welcome-screen {
+  @apply flex flex-col items-center justify-center text-center w-full;
+  min-height: 85vh;
+  padding: 3rem 4rem;
+}
+.welcome-title {
+  font-size: 6.5rem;
+  font-weight: 900;
+  color: #fff7ec;
+  line-height: 1.05;
+  margin-bottom: 1.25rem;
+}
+.welcome-sub {
+  font-size: 2.6rem;
+  color: rgba(255,231,184,0.72);
+  margin-bottom: 4rem;
+}
+.welcome-qrs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5rem;
+  flex-wrap: wrap;
+}
+.welcome-qr-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+.welcome-qr-box {
+  background: #fff;
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 60px rgba(0,0,0,0.55);
+}
+.welcome-qr-box img {
+  display: block;
+}
+.welcome-qr-label {
+  font-size: 2.6rem;
+  font-weight: 700;
+  color: #ffe7b8;
+  margin: 0;
+}
+.welcome-qr-hint {
+  font-size: 1.9rem;
+  color: rgba(255,231,184,0.58);
+  margin: 0;
+}
+.welcome-qr-divider {
+  font-size: 2.4rem;
+  color: rgba(255,231,184,0.45);
+  font-style: italic;
+  padding: 0 1rem;
+}
+
 /* ---- Grand Reveal standby (gather-round holding screen) ---- */
 .grand-standby {
   @apply flex-col items-center justify-center text-center px-8;

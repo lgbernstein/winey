@@ -488,6 +488,41 @@ const GRAND_REVEAL_QUIPS = [
   "Find a seat. Or don't. But the Grand Reveal waits for no one."
 ];
 
+function makeQrSvg(data, size) {
+  if (typeof window.qrcode !== "function") return "";
+  const qr = window.qrcode(0, "M");
+  qr.addData(data);
+  qr.make();
+  return qr.createImgTag(size, 0);
+}
+
+function renderWelcomeScreen() {
+  const port = window.location.port || "3000";
+  const ip = (state.bootstrap && state.bootstrap.lanIp) || window.location.hostname;
+  const kioskUrl = `http://${ip}:${port}/kiosk.html`;
+  const wifiQr = makeQrSvg("WIFI:T:WPA;S:Wine Party Guest;P:hello guest;;", 12);
+  const kioskQr = makeQrSvg(kioskUrl, 12);
+  return `
+    <div class="welcome-screen">
+      <h1 class="welcome-title">Welcome to Winey 🍷</h1>
+      <p class="welcome-sub">Scan to join — then taste, guess, and compete</p>
+      <div class="welcome-qrs">
+        <div class="welcome-qr-block">
+          <div class="welcome-qr-box" id="welcome-qr-wifi">${wifiQr}</div>
+          <p class="welcome-qr-label">📶 Join the Wi-Fi</p>
+          <p class="welcome-qr-hint">Wine Party Guest</p>
+        </div>
+        <div class="welcome-qr-divider">then</div>
+        <div class="welcome-qr-block">
+          <div class="welcome-qr-box" id="welcome-qr-kiosk">${kioskQr}</div>
+          <p class="welcome-qr-label">📱 Open the Kiosk</p>
+          <p class="welcome-qr-hint">Rate wines on your phone</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderGrandRevealStandby() {
   const quip = GRAND_REVEAL_QUIPS[grandStandbyQuip % GRAND_REVEAL_QUIPS.length];
   return `
@@ -847,7 +882,11 @@ function tvView() {
     return renderGrandRevealStandby();
   }
 
-  // Live board (LIVE_TASTING / REGISTRATION, or ARCHIVE recap)
+  if (eventState === "REGISTRATION") {
+    return renderWelcomeScreen();
+  }
+
+  // Live board (LIVE_TASTING or ARCHIVE recap)
   return `
     ${tvHeroMarkup()}
     ${panel(`
