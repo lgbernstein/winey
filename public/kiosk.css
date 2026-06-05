@@ -63,10 +63,6 @@ input, textarea, select {
   flex: 1 1 auto;
 }
 
-.save-btn {
-  margin-top: auto;
-}
-
 .tight-group {
   margin-bottom: 14px;
 }

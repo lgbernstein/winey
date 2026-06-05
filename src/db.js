@@ -305,11 +305,10 @@ export function openWineDb({ dbFile }) {
       }
     },
     listGuests() {
-      return guestRowsStmt.all().map((row) => ({
-        id: row.id,
-        displayName: row.display_name,
-        ratedBags: ratedBagsStmt.all(row.id).map((r) => r.bag_number)
-      }));
+      return guestRowsStmt.all().map((row) => ({ id: row.id, displayName: row.display_name }));
+    },
+    ratedBagsFor(userId) {
+      return ratedBagsStmt.all(userId).map((r) => r.bag_number);
     },
     addGuest(displayName) {
       const name = displayName.trim().replace(/\s+/g, " ");

@@ -40,6 +40,40 @@ function clearForm() {
   };
   state.openModal = null;
   state.showAddGuest = false;
+  state.guestRatedBags = [];
+}
+
+// Fetch (just) the chosen guest's already-rated sleeves, then re-render so the
+// repeat banner appears. Scoped per guest — no global history broadcast.
+function loadRatedBags(_x) {
+  return _loadRatedBags.apply(this, arguments);
+}
+function _loadRatedBags() {
+  _loadRatedBags = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(userId) {
+    var data, _t;
+    return _regenerator().w(function (_context) {
+      while (1) switch (_context.p = _context.n) {
+        case 0:
+          _context.p = 0;
+          _context.n = 1;
+          return api("/api/guests/" + encodeURIComponent(userId) + "/rated-bags");
+        case 1:
+          data = _context.v;
+          if (String(state.selectedGuestId) === String(userId)) {
+            state.guestRatedBags = data.bags || [];
+            render();
+          }
+          _context.n = 3;
+          break;
+        case 2:
+          _context.p = 2;
+          _t = _context.v;
+        case 3:
+          return _context.a(2);
+      }
+    }, _callee, null, [[0, 2]]);
+  }));
+  return _loadRatedBags.apply(this, arguments);
 }
 var idleTimer = null;
 function resetIdleTimer() {
@@ -73,7 +107,8 @@ var state = {
   showAddGuest: false,
   openModal: null,
   submitting: false,
-  lastError: ""
+  lastError: "",
+  guestRatedBags: []
 };
 var APPEARANCE_OPTIONS = [{
   value: "Ruby",
@@ -157,49 +192,49 @@ var escapeHtml = function escapeHtml(value) {
     }[c];
   });
 };
-function api(_x, _x2) {
+function api(_x2, _x3) {
   return _api.apply(this, arguments);
 }
 function _api() {
-  _api = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(url, options) {
-    var isJson, headers, response, payload, _t;
-    return _regenerator().w(function (_context) {
-      while (1) switch (_context.p = _context.n) {
+  _api = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(url, options) {
+    var isJson, headers, response, payload, _t2;
+    return _regenerator().w(function (_context2) {
+      while (1) switch (_context2.p = _context2.n) {
         case 0:
           options = options || {};
           isJson = !!options.body;
           headers = isJson ? {
             "Content-Type": "application/json"
           } : {};
-          _context.n = 1;
+          _context2.n = 1;
           return fetch(url, {
             method: options.method || "GET",
             headers: headers,
             body: isJson ? JSON.stringify(options.body) : null
           });
         case 1:
-          response = _context.v;
+          response = _context2.v;
           payload = {};
-          _context.p = 2;
-          _context.n = 3;
+          _context2.p = 2;
+          _context2.n = 3;
           return response.json();
         case 3:
-          payload = _context.v;
-          _context.n = 5;
+          payload = _context2.v;
+          _context2.n = 5;
           break;
         case 4:
-          _context.p = 4;
-          _t = _context.v;
+          _context2.p = 4;
+          _t2 = _context2.v;
         case 5:
           if (response.ok) {
-            _context.n = 6;
+            _context2.n = 6;
             break;
           }
           throw new Error(payload.error || "Request failed (" + response.status + ")");
         case 6:
-          return _context.a(2, payload);
+          return _context2.a(2, payload);
       }
-    }, _callee, null, [[2, 4]]);
+    }, _callee2, null, [[2, 4]]);
   }));
   return _api.apply(this, arguments);
 }
@@ -343,10 +378,7 @@ function render() {
     return '<button type="button" class="' + (filled ? 'selected' : '') + '" data-star="' + n + '" aria-label="' + n + ' stars">' + (filled ? '★' : '☆') + '</button>';
   }).join("");
   var canSubmit = !!(state.selectedGuestId && sleeve && state.selectedGrape && state.starRating > 0) && !state.submitting;
-  var selectedGuest = state.selectedGuestId ? b.guests.filter(function (g) {
-    return String(g.id) === state.selectedGuestId;
-  })[0] : null;
-  var alreadyRated = !!(selectedGuest && sleeve && selectedGuest.ratedBags && selectedGuest.ratedBags.indexOf(Number(sleeve)) >= 0);
+  var alreadyRated = !!(state.selectedGuestId && sleeve && state.guestRatedBags.indexOf(Number(sleeve)) >= 0);
   var repeatBanner = alreadyRated ? '<div class="repeat-note">' + '<div class="repeat-title">Already rated sleeve #' + escapeHtml(String(sleeve)) + '</div>' + '<div class="repeat-sub">You\'re all set on this one 🍷</div>' + '<button type="button" class="repeat-clear" data-clear-form aria-label="Clear and start over">Clear &amp; keep tasting</button>' + '</div>' : '';
   var noseChips = NOSE_OPTIONS.map(function (o) {
     var sel = state.nose.indexOf(o.value) >= 0 ? " selected" : "";
@@ -395,19 +427,19 @@ function refresh() {
   return _refresh.apply(this, arguments);
 }
 function _refresh() {
-  _refresh = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-    return _regenerator().w(function (_context2) {
-      while (1) switch (_context2.n) {
+  _refresh = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
+    return _regenerator().w(function (_context3) {
+      while (1) switch (_context3.n) {
         case 0:
-          _context2.n = 1;
+          _context3.n = 1;
           return api("/api/bootstrap");
         case 1:
-          state.bootstrap = _context2.v;
+          state.bootstrap = _context3.v;
           render();
         case 2:
-          return _context2.a(2);
+          return _context3.a(2);
       }
-    }, _callee2);
+    }, _callee3);
   }));
   return _refresh.apply(this, arguments);
 }
@@ -415,32 +447,32 @@ function submit() {
   return _submit.apply(this, arguments);
 }
 function _submit() {
-  _submit = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
-    var sleeve, palatePayload, _t2;
-    return _regenerator().w(function (_context3) {
-      while (1) switch (_context3.p = _context3.n) {
+  _submit = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
+    var sleeve, palatePayload, _t3;
+    return _regenerator().w(function (_context4) {
+      while (1) switch (_context4.p = _context4.n) {
         case 0:
           if (!state.submitting) {
-            _context3.n = 1;
+            _context4.n = 1;
             break;
           }
-          return _context3.a(2);
+          return _context4.a(2);
         case 1:
           sleeve = effectiveSleeve();
           if (!(!state.selectedGuestId || !sleeve || !state.selectedGrape || !state.starRating)) {
-            _context3.n = 2;
+            _context4.n = 2;
             break;
           }
-          return _context3.a(2);
+          return _context4.a(2);
         case 2:
           state.submitting = true;
           render();
-          _context3.p = 3;
+          _context4.p = 3;
           palatePayload = {};
           Object.keys(state.palate).forEach(function (m) {
             if (state.palate[m]) palatePayload[m] = state.palate[m];
           });
-          _context3.n = 4;
+          _context4.n = 4;
           return api("/api/tastings", {
             method: "POST",
             body: {
@@ -456,59 +488,47 @@ function _submit() {
           });
         case 4:
           notice("Done. Now get back to tasting.");
-          state.selectedGuestId = "";
-          state.selectedSleeve = "";
-          state.selectedGrape = "";
-          state.starRating = 0;
-          state.appearance = "";
-          state.nose = [];
-          state.palate = {
-            Sweetness: "",
-            Acidity: "",
-            Tannins: "",
-            Body: ""
-          };
-          state.showAddGuest = false;
-          _context3.n = 5;
+          clearForm();
+          _context4.n = 5;
           return refresh();
         case 5:
-          _context3.n = 7;
+          _context4.n = 7;
           break;
         case 6:
-          _context3.p = 6;
-          _t2 = _context3.v;
-          notice(_t2.message || "Could not save.", true);
+          _context4.p = 6;
+          _t3 = _context4.v;
+          notice(_t3.message || "Could not save.", true);
         case 7:
-          _context3.p = 7;
+          _context4.p = 7;
           state.submitting = false;
           render();
-          return _context3.f(7);
+          return _context4.f(7);
         case 8:
-          return _context3.a(2);
+          return _context4.a(2);
       }
-    }, _callee3, null, [[3, 6, 7, 8]]);
+    }, _callee4, null, [[3, 6, 7, 8]]);
   }));
   return _submit.apply(this, arguments);
 }
-function addGuest(_x3) {
+function addGuest(_x4) {
   return _addGuest.apply(this, arguments);
 }
 function _addGuest() {
-  _addGuest = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(name) {
-    var trimmed, guest, _t3;
-    return _regenerator().w(function (_context4) {
-      while (1) switch (_context4.p = _context4.n) {
+  _addGuest = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(name) {
+    var trimmed, guest, _t4;
+    return _regenerator().w(function (_context5) {
+      while (1) switch (_context5.p = _context5.n) {
         case 0:
           trimmed = (name || "").replace(/\s+/g, " ").trim();
           if (trimmed) {
-            _context4.n = 1;
+            _context5.n = 1;
             break;
           }
           notice("Type a name first.", true);
-          return _context4.a(2);
+          return _context5.a(2);
         case 1:
-          _context4.p = 1;
-          _context4.n = 2;
+          _context5.p = 1;
+          _context5.n = 2;
           return api("/api/guests", {
             method: "POST",
             body: {
@@ -516,22 +536,24 @@ function _addGuest() {
             }
           });
         case 2:
-          guest = _context4.v;
+          guest = _context5.v;
           state.selectedGuestId = String(guest.id);
           state.showAddGuest = false;
-          _context4.n = 3;
+          state.guestRatedBags = [];
+          loadRatedBags(state.selectedGuestId);
+          _context5.n = 3;
           return refresh();
         case 3:
-          _context4.n = 5;
+          _context5.n = 5;
           break;
         case 4:
-          _context4.p = 4;
-          _t3 = _context4.v;
-          notice(_t3.message || "Could not add.", true);
+          _context5.p = 4;
+          _t4 = _context5.v;
+          notice(_t4.message || "Could not add.", true);
         case 5:
-          return _context4.a(2);
+          return _context5.a(2);
       }
-    }, _callee4, null, [[1, 4]]);
+    }, _callee5, null, [[1, 4]]);
   }));
   return _addGuest.apply(this, arguments);
 }
@@ -631,12 +653,29 @@ function handleTap(target) {
     state.selectedGuestId = guestEl.getAttribute("data-pick-guest");
     state.openModal = null;
     state.showAddGuest = false;
+    state.guestRatedBags = [];
+    loadRatedBags(state.selectedGuestId);
     render();
     return true;
   }
   var sleeveEl = closest("[data-pick-sleeve]");
   if (sleeveEl) {
-    state.selectedSleeve = sleeveEl.getAttribute("data-pick-sleeve");
+    var newSleeve = sleeveEl.getAttribute("data-pick-sleeve");
+    // Switching to a different sleeve starts a fresh tasting — don't carry the
+    // previous wine's grape guess, rating, or notes onto another bottle.
+    if (newSleeve !== state.selectedSleeve) {
+      state.selectedGrape = "";
+      state.starRating = 0;
+      state.appearance = "";
+      state.nose = [];
+      state.palate = {
+        Sweetness: "",
+        Acidity: "",
+        Tannins: "",
+        Body: ""
+      };
+    }
+    state.selectedSleeve = newSleeve;
     state.openModal = null;
     render();
     return true;
@@ -698,15 +737,6 @@ document.addEventListener("click", function (event) {
   var t = event.target;
   if (!t) return;
   if (Date.now() - lastTouchHandled < 600) return;
-  var closest = function closest(sel) {
-    return t.closest ? t.closest(sel) : null;
-  };
-  var starEl = closest("[data-star]");
-  if (starEl) {
-    state.starRating = Number(starEl.getAttribute("data-star"));
-    render();
-    return;
-  }
   if (handleTap(t)) return;
   if (t.id === "add-guest") {
     var input = document.querySelector("#guest-name");

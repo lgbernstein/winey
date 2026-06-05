@@ -161,6 +161,17 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
       res.status(400).json({ error: error.message });
     }
   });
+
+  // Which sleeves a single guest has already rated — used by the kiosk to warn
+  // about repeats without broadcasting every guest's history in the bootstrap.
+  app.get("/api/guests/:userId/rated-bags", (req, res) => {
+    const userId = Number(req.params.userId);
+    if (!Number.isInteger(userId)) {
+      res.status(400).json({ error: "Invalid guest id." });
+      return;
+    }
+    res.json({ bags: db.ratedBagsFor(userId) });
+  });
   app.post("/api/tastings", (req, res) => {
     try {
       if (db.getState() !== "LIVE_TASTING") {

@@ -31,6 +31,21 @@ function clearForm() {
   state.palate = { Sweetness: "", Acidity: "", Tannins: "", Body: "" };
   state.openModal = null;
   state.showAddGuest = false;
+  state.guestRatedBags = [];
+}
+
+// Fetch (just) the chosen guest's already-rated sleeves, then re-render so the
+// repeat banner appears. Scoped per guest — no global history broadcast.
+async function loadRatedBags(userId) {
+  try {
+    const data = await api("/api/guests/" + encodeURIComponent(userId) + "/rated-bags");
+    if (String(state.selectedGuestId) === String(userId)) {
+      state.guestRatedBags = data.bags || [];
+      render();
+    }
+  } catch (e) {
+    /* non-fatal: leave repeat detection off if the lookup fails */
+  }
 }
 
 let idleTimer = null;
@@ -59,7 +74,8 @@ const state = {
   showAddGuest: false,
   openModal: null,
   submitting: false,
-  lastError: ""
+  lastError: "",
+  guestRatedBags: []
 };
 
 const APPEARANCE_OPTIONS = [
@@ -263,11 +279,8 @@ function render() {
 
   const canSubmit = !!(state.selectedGuestId && sleeve && state.selectedGrape && state.starRating > 0) && !state.submitting;
 
-  const selectedGuest = state.selectedGuestId
-    ? b.guests.filter((g) => String(g.id) === state.selectedGuestId)[0]
-    : null;
-  const alreadyRated = !!(selectedGuest && sleeve && selectedGuest.ratedBags
-    && selectedGuest.ratedBags.indexOf(Number(sleeve)) >= 0);
+  const alreadyRated = !!(state.selectedGuestId && sleeve
+    && state.guestRatedBags.indexOf(Number(sleeve)) >= 0);
   const repeatBanner = alreadyRated
     ? '<div class="repeat-note">' +
         '<div class="repeat-title">Already rated sleeve #' + escapeHtml(String(sleeve)) + '</div>' +
@@ -368,14 +381,7 @@ async function submit() {
       }
     });
     notice("Done. Now get back to tasting.");
-    state.selectedGuestId = "";
-    state.selectedSleeve = "";
-    state.selectedGrape = "";
-    state.starRating = 0;
-    state.appearance = "";
-    state.nose = [];
-    state.palate = { Sweetness: "", Acidity: "", Tannins: "", Body: "" };
-    state.showAddGuest = false;
+    clearForm();
     await refresh();
   } catch (e) {
     notice(e.message || "Could not save.", true);
@@ -395,6 +401,8 @@ async function addGuest(name) {
     const guest = await api("/api/guests", { method: "POST", body: { displayName: trimmed } });
     state.selectedGuestId = String(guest.id);
     state.showAddGuest = false;
+    state.guestRatedBags = [];
+    loadRatedBags(state.selectedGuestId);
     await refresh();
   } catch (e) {
     notice(e.message || "Could not add.", true);
@@ -502,13 +510,25 @@ function handleTap(target) {
     state.selectedGuestId = guestEl.getAttribute("data-pick-guest");
     state.openModal = null;
     state.showAddGuest = false;
+    state.guestRatedBags = [];
+    loadRatedBags(state.selectedGuestId);
     render();
     return true;
   }
 
   const sleeveEl = closest("[data-pick-sleeve]");
   if (sleeveEl) {
-    state.selectedSleeve = sleeveEl.getAttribute("data-pick-sleeve");
+    const newSleeve = sleeveEl.getAttribute("data-pick-sleeve");
+    // Switching to a different sleeve starts a fresh tasting — don't carry the
+    // previous wine's grape guess, rating, or notes onto another bottle.
+    if (newSleeve !== state.selectedSleeve) {
+      state.selectedGrape = "";
+      state.starRating = 0;
+      state.appearance = "";
+      state.nose = [];
+      state.palate = { Sweetness: "", Acidity: "", Tannins: "", Body: "" };
+    }
+    state.selectedSleeve = newSleeve;
     state.openModal = null;
     render();
     return true;
@@ -575,15 +595,6 @@ document.addEventListener("click", (event) => {
   const t = event.target;
   if (!t) return;
   if (Date.now() - lastTouchHandled < 600) return;
-
-  const closest = (sel) => t.closest ? t.closest(sel) : null;
-
-  const starEl = closest("[data-star]");
-  if (starEl) {
-    state.starRating = Number(starEl.getAttribute("data-star"));
-    render();
-    return;
-  }
 
   if (handleTap(t)) return;
 
