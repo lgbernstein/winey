@@ -500,17 +500,16 @@ function renderWelcomeScreen() {
   const port = window.location.port || "3000";
   const ip = (state.bootstrap && state.bootstrap.lanIp) || window.location.hostname;
   const kioskUrl = `http://${ip}:${port}/kiosk.html`;
-  const wifiQr = makeQrSvg("WIFI:T:WPA;S:Wine Party Guest;P:hello guest;;", 12);
   const kioskQr = makeQrSvg(kioskUrl, 12);
   return `
     <div class="welcome-screen">
       <h1 class="welcome-title">Welcome to Winey 🍷</h1>
-      <p class="welcome-sub">Scan to join — then taste, guess, and compete</p>
+      <p class="welcome-sub">Scan to connect, then open the kiosk to start tasting</p>
       <div class="welcome-qrs">
         <div class="welcome-qr-block">
-          <div class="welcome-qr-box" id="welcome-qr-wifi">${wifiQr}</div>
+          <div class="welcome-qr-box"><img src="/wifi-qr.png" style="width:340px;height:340px;display:block"></div>
           <p class="welcome-qr-label">📶 Join the Wi-Fi</p>
-          <p class="welcome-qr-hint">Wine Party Guest</p>
+          <p class="welcome-qr-hint">LGB7</p>
         </div>
         <div class="welcome-qr-divider">then</div>
         <div class="welcome-qr-block">
