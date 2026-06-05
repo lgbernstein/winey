@@ -693,8 +693,10 @@ function renderPodiumScene(podium) {
   const medals = ["", "🥇", "🥈", "🥉"];
   const places = ["", "1st", "2nd", "3rd"];
   const rows = ordered.map((bottle, i) => {
-    const visible = podiumStep >= (i + 1);
     const isFirst = bottle.rank === 1;
+    // landed = already done animating; animating = just revealed this step; else hidden
+    const isLanded   = podiumStep > (i + 1);
+    const isAnimating = !isLanded && podiumStep === (i + 1);
     const photo = bottle.photoUrl
       ? `<img class="podium-row-photo" src="${escapeHtml(bottle.photoUrl)}" alt="${escapeHtml(bottle.bottleName)}" loading="lazy">`
       : `<div class="podium-row-no-photo">#${bottle.bagNumber}</div>`;
@@ -704,7 +706,7 @@ function renderPodiumScene(podium) {
       ? `<p class="podium-row-note">&ldquo;${escapeHtml(bottle.professionalCommentary)}&rdquo;</p>`
       : "";
     return `
-      <div class="podium-row ${isFirst ? "podium-row-first" : ""} ${visible ? "podium-row-visible" : ""}">
+      <div class="podium-row ${isFirst ? "podium-row-first" : ""} ${isLanded ? "podium-row-landed" : (isAnimating ? "podium-row-visible" : "")}">
         <div class="podium-row-rank">
           <span class="podium-row-medal">${medals[bottle.rank]}</span>
           <span class="podium-row-place">${places[bottle.rank]}</span>
@@ -1131,6 +1133,9 @@ function render() {
         if (podiumStep >= 3) {
           clearInterval(podiumTimer);
           podiumTimer = null;
+          // After the last card's animation finishes, bump step to 99 so every
+          // subsequent re-render treats all rows as "landed" (no animation).
+          setTimeout(() => { podiumStep = 99; }, 900);
         }
       }, 2500);
     }
@@ -1539,6 +1544,9 @@ window.addEventListener("resize", () => { if (state.view === "tv") fitTvGrid(); 
 
 setInterval(async () => {
   if (state.view === "tv" && !state.demoBoard) {
+    // During a reveal scene the host drives everything manually — no need to
+    // hammer the server every 2s and risk re-triggering animations mid-reveal.
+    if (state.bootstrap?.revealScene) return;
     try {
       await refresh({ reveal: true });
       if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {

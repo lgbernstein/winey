@@ -533,13 +533,15 @@ function renderPodiumScene(podium) {
   var medals = ["", "🥇", "🥈", "🥉"];
   var places = ["", "1st", "2nd", "3rd"];
   var rows = ordered.map(function (bottle, i) {
-    var visible = podiumStep >= i + 1;
     var isFirst = bottle.rank === 1;
+    // landed = already done animating; animating = just revealed this step; else hidden
+    var isLanded = podiumStep > i + 1;
+    var isAnimating = !isLanded && podiumStep === i + 1;
     var photo = bottle.photoUrl ? "<img class=\"podium-row-photo\" src=\"".concat(escapeHtml(bottle.photoUrl), "\" alt=\"").concat(escapeHtml(bottle.bottleName), "\" loading=\"lazy\">") : "<div class=\"podium-row-no-photo\">#".concat(bottle.bagNumber, "</div>");
     var meta = [bottle.producer, bottle.region, bottle.vintage].filter(Boolean).join(" · ");
     var critic = bottle.professionalRating ? " &middot; <span class=\"podium-row-critic\">\uD83C\uDF93 Critics ".concat(escapeHtml(String(bottle.professionalRating)), "</span>") : "";
     var note = bottle.professionalCommentary ? "<p class=\"podium-row-note\">&ldquo;".concat(escapeHtml(bottle.professionalCommentary), "&rdquo;</p>") : "";
-    return "\n      <div class=\"podium-row ".concat(isFirst ? "podium-row-first" : "", " ").concat(visible ? "podium-row-visible" : "", "\">\n        <div class=\"podium-row-rank\">\n          <span class=\"podium-row-medal\">").concat(medals[bottle.rank], "</span>\n          <span class=\"podium-row-place\">").concat(places[bottle.rank], "</span>\n          <span class=\"podium-row-sleeve\">#").concat(bottle.bagNumber, "</span>\n        </div>\n        <div class=\"podium-row-body\">\n          ").concat(photo, "\n          <div class=\"podium-row-info\">\n            <h3 class=\"podium-row-name\">").concat(escapeHtml(bottle.bottleName || "Sleeve ".concat(bottle.bagNumber)), "</h3>\n            ").concat(meta ? "<p class=\"podium-row-meta\">".concat(escapeHtml(meta), "</p>") : "", "\n            ").concat(bottle.grape ? "<p class=\"podium-row-grape\">".concat(escapeHtml(bottle.grape), "</p>") : "", "\n            <p class=\"podium-row-scores\">\uD83C\uDF77 Crowd ").concat(Number(bottle.averageRating).toFixed(1), " / 5.0").concat(critic, "</p>\n            ").concat(note, "\n          </div>\n        </div>\n      </div>\n    ");
+    return "\n      <div class=\"podium-row ".concat(isFirst ? "podium-row-first" : "", " ").concat(isLanded ? "podium-row-landed" : isAnimating ? "podium-row-visible" : "", "\">\n        <div class=\"podium-row-rank\">\n          <span class=\"podium-row-medal\">").concat(medals[bottle.rank], "</span>\n          <span class=\"podium-row-place\">").concat(places[bottle.rank], "</span>\n          <span class=\"podium-row-sleeve\">#").concat(bottle.bagNumber, "</span>\n        </div>\n        <div class=\"podium-row-body\">\n          ").concat(photo, "\n          <div class=\"podium-row-info\">\n            <h3 class=\"podium-row-name\">").concat(escapeHtml(bottle.bottleName || "Sleeve ".concat(bottle.bagNumber)), "</h3>\n            ").concat(meta ? "<p class=\"podium-row-meta\">".concat(escapeHtml(meta), "</p>") : "", "\n            ").concat(bottle.grape ? "<p class=\"podium-row-grape\">".concat(escapeHtml(bottle.grape), "</p>") : "", "\n            <p class=\"podium-row-scores\">\uD83C\uDF77 Crowd ").concat(Number(bottle.averageRating).toFixed(1), " / 5.0").concat(critic, "</p>\n            ").concat(note, "\n          </div>\n        </div>\n      </div>\n    ");
   });
   return "\n    <div class=\"reveal-scene-shell reveal-podium\">\n      <div class=\"podium-rows\">".concat(rows.join(""), "</div>\n    </div>\n  ");
 }
@@ -738,6 +740,11 @@ function render() {
         if (podiumStep >= 3) {
           clearInterval(podiumTimer);
           podiumTimer = null;
+          // After the last card's animation finishes, bump step to 99 so every
+          // subsequent re-render treats all rows as "landed" (no animation).
+          setTimeout(function () {
+            podiumStep = 99;
+          }, 900);
         }
       }, 2500);
     }
@@ -1676,7 +1683,7 @@ window.addEventListener("resize", function () {
   if (state.view === "tv") fitTvGrid();
 });
 setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-  var _t3;
+  var _state$bootstrap5, _t3;
   return _regenerator().w(function (_context2) {
     while (1) switch (_context2.p = _context2.n) {
       case 0:
@@ -1684,6 +1691,12 @@ setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(functio
           _context2.n = 4;
           break;
         }
+        if (!((_state$bootstrap5 = state.bootstrap) !== null && _state$bootstrap5 !== void 0 && _state$bootstrap5.revealScene)) {
+          _context2.n = 1;
+          break;
+        }
+        return _context2.a(2);
+      case 1:
         _context2.p = 1;
         _context2.n = 2;
         return refresh({
