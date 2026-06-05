@@ -259,6 +259,16 @@ function render() {
 
   const canSubmit = !!(state.selectedGuestId && sleeve && state.selectedGrape && state.starRating > 0) && !state.submitting;
 
+  const selectedGuest = state.selectedGuestId
+    ? b.guests.filter((g) => String(g.id) === state.selectedGuestId)[0]
+    : null;
+  const alreadyRated = !!(selectedGuest && sleeve && selectedGuest.ratedBags
+    && selectedGuest.ratedBags.indexOf(Number(sleeve)) >= 0);
+  const repeatBanner = alreadyRated
+    ? '<div class="repeat-note">🍷 You\'ve already rated sleeve #' + escapeHtml(String(sleeve)) +
+      '. No need to do it again — saving will simply update your earlier notes.</div>'
+    : '';
+
   const noseChips = NOSE_OPTIONS.map((o) => {
     const sel = state.nose.indexOf(o.value) >= 0 ? " selected" : "";
     return '<button type="button" class="chip' + sel + '" data-toggle-nose="' + escapeHtml(o.value) + '">' + escapeHtml(o.label) + '</button>';
@@ -276,6 +286,7 @@ function render() {
       ? '<div class="now-pouring"><div class="label">Now pouring</div><div class="sleeve">#' + b.nowPouring + '</div></div>'
       : '') +
     '<form id="form" autocomplete="off">' +
+      repeatBanner +
       fieldButton("taster", "Taster", guestLabel(), "Pick your name") +
       fieldButton("sleeve", "Sleeve", sleeveLabel(), "Pick a sleeve") +
       fieldButton("grape", "Grape guess", grapeLabel(), "Guess the grape") +

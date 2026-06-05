@@ -340,6 +340,11 @@ function render() {
     return '<button type="button" class="' + (filled ? 'selected' : '') + '" data-star="' + n + '" aria-label="' + n + ' stars">' + (filled ? '★' : '☆') + '</button>';
   }).join("");
   var canSubmit = !!(state.selectedGuestId && sleeve && state.selectedGrape && state.starRating > 0) && !state.submitting;
+  var selectedGuest = state.selectedGuestId ? b.guests.filter(function (g) {
+    return String(g.id) === state.selectedGuestId;
+  })[0] : null;
+  var alreadyRated = !!(selectedGuest && sleeve && selectedGuest.ratedBags && selectedGuest.ratedBags.indexOf(Number(sleeve)) >= 0);
+  var repeatBanner = alreadyRated ? '<div class="repeat-note">🍷 You\'ve already rated sleeve #' + escapeHtml(String(sleeve)) + '. No need to do it again — saving will simply update your earlier notes.</div>' : '';
   var noseChips = NOSE_OPTIONS.map(function (o) {
     var sel = state.nose.indexOf(o.value) >= 0 ? " selected" : "";
     return '<button type="button" class="chip' + sel + '" data-toggle-nose="' + escapeHtml(o.value) + '">' + escapeHtml(o.label) + '</button>';
@@ -351,7 +356,7 @@ function render() {
     }).join("");
     return '<div class="palate-row"><span class="palate-metric">' + metric + '</span><div class="chip-row palate-chips">' + chips + '</div></div>';
   }).join("");
-  main.innerHTML = (b.nowPouring ? '<div class="now-pouring"><div class="label">Now pouring</div><div class="sleeve">#' + b.nowPouring + '</div></div>' : '') + '<form id="form" autocomplete="off">' + fieldButton("taster", "Taster", guestLabel(), "Pick your name") + fieldButton("sleeve", "Sleeve", sleeveLabel(), "Pick a sleeve") + fieldButton("grape", "Grape guess", grapeLabel(), "Guess the grape") + '<div class="tight-group"><label class="legend tight-legend">Aromas</label><div class="chip-row">' + noseChips + '</div></div>' + '<div class="tight-group"><label class="legend tight-legend">Palate</label>' + palateRows + '</div>' + '<div class="tight-group"><label class="legend tight-legend">Your rating</label><div class="stars">' + starsHtml + '</div></div>' + '<button type="submit" class="save-btn"' + (canSubmit ? '' : ' disabled') + '>' + (state.submitting ? 'Saving…' : 'Save tasting') + '</button>' + '</form>';
+  main.innerHTML = (b.nowPouring ? '<div class="now-pouring"><div class="label">Now pouring</div><div class="sleeve">#' + b.nowPouring + '</div></div>' : '') + '<form id="form" autocomplete="off">' + repeatBanner + fieldButton("taster", "Taster", guestLabel(), "Pick your name") + fieldButton("sleeve", "Sleeve", sleeveLabel(), "Pick a sleeve") + fieldButton("grape", "Grape guess", grapeLabel(), "Guess the grape") + '<div class="tight-group"><label class="legend tight-legend">Aromas</label><div class="chip-row">' + noseChips + '</div></div>' + '<div class="tight-group"><label class="legend tight-legend">Palate</label>' + palateRows + '</div>' + '<div class="tight-group"><label class="legend tight-legend">Your rating</label><div class="stars">' + starsHtml + '</div></div>' + '<button type="submit" class="save-btn"' + (canSubmit ? '' : ' disabled') + '>' + (state.submitting ? 'Saving…' : 'Save tasting') + '</button>' + '</form>';
   paintModal();
 }
 function paintModal() {

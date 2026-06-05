@@ -157,6 +157,11 @@ export function openWineDb({ dbFile }) {
   const findGuestStmt = sqlite.prepare("SELECT id, display_name FROM users WHERE lower(display_name) = lower(?)");
   const bottleByBagStmt = sqlite.prepare("SELECT * FROM wine_bottles WHERE bag_number = ?");
   const bottleByIdStmt = sqlite.prepare("SELECT * FROM wine_bottles WHERE id = ?");
+  const ratedBagsStmt = sqlite.prepare(`
+    SELECT b.bag_number FROM tasting_entries t
+    JOIN wine_bottles b ON b.id = t.bottle_id
+    WHERE t.user_id = ?
+  `);
 
   return {
     close: () => sqlite.close(),
@@ -300,7 +305,11 @@ export function openWineDb({ dbFile }) {
       }
     },
     listGuests() {
-      return guestRowsStmt.all().map((row) => ({ id: row.id, displayName: row.display_name }));
+      return guestRowsStmt.all().map((row) => ({
+        id: row.id,
+        displayName: row.display_name,
+        ratedBags: ratedBagsStmt.all(row.id).map((r) => r.bag_number)
+      }));
     },
     addGuest(displayName) {
       const name = displayName.trim().replace(/\s+/g, " ");
