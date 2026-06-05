@@ -481,7 +481,7 @@ let grandStandbyQuip = 0;
 let grandStandbyTimer = null;
 
 const GRAND_REVEAL_QUIPS = [
-  "Gather round, tasters — yes, even you out in the backyard.",
+  "Gather round, tasters — yes, even you out on the patio.",
   "The results are in. Please pretend you weren't just guessing.",
   "Step away from the cheese board. History is about to be made.",
   "Put your glass down… actually, bring your glass. Just get in here.",

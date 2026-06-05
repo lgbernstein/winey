@@ -379,7 +379,7 @@ var podiumStep = 0;
 var podiumTimer = null;
 var grandStandbyQuip = 0;
 var grandStandbyTimer = null;
-var GRAND_REVEAL_QUIPS = ["Gather round, tasters — yes, even you out in the backyard.", "The results are in. Please pretend you weren't just guessing.", "Step away from the cheese board. History is about to be made.", "Put your glass down… actually, bring your glass. Just get in here.", "Last call for hot takes. The wines have officially been judged.", "Round up the stragglers. Someone go check the patio.", "Find a seat. Or don't. But the Grand Reveal waits for no one."];
+var GRAND_REVEAL_QUIPS = ["Gather round, tasters — yes, even you out on the patio.", "The results are in. Please pretend you weren't just guessing.", "Step away from the cheese board. History is about to be made.", "Put your glass down… actually, bring your glass. Just get in here.", "Last call for hot takes. The wines have officially been judged.", "Round up the stragglers. Someone go check the patio.", "Find a seat. Or don't. But the Grand Reveal waits for no one."];
 function renderGrandRevealStandby() {
   var quip = GRAND_REVEAL_QUIPS[grandStandbyQuip % GRAND_REVEAL_QUIPS.length];
   return "\n    <div class=\"reveal-scene-shell grand-standby\">\n      <div class=\"grand-standby-glass\">\uD83C\uDF77</div>\n      <h1 class=\"grand-standby-title\">The Grand Reveal</h1>\n      <p class=\"grand-standby-quip\">".concat(escapeHtml(quip), "</p>\n      <p class=\"grand-standby-cue\">Grab a glass and gather round\u2026</p>\n    </div>\n  ");
