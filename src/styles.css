@@ -646,10 +646,10 @@ dialog::backdrop {
   @apply flex-col items-center pt-8 w-full px-6;
 }
 .podium-rows {
-  @apply flex flex-col gap-10 w-full max-w-5xl;
+  @apply flex flex-col gap-5 w-full max-w-5xl;
 }
 .podium-row {
-  @apply flex items-center gap-7 bg-stone-900 border border-amber-100/15 rounded-2xl p-6 opacity-0;
+  @apply flex items-center gap-6 bg-stone-900 border border-amber-100/15 rounded-2xl p-4 opacity-0;
   transform: translateY(120px);
 }
 .podium-row-visible {
@@ -664,18 +664,12 @@ dialog::backdrop {
   0%   { opacity: 0; transform: translateY(120px); }
   100% { opacity: 1; transform: translateY(0); }
 }
-.podium-row-first {
-  @apply border-amber-400/60 shadow-[0_0_50px_rgba(251,191,36,0.25)];
-}
 .podium-row-rank {
-  @apply flex flex-col items-center justify-center shrink-0 w-40;
+  @apply flex flex-col items-center justify-center shrink-0 w-36;
 }
 .podium-row-medal {
   @apply leading-none;
-  font-size: 4.5rem;
-}
-.podium-row-place {
-  @apply text-2xl font-bold text-amber-200 mt-1;
+  font-size: 4rem;
 }
 .podium-row-sleeve {
   @apply text-5xl font-black text-amber-300;

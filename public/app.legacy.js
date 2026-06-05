@@ -545,10 +545,7 @@ function renderPodiumScene(podium) {
   var ordered = _toConsumableArray(podium).sort(function (a, b) {
     return a.rank - b.rank;
   });
-  var medals = ["", "🥇", "🥈", "🥉"];
-  var places = ["", "1st", "2nd", "3rd"];
   var rows = ordered.map(function (bottle, i) {
-    var isFirst = bottle.rank === 1;
     // landed = already done animating; animating = just revealed this step; else hidden
     var isLanded = podiumStep > i + 1;
     var isAnimating = !isLanded && podiumStep === i + 1;
@@ -556,7 +553,7 @@ function renderPodiumScene(podium) {
     var meta = [bottle.producer, bottle.region, bottle.vintage].filter(Boolean).join(" · ");
     var critic = bottle.professionalRating ? " &middot; <span class=\"podium-row-critic\">\uD83C\uDF93 Critics ".concat(escapeHtml(String(bottle.professionalRating)), "</span>") : "";
     var note = bottle.professionalCommentary ? "<p class=\"podium-row-note\">&ldquo;".concat(escapeHtml(bottle.professionalCommentary), "&rdquo;</p>") : "";
-    return "\n      <div class=\"podium-row ".concat(isFirst ? "podium-row-first" : "", " ").concat(isLanded ? "podium-row-landed" : isAnimating ? "podium-row-visible" : "", "\">\n        <div class=\"podium-row-rank\">\n          <span class=\"podium-row-medal\">").concat(medals[bottle.rank], "</span>\n          <span class=\"podium-row-place\">").concat(places[bottle.rank], "</span>\n          <span class=\"podium-row-sleeve\">#").concat(bottle.bagNumber, "</span>\n        </div>\n        <div class=\"podium-row-body\">\n          ").concat(photo, "\n          <div class=\"podium-row-info\">\n            <h3 class=\"podium-row-name\">").concat(escapeHtml(bottle.bottleName || "Sleeve ".concat(bottle.bagNumber)), "</h3>\n            ").concat(meta ? "<p class=\"podium-row-meta\">".concat(escapeHtml(meta), "</p>") : "", "\n            ").concat(bottle.grape ? "<p class=\"podium-row-grape\">".concat(escapeHtml(bottle.grape), "</p>") : "", "\n            ").concat(critic ? "<p class=\"podium-row-scores\">".concat(critic.replace(" &middot; ", ""), "</p>") : "", "\n            ").concat(note, "\n          </div>\n        </div>\n      </div>\n    ");
+    return "\n      <div class=\"podium-row ".concat(isLanded ? "podium-row-landed" : isAnimating ? "podium-row-visible" : "", "\">\n        <div class=\"podium-row-rank\">\n          <span class=\"podium-row-medal\">&#127942;</span>\n          <span class=\"podium-row-sleeve\">#").concat(bottle.bagNumber, "</span>\n        </div>\n        <div class=\"podium-row-body\">\n          ").concat(photo, "\n          <div class=\"podium-row-info\">\n            <h3 class=\"podium-row-name\">").concat(escapeHtml(bottle.bottleName || "Sleeve ".concat(bottle.bagNumber)), "</h3>\n            ").concat(meta ? "<p class=\"podium-row-meta\">".concat(escapeHtml(meta), "</p>") : "", "\n            ").concat(bottle.grape ? "<p class=\"podium-row-grape\">".concat(escapeHtml(bottle.grape), "</p>") : "", "\n            ").concat(critic ? "<p class=\"podium-row-scores\">".concat(critic.replace(" &middot; ", ""), "</p>") : "", "\n            ").concat(note, "\n          </div>\n        </div>\n      </div>\n    ");
   });
   return "\n    <div class=\"reveal-scene-shell reveal-podium\">\n      <div class=\"podium-rows\">".concat(rows.join(""), "</div>\n    </div>\n  ");
 }

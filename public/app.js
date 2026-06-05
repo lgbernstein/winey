@@ -723,10 +723,7 @@ function renderSommelierScene(sommelier) {
 function renderPodiumScene(podium) {
   // Top to bottom, 1st → 2nd → 3rd; each row rises in starting with #1.
   const ordered = [...podium].sort((a, b) => a.rank - b.rank);
-  const medals = ["", "🥇", "🥈", "🥉"];
-  const places = ["", "1st", "2nd", "3rd"];
   const rows = ordered.map((bottle, i) => {
-    const isFirst = bottle.rank === 1;
     // landed = already done animating; animating = just revealed this step; else hidden
     const isLanded   = podiumStep > (i + 1);
     const isAnimating = !isLanded && podiumStep === (i + 1);
@@ -739,10 +736,9 @@ function renderPodiumScene(podium) {
       ? `<p class="podium-row-note">&ldquo;${escapeHtml(bottle.professionalCommentary)}&rdquo;</p>`
       : "";
     return `
-      <div class="podium-row ${isFirst ? "podium-row-first" : ""} ${isLanded ? "podium-row-landed" : (isAnimating ? "podium-row-visible" : "")}">
+      <div class="podium-row ${isLanded ? "podium-row-landed" : (isAnimating ? "podium-row-visible" : "")}">
         <div class="podium-row-rank">
-          <span class="podium-row-medal">${medals[bottle.rank]}</span>
-          <span class="podium-row-place">${places[bottle.rank]}</span>
+          <span class="podium-row-medal">&#127942;</span>
           <span class="podium-row-sleeve">#${bottle.bagNumber}</span>
         </div>
         <div class="podium-row-body">
