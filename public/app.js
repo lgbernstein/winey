@@ -995,7 +995,8 @@ function hostView() {
       `)}
       ${panel(`
         <h2 class="text-2xl font-semibold">Event control</h2>
-        <div class="mt-4 grid gap-2 sm:grid-cols-2">
+        <div class="mt-4 grid gap-2 sm:grid-cols-3">
+          <button class="${state.bootstrap.state === "REGISTRATION" ? "tap-primary" : "tap-quiet"}" data-event-state="REGISTRATION" type="button">Registration${state.bootstrap.state === "REGISTRATION" ? " ●" : ""}</button>
           <button class="${state.bootstrap.state === "LIVE_TASTING" ? "tap-primary" : "tap-quiet"}" data-event-state="LIVE_TASTING" type="button">Live tasting${state.bootstrap.state === "LIVE_TASTING" ? " ●" : ""}</button>
           <button class="${state.bootstrap.state === "GRAND_REVEAL" ? "tap-primary" : "tap-quiet"}" data-event-state="GRAND_REVEAL" type="button">Grand reveal${state.bootstrap.state === "GRAND_REVEAL" ? " ●" : ""}</button>
         </div>
