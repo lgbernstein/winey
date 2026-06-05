@@ -221,9 +221,14 @@ export function openWineDb({ dbFile }) {
           FROM wine_bottles b
           LEFT JOIN tasting_entries t ON t.bottle_id = b.id
           GROUP BY b.id
+          HAVING vote_count > 0
           ORDER BY avg_rating DESC, vote_count DESC, b.bag_number ASC
-          LIMIT 3
-        `).all().map((row, i) => ({
+        `).all().filter((row, _i, arr) => {
+          // Include all wines that share the top-3 rating levels so ties
+          // don't cut off equally-loved bottles. Cap at 6 for screen fit.
+          const top3Ratings = [...new Set(arr.map(r => r.avg_rating))].slice(0, 3);
+          return top3Ratings.includes(row.avg_rating);
+        }).slice(0, 6).map((row, i) => ({
           rank: i + 1,
           bagNumber: row.bag_number,
           bottleName: row.bottle_name || "",

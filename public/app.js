@@ -167,7 +167,7 @@ function notice(message) {
 
 const REVEAL_SCENE_TITLES = {
   "sommelier": "The Vine Whisperer",
-  "podium": "Top 3 Bottles",
+  "podium": "Crowd Favorites",
   "reveal-all": "The Wines",
   "group-accuracy": "How Did We Do?",
   "the-numbers": "The Numbers"
@@ -983,7 +983,7 @@ function hostView() {
           <p class="mb-3 text-sm font-bold text-amber-300 uppercase tracking-widest">Reveal Sequence</p>
           <div class="reveal-host-buttons">
             ${[
-              { scene: "podium",         label: "🥇 Top 3 Bottles" },
+              { scene: "podium",         label: "🏆 Crowd Favorites" },
               { scene: "reveal-all",     label: "🍷 Reveal All" },
               { scene: "sommelier",      label: "🏆 The Vine Whisperer" },
               { scene: "group-accuracy", label: "🎯 How Did We Do?" },
