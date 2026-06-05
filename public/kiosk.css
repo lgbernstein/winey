@@ -174,6 +174,14 @@ input, textarea, select {
   flex: 0 0 calc(50% - 8px);
 }
 
+/* iPad: all 4 aroma chips on one row (must come after base rule to win) */
+@media (min-width: 680px) {
+  .chip-row:not(.palate-chips) .chip {
+    -webkit-flex: 1 1 0%;
+    flex: 1 1 0%;
+  }
+}
+
 .palate-chips .chip {
   -webkit-flex: 1 1 0%;
   flex: 1 1 0%;
