@@ -601,7 +601,7 @@ function revealMarkup() {
                 <p class="text-sm font-bold text-amber-300">Sleeve ${bottle.bagNumber}</p>
                 <h3 class="text-xl font-semibold">${escapeHtml(bottle.bottleName)}</h3>
                 <p class="text-emerald-100">${escapeHtml([bottle.producer, bottle.vintage, bottle.region].filter(Boolean).join(" · "))}</p>
-                <p class="mt-2"><strong>${escapeHtml(bottle.grape)}</strong> · Crowd ${Number(bottle.averageRating).toFixed(1)} / 5 · ${bottle.voteCount} votes</p>
+                <p class="mt-2"><strong>${escapeHtml(bottle.grape)}</strong></p>
               </div>
             </div>
             <p class="mt-3 text-amber-50/85">${escapeHtml(bottle.expertScore === null ? "Host note" : `Expert ${bottle.expertScore}/100`)}: ${escapeHtml(bottle.expertCommentary || "No expert note entered.")}</p>
@@ -718,7 +718,7 @@ function renderPodiumScene(podium) {
             <h3 class="podium-row-name">${escapeHtml(bottle.bottleName || `Sleeve ${bottle.bagNumber}`)}</h3>
             ${meta ? `<p class="podium-row-meta">${escapeHtml(meta)}</p>` : ""}
             ${bottle.grape ? `<p class="podium-row-grape">${escapeHtml(bottle.grape)}</p>` : ""}
-            <p class="podium-row-scores">🍷 Crowd ${Number(bottle.averageRating).toFixed(1)} / 5.0${critic}</p>
+            ${critic ? `<p class="podium-row-scores">${critic.replace(" &middot; ", "")}</p>` : ""}
             ${note}
           </div>
         </div>
@@ -765,8 +765,8 @@ function consensusGridMarkup(consensus) {
     ["Sweetness", consensus.sweetness],
     ["Acidity", consensus.acidity],
     ["Tannins", consensus.tannins],
-    ["Body", consensus.body],
-    ["Ratings", consensus.ratings]
+    ["Body", consensus.body]
+    // Ratings consensus intentionally suppressed — kept in data, not displayed
   ];
   const stats = items.map(([label, value]) => `
     <div style="min-width:6rem">
@@ -806,7 +806,7 @@ function renderTheNumbersScene(theNumbers) {
   const stats = [
     { value: bottleCount, label: "bottles tasted" },
     { value: entryCount, label: "tasting notes submitted" },
-    { value: Number(averageRating).toFixed(1) + " / 5", label: "average rating" }
+    { value: Number(averageRating).toFixed(1) + " / 5", label: "average rating across all wines" }
   ];
   return `
     <div class="reveal-scene-shell reveal-the-numbers">
