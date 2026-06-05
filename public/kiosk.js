@@ -493,9 +493,7 @@ function handleTap(target) {
     state.selectedGuestId = guestEl.getAttribute("data-pick-guest");
     state.openModal = null;
     state.showAddGuest = false;
-    paintModal();
-    updateFieldButtonText("taster", guestLabel());
-    updateSaveButton();
+    render();
     return true;
   }
 
@@ -503,9 +501,7 @@ function handleTap(target) {
   if (sleeveEl) {
     state.selectedSleeve = sleeveEl.getAttribute("data-pick-sleeve");
     state.openModal = null;
-    paintModal();
-    updateFieldButtonText("sleeve", sleeveLabel());
-    updateSaveButton();
+    render();
     return true;
   }
 

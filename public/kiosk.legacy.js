@@ -627,18 +627,14 @@ function handleTap(target) {
     state.selectedGuestId = guestEl.getAttribute("data-pick-guest");
     state.openModal = null;
     state.showAddGuest = false;
-    paintModal();
-    updateFieldButtonText("taster", guestLabel());
-    updateSaveButton();
+    render();
     return true;
   }
   var sleeveEl = closest("[data-pick-sleeve]");
   if (sleeveEl) {
     state.selectedSleeve = sleeveEl.getAttribute("data-pick-sleeve");
     state.openModal = null;
-    paintModal();
-    updateFieldButtonText("sleeve", sleeveLabel());
-    updateSaveButton();
+    render();
     return true;
   }
   var grapeEl = closest("[data-pick-grape]");
