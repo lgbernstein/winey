@@ -348,6 +348,8 @@ function revealedBottleMarkup(bottle) {
   return "<div class=\"revealed-bottle\">\n    ".concat(photo, "\n    <div class=\"revealed-bottle-info\">\n      <p class=\"revealed-bottle-sleeve\">Sleeve ").concat(bottle.bagNumber, "</p>\n      <p class=\"revealed-bottle-name\">").concat(escapeHtml(bottle.bottleName || ""), "</p>\n      ").concat(bottle.grape ? "<p class=\"revealed-bottle-grape\">".concat(escapeHtml(bottle.grape), "</p>") : "", "\n    </div>\n  </div>");
 }
 var revealFlipDone = false;
+var podiumStep = 0;
+var podiumTimer = null;
 function triggerRevealFlip() {
   var _state$revealData;
   if (revealFlipDone) return;
@@ -489,8 +491,20 @@ function renderSommelierScene(sommelier) {
   var subtextBase = hasWinner ? "Correctly identified ".concat(correctCount, " of ").concat(totalBottles, " grape ").concat(totalBottles === 1 ? "variety" : "varieties") : "The grapes kept their secrets tonight.";
   return "\n    <div class=\"reveal-scene-shell reveal-sommelier\">\n      <div class=\"reveal-sommelier-inner\">\n        <div class=\"reveal-scene-trophy\">\uD83C\uDFC6</div>\n        <p class=\"reveal-scene-kicker\">The Sommelier</p>\n        <h2 class=\"reveal-sommelier-name\">".concat(hasWinner ? winnerText : "No correct guesses", "</h2>\n        <p class=\"reveal-scene-sub\">").concat(subtextBase, "</p>\n      </div>\n    </div>\n  ");
 }
-function renderPodiumScene(p) {
-  return "<div class=\"reveal-scene-shell\"></div>";
+function renderPodiumScene(podium) {
+  // Display order: 3rd first, then 2nd, then 1st (revealed sequentially)
+  var ordered = _toConsumableArray(podium).sort(function (a, b) {
+    return b.rank - a.rank;
+  });
+  var cards = ordered.map(function (bottle, i) {
+    var visible = podiumStep >= i + 1;
+    var isFirst = bottle.rank === 1;
+    var photo = bottle.photoUrl ? "<img class=\"podium-card-photo\" src=\"".concat(escapeHtml(bottle.photoUrl), "\" alt=\"").concat(escapeHtml(bottle.bottleName), "\" loading=\"lazy\">") : "<div class=\"podium-card-no-photo\">#".concat(bottle.bagNumber, "</div>");
+    var filled = Math.round(bottle.averageRating);
+    var stars = "★".repeat(filled) + "☆".repeat(5 - filled);
+    return "\n      <div class=\"podium-card ".concat(isFirst ? "podium-card-first" : "", " ").concat(visible ? "podium-card-visible" : "", "\">\n        <p class=\"podium-rank-label\">").concat(["", "🥇 1st", "🥈 2nd", "🥉 3rd"][bottle.rank], "</p>\n        ").concat(photo, "\n        <div class=\"podium-card-info\">\n          <h3 class=\"podium-card-name\">").concat(escapeHtml(bottle.bottleName || "Sleeve ".concat(bottle.bagNumber)), "</h3>\n          <p class=\"podium-card-producer\">").concat(escapeHtml([bottle.producer, bottle.vintage].filter(Boolean).join(" · ")), "</p>\n          <p class=\"podium-card-grape\">").concat(escapeHtml(bottle.grape), "</p>\n          <p class=\"podium-card-rating\">").concat(stars, " ").concat(Number(bottle.averageRating).toFixed(1), "</p>\n        </div>\n      </div>\n    ");
+  });
+  return "\n    <div class=\"reveal-scene-shell reveal-podium\">\n      <p class=\"reveal-scene-kicker reveal-podium-kicker\">Top Bottles</p>\n      <div class=\"podium-cards\">".concat(cards.join(""), "</div>\n    </div>\n  ");
 }
 function renderRevealAllScene(r) {
   return "<div class=\"reveal-scene-shell\"></div>";
@@ -619,6 +633,24 @@ function render() {
     triggerRevealFlip();
   } else if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state) || state.bootstrap.revealScene !== "reveal-all") {
     revealFlipDone = false;
+  }
+  if (state.view === "tv" && state.bootstrap.revealScene === "podium") {
+    if (!podiumTimer && podiumStep < 3) {
+      podiumTimer = setInterval(function () {
+        podiumStep++;
+        render();
+        if (podiumStep >= 3) {
+          clearInterval(podiumTimer);
+          podiumTimer = null;
+        }
+      }, 2500);
+    }
+  } else {
+    if (podiumTimer) {
+      clearInterval(podiumTimer);
+      podiumTimer = null;
+    }
+    if (state.bootstrap.revealScene !== "podium") podiumStep = 0;
   }
 }
 function refresh() {

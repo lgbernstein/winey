@@ -632,3 +632,45 @@ dialog::backdrop {
 .reveal-sommelier-name {
   @apply text-6xl font-bold text-amber-300 mt-2 leading-tight;
 }
+.reveal-podium {
+  @apply flex-col gap-6 pt-12;
+}
+.reveal-podium-kicker {
+  @apply text-amber-400 text-xl font-semibold tracking-widest uppercase;
+}
+.podium-cards {
+  @apply flex gap-6 items-end justify-center flex-wrap px-8;
+}
+.podium-card {
+  @apply flex flex-col items-center bg-stone-900 border border-amber-100/15 rounded-2xl p-5 w-64 opacity-0 translate-y-8 transition-all duration-700;
+}
+.podium-card-visible {
+  @apply opacity-100 translate-y-0;
+}
+.podium-card-first {
+  @apply border-amber-400/60 shadow-[0_0_40px_rgba(251,191,36,0.2)];
+}
+.podium-rank-label {
+  @apply text-2xl font-bold mb-3;
+}
+.podium-card-photo {
+  @apply w-full aspect-[3/4] object-cover rounded-xl mb-4;
+}
+.podium-card-no-photo {
+  @apply w-full aspect-[3/4] flex items-center justify-center rounded-xl bg-stone-800 text-4xl font-bold mb-4;
+}
+.podium-card-info {
+  @apply text-center w-full;
+}
+.podium-card-name {
+  @apply text-lg font-bold text-amber-100 leading-snug;
+}
+.podium-card-producer {
+  @apply text-sm text-amber-100/60 mt-1;
+}
+.podium-card-grape {
+  @apply text-sm text-amber-300 mt-1;
+}
+.podium-card-rating {
+  @apply text-amber-400 mt-2 text-lg;
+}

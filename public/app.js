@@ -450,6 +450,8 @@ function revealedBottleMarkup(bottle) {
 }
 
 let revealFlipDone = false;
+let podiumStep = 0;
+let podiumTimer = null;
 
 function triggerRevealFlip() {
   if (revealFlipDone) return;
@@ -636,7 +638,37 @@ function renderSommelierScene(sommelier) {
     </div>
   `;
 }
-function renderPodiumScene(p) { return `<div class="reveal-scene-shell"></div>`; }
+function renderPodiumScene(podium) {
+  // Display order: 3rd first, then 2nd, then 1st (revealed sequentially)
+  const ordered = [...podium].sort((a, b) => b.rank - a.rank);
+  const cards = ordered.map((bottle, i) => {
+    const visible = podiumStep >= (i + 1);
+    const isFirst = bottle.rank === 1;
+    const photo = bottle.photoUrl
+      ? `<img class="podium-card-photo" src="${escapeHtml(bottle.photoUrl)}" alt="${escapeHtml(bottle.bottleName)}" loading="lazy">`
+      : `<div class="podium-card-no-photo">#${bottle.bagNumber}</div>`;
+    const filled = Math.round(bottle.averageRating);
+    const stars = "★".repeat(filled) + "☆".repeat(5 - filled);
+    return `
+      <div class="podium-card ${isFirst ? "podium-card-first" : ""} ${visible ? "podium-card-visible" : ""}">
+        <p class="podium-rank-label">${["", "🥇 1st", "🥈 2nd", "🥉 3rd"][bottle.rank]}</p>
+        ${photo}
+        <div class="podium-card-info">
+          <h3 class="podium-card-name">${escapeHtml(bottle.bottleName || `Sleeve ${bottle.bagNumber}`)}</h3>
+          <p class="podium-card-producer">${escapeHtml([bottle.producer, bottle.vintage].filter(Boolean).join(" · "))}</p>
+          <p class="podium-card-grape">${escapeHtml(bottle.grape)}</p>
+          <p class="podium-card-rating">${stars} ${Number(bottle.averageRating).toFixed(1)}</p>
+        </div>
+      </div>
+    `;
+  });
+  return `
+    <div class="reveal-scene-shell reveal-podium">
+      <p class="reveal-scene-kicker reveal-podium-kicker">Top Bottles</p>
+      <div class="podium-cards">${cards.join("")}</div>
+    </div>
+  `;
+}
 function renderRevealAllScene(r) { return `<div class="reveal-scene-shell"></div>`; }
 function renderGroupAccuracyScene(g) { return `<div class="reveal-scene-shell"></div>`; }
 function renderTheNumbersScene(n) { return `<div class="reveal-scene-shell"></div>`; }
@@ -906,6 +938,21 @@ function render() {
     state.bootstrap.revealScene !== "reveal-all"
   ) {
     revealFlipDone = false;
+  }
+  if (state.view === "tv" && state.bootstrap.revealScene === "podium") {
+    if (!podiumTimer && podiumStep < 3) {
+      podiumTimer = setInterval(() => {
+        podiumStep++;
+        render();
+        if (podiumStep >= 3) {
+          clearInterval(podiumTimer);
+          podiumTimer = null;
+        }
+      }, 2500);
+    }
+  } else {
+    if (podiumTimer) { clearInterval(podiumTimer); podiumTimer = null; }
+    if (state.bootstrap.revealScene !== "podium") podiumStep = 0;
   }
 }
 
