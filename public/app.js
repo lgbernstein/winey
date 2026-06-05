@@ -22,7 +22,13 @@ const state = {
   demoVoteTimer: null,
   demoAnimationPending: false,
   demoScoreUpdates: [],
-  charts: []
+  charts: [],
+  bottleCoach: {},
+  bottleCoachLoading: null,
+  selectedSleeve: "",
+  showJoinQr: false,
+  showGuestBulk: false,
+  guestBulkSubmitting: false
 };
 
 const views = [
@@ -181,14 +187,56 @@ function guestOptions() {
   return `
     <option value="">Select your name</option>
     ${state.bootstrap.guests.map((guest) => `<option value="${guest.id}" ${String(guest.id) === String(state.selectedGuestId) ? "selected" : ""}>${escapeHtml(guest.displayName)}</option>`).join("")}
+    <option value="__add__">+ Add new name…</option>
   `;
 }
 
 function bottleOptions() {
+  const effective = state.selectedSleeve || (state.bootstrap.nowPouring ? String(state.bootstrap.nowPouring) : "");
   return `
     <option value="">Sleeve number</option>
-    ${state.bootstrap.bottles.map((bottle) => `<option value="${bottle.bagNumber}">Bottle ${bottle.bagNumber}</option>`).join("")}
+    ${state.bootstrap.bottles.map((bottle) => {
+      const isSelected = String(bottle.bagNumber) === String(effective);
+      const isPouring = state.bootstrap.nowPouring === bottle.bagNumber;
+      const label = isPouring ? `Bottle ${bottle.bagNumber} · now pouring` : `Bottle ${bottle.bagNumber}`;
+      return `<option value="${bottle.bagNumber}"${isSelected ? " selected" : ""}>${label}</option>`;
+    }).join("")}
   `;
+}
+
+function coachInnerMarkup(sleeve) {
+  if (!sleeve) return "";
+  const key = String(sleeve);
+  const coach = state.bottleCoach[key];
+  const pending = coach === undefined || state.bottleCoachLoading === key;
+  if (pending) {
+    return `
+      <p class="kicker mb-2">Notice this · Sleeve #${escapeHtml(key)}</p>
+      <p class="text-sm italic text-amber-50/75">Checking with the sommelier…</p>
+    `;
+  }
+  if (!coach) return "";
+  const formatted = escapeHtml(coach)
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-amber-200">$1</strong>')
+    .replace(/\n/g, "<br>");
+  return `
+    <p class="kicker mb-2">Notice this · Sleeve #${escapeHtml(key)}</p>
+    <div class="text-sm leading-6">${formatted}</div>
+  `;
+}
+
+function coachCardMarkup() {
+  const inner = coachInnerMarkup(state.selectedSleeve);
+  const hidden = inner ? "" : " hidden";
+  return `<div id="coach-card" class="mt-4 rounded-lg border border-amber-200/25 bg-amber-950/25 p-4 text-amber-50${hidden}">${inner}</div>`;
+}
+
+function paintCoachCard() {
+  const card = document.querySelector("#coach-card");
+  if (!card) return;
+  const inner = coachInnerMarkup(state.selectedSleeve);
+  card.innerHTML = inner;
+  card.classList.toggle("hidden", !inner);
 }
 
 function stars() {
@@ -262,18 +310,15 @@ function tasteView() {
           <span class="rounded-md bg-emerald-400/15 px-3 py-2 text-sm text-emerald-100">${escapeHtml(stateLabel(state.bootstrap.state))}</span>
         </div>
         <form id="tasting-form">
-          <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
-            <label>
-              <span class="mb-2 block text-sm font-bold text-amber-100">Taster</span>
-              <select id="guest-select" class="field" required>${guestOptions()}</select>
-            </label>
-            <button class="tap-quiet self-end" id="show-guest-form" type="button">Add name</button>
+          <label>
+            <span class="mb-2 block text-sm font-bold text-amber-100">Taster</span>
+            <select id="guest-select" class="field" required>${guestOptions()}</select>
+          </label>
+          <div id="guest-form" class="mt-3 hidden grid gap-2 grid-cols-[1fr_auto]">
+            <input class="field" name="displayName" maxlength="60" placeholder="New taster name" aria-label="New taster name" autocomplete="off">
+            <button class="tap-primary" type="button" id="add-guest">Add</button>
           </div>
-          <div id="guest-form" class="mt-3 hidden grid gap-2 sm:grid-cols-[1fr_auto]">
-            <input class="field" name="displayName" maxlength="60" placeholder="Guest name" aria-label="Guest name">
-            <button class="tap-primary" type="button" id="add-guest">Join tasting</button>
-          </div>
-          <div class="mt-5 grid gap-4 md:grid-cols-2">
+          <div class="mt-5 grid gap-4 md:grid-cols-[160px_1fr]">
             <label>
               <span class="mb-2 block text-sm font-bold text-amber-100">Blind bottle</span>
               <select name="bagNumber" class="field" required>${bottleOptions()}</select>
@@ -281,10 +326,14 @@ function tasteView() {
             <label>
               <span class="mb-2 block text-sm font-bold text-amber-100">Grape guess</span>
               <select name="grapeGuess" class="field" required>
-                ${state.bootstrap.grapes.map((grape) => `<option>${escapeHtml(grape)}</option>`).join("")}
+                ${state.bootstrap.grapes.map((grape) => {
+                  const hint = grape.appellations ? ` — ${grape.appellations}` : "";
+                  return `<option value="${escapeHtml(grape.name)}">${escapeHtml(grape.name + hint)}</option>`;
+                }).join("")}
               </select>
             </label>
           </div>
+          ${coachCardMarkup()}
           <fieldset class="mt-5">
             <legend class="mb-2 text-sm font-bold text-amber-100">Your rating</legend>
             ${stars()}
@@ -387,14 +436,18 @@ function animateTvBoard(oldPositions) {
     const dx = oldRect.left - newRect.left;
     const dy = oldRect.top - newRect.top;
     if (!dx && !dy) return;
-    item.style.transform = `translate(${dx}px, ${dy}px)`;
-    item.style.transition = "transform .75s cubic-bezier(0.22,1,0.36,1)";
-    item.style.willChange = "transform";
-    item.getBoundingClientRect();
-    requestAnimationFrame(() => {
-      item.style.transform = "";
-      item.style.willChange = "";
+    item.style.zIndex = "2";
+    const animation = item.animate([
+      { transform: `translate(${dx}px, ${dy}px)` },
+      { transform: "translate(0, 0)" }
+    ], {
+      duration: 650,
+      easing: "cubic-bezier(0.22,1,0.36,1)",
+      fill: "both"
     });
+    animation.onfinish = () => {
+      item.style.zIndex = "";
+    };
   });
 }
 
@@ -419,7 +472,8 @@ function animateDemoScores() {
 }
 
 function revealMarkup() {
-  if (!state.reveal.length) return `<p class="rounded-md bg-stone-950/45 p-5">The host controls the grand reveal.</p>`;
+  const reveal = (state.reveal || []).filter((bottle) => bottle && bottle.id);
+  if (!reveal.length) return `<p class="rounded-md bg-stone-950/45 p-5">The host controls the grand reveal.</p>`;
   return `
     <div class="mt-5 grid gap-4 xl:grid-cols-[.9fr_1.1fr]">
       <div class="grid gap-3">
@@ -442,7 +496,7 @@ function revealMarkup() {
       <div class="grid gap-4 content-start">
         <label class="rounded-lg border border-amber-100/15 bg-stone-950/60 p-4">
           <span class="mb-2 block font-semibold">Chart bottle</span>
-          <select id="chart-bottle" class="field">${state.reveal.map((bottle) => `<option value="${bottle.id}">Sleeve ${bottle.bagNumber}: ${escapeHtml(bottle.bottleName)}</option>`).join("")}</select>
+          <select id="chart-bottle" class="field">${state.reveal.filter((bottle) => bottle && bottle.id).map((bottle) => `<option value="${bottle.id}">Sleeve ${bottle.bagNumber}: ${escapeHtml(bottle.bottleName)}</option>`).join("")}</select>
         </label>
         <div class="chart-shell rounded-lg border border-amber-100/15 bg-stone-950/60 p-4"><canvas id="grape-chart" aria-label="Grape guesses chart"></canvas></div>
         <div class="chart-shell rounded-lg border border-amber-100/15 bg-stone-950/60 p-4"><canvas id="appearance-chart" aria-label="Appearance chart"></canvas></div>
@@ -451,8 +505,55 @@ function revealMarkup() {
   `;
 }
 
+function tvHeroMarkup() {
+  const pour = state.bootstrap.nowPouring;
+  if (!pour) return "";
+  const key = String(pour);
+  const coach = state.bottleCoach[key];
+  const pending = coach === undefined || state.bottleCoachLoading === key;
+  const formatted = coach
+    ? escapeHtml(coach)
+        .replace(/\*\*(.+?)\*\*/g, '<strong class="text-amber-200">$1</strong>')
+        .replace(/\n/g, "<br>")
+    : "";
+  const body = pending
+    ? '<p class="italic text-amber-50/70">Checking with the sommelier…</p>'
+    : (formatted || '<p class="italic text-amber-50/70">The sommelier&rsquo;s on a break. Trust your senses.</p>');
+  return `
+    <section class="tv-hero rounded-2xl border border-amber-200/30 bg-amber-950/40 p-6 sm:p-10 mb-4">
+      <div class="grid gap-6 sm:grid-cols-[auto_1fr] sm:items-center">
+        <div class="text-center">
+          <p class="kicker">Now pouring</p>
+          <p class="tv-hero-sleeve text-amber-300">#${pour}</p>
+        </div>
+        <div>
+          <p class="kicker mb-3">Notice this</p>
+          <div class="tv-hero-coach text-amber-50">${body}</div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderTvHero() {
+  const main = document.querySelector("#app");
+  if (!main) return;
+  const existing = main.querySelector(".tv-hero");
+  const fresh = tvHeroMarkup().trim();
+  if (existing && fresh) {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = fresh;
+    existing.replaceWith(wrapper.firstElementChild);
+  } else if (existing && !fresh) {
+    existing.remove();
+  } else if (!existing && fresh) {
+    main.insertAdjacentHTML("afterbegin", fresh);
+  }
+}
+
 function tvView() {
   return `
+    ${tvHeroMarkup()}
     ${panel(`
       <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -520,10 +621,23 @@ function hostView() {
             <div class="mt-3 rounded-lg border border-emerald-200/25 bg-emerald-950/45 p-4 text-emerald-50">
               <p class="text-sm font-bold uppercase text-emerald-200">Bottle checked in</p>
               <p class="mt-1 text-lg">Put this bottle in sleeve</p>
-              <p class="text-7xl font-black text-amber-300">#${state.lastLabelScan.bagNumber}</p>
-              <p class="mt-2 text-sm">Label scan confidence: ${escapeHtml(state.lastLabelScan.confidence)}.</p>
-              ${state.lastLabelScan.notes ? `<p class="mt-1 text-sm">${escapeHtml(state.lastLabelScan.notes)}</p>` : ""}
-              <button class="tap-quiet mt-3 w-full" data-edit-bottle="${state.lastLabelScan.bottleId}" type="button">Review bottle details</button>
+              <p class="text-6xl font-black text-amber-300 sm:text-7xl">#${state.lastLabelScan.bagNumber}</p>
+              ${state.lastLabelScan.bottleName ? `<p class="mt-2 text-base"><strong>${escapeHtml(state.lastLabelScan.bottleName)}</strong></p>` : ""}
+              <div class="mt-2 grid gap-2">
+                <label class="text-xs uppercase tracking-wide text-emerald-200" for="scan-grape-fix">Grape ${state.lastLabelScan.grapeSource === "printed" ? "(on label)" : state.lastLabelScan.grapeSource === "inferred" ? "(inferred from region)" : "(unknown)"}</label>
+                <select id="scan-grape-fix" class="field" data-scan-bottle="${state.lastLabelScan.bottleId}">
+                  ${state.bootstrap.grapes.map((grape) => {
+                    const hint = grape.appellations ? ` — ${grape.appellations}` : "";
+                    const selected = grape.name === state.lastLabelScan.grape ? " selected" : "";
+                    return `<option value="${escapeHtml(grape.name)}"${selected}>${escapeHtml(grape.name + hint)}</option>`;
+                  }).join("")}
+                </select>
+              </div>
+              <p class="mt-2 text-xs text-emerald-200/80">Confidence: ${escapeHtml(state.lastLabelScan.confidence)}.${state.lastLabelScan.notes ? ` ${escapeHtml(state.lastLabelScan.notes)}` : ""}</p>
+              <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                <label class="tap-primary cursor-pointer text-center" for="label-photo">Scan next bottle</label>
+                <button class="tap-quiet" data-edit-bottle="${state.lastLabelScan.bottleId}" type="button">Review details</button>
+              </div>
             </div>
           ` : ""}
           <details class="mt-4 rounded-md border border-amber-100/15 bg-stone-950/35 p-4">
@@ -541,7 +655,10 @@ function hostView() {
           <button class="tap-quiet" data-event-state="LIVE_TASTING" type="button">Live tasting</button>
           <button class="tap-primary" data-event-state="GRAND_REVEAL" type="button">Grand reveal</button>
         </div>
+        <button class="tap-quiet mt-3 w-full" id="show-join-qr" type="button">Show join QR for guests</button>
+        <button class="tap-quiet mt-3 w-full" id="show-guest-bulk" type="button">Pre-load guest list</button>
         <button class="tap-quiet mt-3 w-full" id="seed-demo" type="button">Load 15-bottle demo</button>
+        <button class="tap-quiet mt-3 w-full" id="seed-demo-2" type="button">Load 3-bottle demo</button>
         <p class="mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50">Current state: ${escapeHtml(stateLabel(state.host.state))}</p>
         <div class="mt-5 grid grid-cols-2 gap-3">
           <div class="rounded-md bg-stone-950/55 p-4"><p class="text-3xl text-amber-300">${state.host.bottles.length}</p><p>Bottles</p></div>
@@ -549,6 +666,30 @@ function hostView() {
         </div>
       `)}
     </div>
+    ${state.host.bottles.length ? panel(`
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p class="kicker">Pouring control</p>
+          <h2 class="screen-title">Tell everyone what's in the glass</h2>
+        </div>
+        ${state.bootstrap.nowPouring ? `
+          <button class="tap-quiet" data-pour-sleeve="" type="button">Stop pouring</button>
+        ` : ""}
+      </div>
+      ${state.bootstrap.nowPouring ? `
+        <div class="mt-4 rounded-lg border border-amber-200/30 bg-amber-950/30 p-4 text-amber-50">
+          <p class="kicker">Now pouring</p>
+          <p class="text-6xl font-black text-amber-300">#${state.bootstrap.nowPouring}</p>
+        </div>
+      ` : `
+        <p class="mt-2 text-amber-50/75">Tap a sleeve to broadcast it to the TV and the kiosks. Guests will see coaching cues for that bottle.</p>
+      `}
+      <div class="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
+        ${[...state.host.bottles].sort((a, b) => a.bagNumber - b.bagNumber).map((bottle) => `
+          <button class="${bottle.bagNumber === state.bootstrap.nowPouring ? 'tap-primary' : 'tap-quiet'} text-lg font-bold" data-pour-sleeve="${bottle.bagNumber}" type="button">#${bottle.bagNumber}</button>
+        `).join("")}
+      </div>
+    `, "mt-4") : ""}
     ${panel(`
       <h2 class="mb-4 text-2xl font-semibold">Checked-in bottles</h2>
       <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -570,6 +711,53 @@ function hostView() {
   `;
 }
 
+function guestBulkModalMarkup() {
+  if (!state.showGuestBulk) return "";
+  const guestCount = state.bootstrap?.guests?.length || 0;
+  return `
+    <div id="guest-bulk-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/85 p-6">
+      <div class="panel rounded-2xl p-6 max-w-lg w-full">
+        <p class="kicker">Setup</p>
+        <h2 class="screen-title mt-1">Pre-load guest list</h2>
+        <p class="mt-2 text-amber-50/75 text-sm">Paste names, one per line or comma-separated. Duplicates are skipped automatically. Currently ${guestCount} guest${guestCount === 1 ? "" : "s"} loaded.</p>
+        <textarea id="guest-bulk-input" class="field mt-3 min-h-40 w-full" placeholder="Maria&#10;Hannah&#10;Ari, Mia, Noah&#10;Jess Taylor"></textarea>
+        <div class="mt-4 grid gap-2 sm:grid-cols-2">
+          <button class="tap-quiet" id="cancel-guest-bulk" type="button">Cancel</button>
+          <button class="tap-primary" id="submit-guest-bulk" type="button" ${state.guestBulkSubmitting ? "disabled" : ""}>${state.guestBulkSubmitting ? "Adding…" : "Add all"}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function joinQrModalMarkup() {
+  if (!state.showJoinQr) return "";
+  const url = window.location.origin + "/kiosk.html";
+  return `
+    <div id="join-qr-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/85 p-6">
+      <div class="panel rounded-2xl p-6 max-w-md w-full text-center">
+        <p class="kicker">Scan to join</p>
+        <h2 class="screen-title mt-1">Rate from your phone</h2>
+        <p class="mt-2 text-amber-50/75 text-sm">Connect to <strong>Wine Party Guest</strong> WiFi first, then scan this code.</p>
+        <div id="join-qr-canvas" class="mx-auto mt-4 inline-block rounded-md bg-amber-50 p-4"></div>
+        <p class="mt-3 break-all text-xs text-amber-50/60">${escapeHtml(url)}</p>
+        <button class="tap-primary mt-5 w-full" id="close-join-qr" type="button">Close</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderJoinQrCode() {
+  const node = document.querySelector("#join-qr-canvas");
+  if (!node || typeof window.qrcode !== "function") return;
+  node.innerHTML = "";
+  const url = window.location.origin + "/kiosk.html";
+  const qr = window.qrcode(0, "M");
+  qr.addData(url);
+  qr.make();
+  node.innerHTML = qr.createImgTag(8, 0);
+}
+
 function render() {
   navMarkup();
   if (!state.bootstrap) {
@@ -582,8 +770,18 @@ function render() {
     album: albumView,
     tv: tvView,
     host: hostView
-  }[state.view]();
-  if (state.view === "tv") animateTvBoard(oldPositions);
+  }[state.view]() + joinQrModalMarkup() + guestBulkModalMarkup();
+  if (state.showJoinQr) renderJoinQrCode();
+  if (state.view === "tv") { animateTvBoard(oldPositions); startTrivia(); } else { stopTrivia(); }
+  if (state.view === "tv" && state.bootstrap.nowPouring) {
+    fetchCoach(state.bootstrap.nowPouring).then(() => {
+      if (state.view === "tv" && state.bootstrap.nowPouring) renderTvHero();
+    }).catch(() => {});
+  }
+  if (state.view === "taste" && state.bootstrap.nowPouring && !state.selectedSleeve) {
+    state.selectedSleeve = String(state.bootstrap.nowPouring);
+    fetchCoach(state.selectedSleeve).catch(() => {});
+  }
   if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) {
     startDemoVoting();
   }
@@ -591,7 +789,12 @@ function render() {
     state.demoAnimationPending = false;
     requestAnimationFrame(() => animateDemoScores());
   }
-  if (state.view === "tv" && state.reveal.length) drawCharts(state.reveal[0].id);
+  if (
+    state.view === "tv"
+    && state.reveal.length
+    && state.reveal[0]?.id
+    && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)
+  ) drawCharts(state.reveal[0].id);
 }
 
 async function refresh({ photos = false, reveal = false, host = false } = {}) {
@@ -635,6 +838,7 @@ async function submitTasting(form) {
   state.selectedGuestId = "";
   localStorage.removeItem("wineGuestId");
   state.starRating = 0;
+  state.selectedSleeve = "";
   notice("Tasting saved. Ready for the next guest.");
   await refresh();
 }
@@ -686,20 +890,84 @@ async function seedDemo() {
   if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) startDemoVoting();
 }
 
+async function seedDemo2() {
+  if (!state.bootstrap.leaderboard.length) {
+    await refresh({ host: true, reveal: true });
+  }
+  state.demoBoard = cloneDemoBoard(shuffleBoard(state.bootstrap.leaderboard).slice(0, 3));
+  state.demoAnimationPending = true;
+  state.view = "tv";
+  history.replaceState({}, "", "?view=tv");
+  render();
+  if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) startDemoVoting();
+}
+
+async function fetchCoach(bagNumber) {
+  const key = String(bagNumber);
+  if (!key) return;
+  if (state.bottleCoach[key] !== undefined || state.bottleCoachLoading === key) {
+    paintCoachCard();
+    if (state.view === "tv") renderTvHero();
+    return;
+  }
+  state.bottleCoachLoading = key;
+  paintCoachCard();
+  if (state.view === "tv") renderTvHero();
+  try {
+    const result = await api(`/api/bottles/${encodeURIComponent(key)}/coach`);
+    state.bottleCoach[key] = result.coach || "";
+  } catch {
+    state.bottleCoach[key] = "";
+  } finally {
+    if (state.bottleCoachLoading === key) state.bottleCoachLoading = null;
+    if (state.selectedSleeve === key) paintCoachCard();
+    if (state.view === "tv" && String(state.bootstrap.nowPouring) === key) renderTvHero();
+  }
+}
+
+async function compressImage(file, maxEdge = 1600, quality = 0.85) {
+  if (!file || !file.type?.startsWith("image/")) return file;
+  if (file.size < 350 * 1024) return file;
+  const bitmap = await (window.createImageBitmap
+    ? createImageBitmap(file)
+    : new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      }));
+  const ratio = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+  const w = Math.round(bitmap.width * ratio);
+  const h = Math.round(bitmap.height * ratio);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, w, h);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+  if (!blob || blob.size >= file.size) return file;
+  return new File([blob], "label.jpg", { type: "image/jpeg" });
+}
+
 async function scanLabel(form) {
-  const body = new FormData(form);
+  const original = form.querySelector('input[type="file"]')?.files?.[0];
+  if (!original) throw new Error("Pick a photo to scan.");
   state.labelScanPending = true;
   render();
   try {
+    const photo = await compressImage(original).catch(() => original);
+    const body = new FormData();
+    body.append("photo", photo);
     const result = await api("/api/host/bottles/scan", { method: "POST", body, host: true });
     state.lastLabelScan = {
       bottleId: result.bottle.id,
       bagNumber: result.bottle.bagNumber,
+      bottleName: result.bottle.bottleName,
+      grape: result.bottle.grape,
+      grapeSource: result.scan.grapeSource,
       confidence: result.scan.confidence,
       notes: result.scan.notes
     };
     notice(`Put this bottle in sleeve ${result.bottle.bagNumber}.`);
-    form.reset();
     await refresh({ host: true });
   } finally {
     state.labelScanPending = false;
@@ -724,18 +992,20 @@ function stopDemo() {
 
 function drawCharts(id) {
   destroyCharts();
-  const bottle = state.reveal.find((item) => item.id === Number(id));
-  if (!bottle || !window.Chart) return;
+  const bottle = state.reveal.find((item) => item && item.id === Number(id));
+  const grapeCanvas = document.querySelector("#grape-chart");
+  const appearanceCanvas = document.querySelector("#appearance-chart");
+  if (!bottle || !window.Chart || !grapeCanvas || !appearanceCanvas) return;
   const colors = ["#f2bd5d", "#d43f63", "#2d6a5b", "#9fb8d0", "#c37d46", "#e9d6a4"];
   const empty = [{ label: "No optional notes yet", count: 1 }];
   const grapeData = bottle.grapeGuesses.length ? bottle.grapeGuesses : empty;
   const appearanceData = bottle.appearance.length ? bottle.appearance : empty;
-  state.charts.push(new Chart(document.querySelector("#grape-chart"), {
+  state.charts.push(new Chart(grapeCanvas, {
     type: "bar",
     data: { labels: grapeData.map((item) => item.label), datasets: [{ label: "Grape guesses", data: grapeData.map((item) => item.count), backgroundColor: colors }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#fff7ec" } } }, scales: { x: { ticks: { color: "#fff7ec" } }, y: { beginAtZero: true, ticks: { precision: 0, color: "#fff7ec" } } } }
   }));
-  state.charts.push(new Chart(document.querySelector("#appearance-chart"), {
+  state.charts.push(new Chart(appearanceCanvas, {
     type: "pie",
     data: { labels: appearanceData.map((item) => item.label), datasets: [{ label: "Appearance", data: appearanceData.map((item) => item.count), backgroundColor: colors }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: "Appearance consensus", color: "#fff7ec" }, legend: { labels: { color: "#fff7ec" } } } }
@@ -748,14 +1018,22 @@ document.addEventListener("click", async (event) => {
     state.view = view;
     history.replaceState({}, "", view === "tv" ? "?view=tv" : location.pathname);
     if (view === "album" && !state.photos.length) await refresh({ photos: true });
-    else if (view === "host" && hostToken()) await refresh({ host: true });
+    else if (view === "host" && hostToken()) {
+      try {
+        await refresh({ host: true });
+      } catch (error) {
+        localStorage.removeItem("wineHostToken");
+        state.host = null;
+        notice("Host PIN changed. Please unlock again.");
+        render();
+      }
+    }
     else if (view === "tv") await refresh({ reveal: true });
     else render();
     if (view === "tv" && state.demoBoard && !state.demoVoteTimer) {
       startDemoVoting();
     }
   }
-  if (event.target.closest("#show-guest-form")) document.querySelector("#guest-form")?.classList.toggle("hidden");
   if (event.target.closest("#add-guest")) addGuest(document.querySelector("#tasting-form")).catch((error) => notice(error.message));
   const editId = event.target.closest("[data-edit-bottle]")?.dataset.editBottle;
   if (editId) {
@@ -773,8 +1051,60 @@ document.addEventListener("click", async (event) => {
       .then(() => notice(`Event set to ${stateLabel(eventState)}.`))
       .catch((error) => notice(error.message));
   }
+  const pourEl = event.target.closest("[data-pour-sleeve]");
+  if (pourEl) {
+    const raw = pourEl.dataset.pourSleeve;
+    const bagNumber = raw === "" ? null : Number(raw);
+    api("/api/host/now-pouring", { method: "PATCH", host: true, body: { bagNumber } })
+      .then(() => refresh({ host: true }))
+      .then(() => notice(bagNumber === null ? "Stopped pouring." : `Now pouring sleeve #${bagNumber}.`))
+      .catch((error) => notice(error.message));
+  }
+  if (event.target.closest("#show-join-qr")) {
+    state.showJoinQr = true;
+    render();
+  }
+  if (event.target.closest("#close-join-qr") || event.target.id === "join-qr-overlay") {
+    state.showJoinQr = false;
+    render();
+  }
+  if (event.target.closest("#show-guest-bulk")) {
+    state.showGuestBulk = true;
+    render();
+    setTimeout(() => document.querySelector("#guest-bulk-input")?.focus(), 0);
+  }
+  if (event.target.closest("#cancel-guest-bulk") || event.target.id === "guest-bulk-overlay") {
+    state.showGuestBulk = false;
+    render();
+  }
+  if (event.target.closest("#submit-guest-bulk")) {
+    const input = document.querySelector("#guest-bulk-input");
+    if (!input) return;
+    const names = input.value.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+    if (!names.length) {
+      notice("Paste at least one name first.");
+      return;
+    }
+    state.guestBulkSubmitting = true;
+    render();
+    api("/api/host/guests/bulk", { method: "POST", host: true, body: { names } })
+      .then((result) => {
+        state.guestBulkSubmitting = false;
+        state.showGuestBulk = false;
+        notice(`Added ${result.count} guest${result.count === 1 ? "" : "s"}.`);
+        refresh({ host: true });
+      })
+      .catch((error) => {
+        state.guestBulkSubmitting = false;
+        render();
+        notice(error.message);
+      });
+  }
   if (event.target.closest("#seed-demo")) {
     seedDemo().catch((error) => notice(error.message));
+  }
+  if (event.target.closest("#seed-demo-2")) {
+    seedDemo2().catch((error) => notice(error.message));
   }
   if (event.target.closest("#stop-demo")) {
     stopDemo();
@@ -783,8 +1113,25 @@ document.addEventListener("click", async (event) => {
 
 document.addEventListener("change", (event) => {
   if (event.target.id === "guest-select") {
-    state.selectedGuestId = event.target.value;
-    if (state.selectedGuestId) localStorage.setItem("wineGuestId", state.selectedGuestId);
+    const value = event.target.value;
+    const guestForm = document.querySelector("#guest-form");
+    if (value === "__add__") {
+      guestForm?.classList.remove("hidden");
+      guestForm?.querySelector('input[name="displayName"]')?.focus();
+      event.target.value = state.selectedGuestId || "";
+    } else {
+      state.selectedGuestId = value;
+      guestForm?.classList.add("hidden");
+      if (state.selectedGuestId) localStorage.setItem("wineGuestId", state.selectedGuestId);
+    }
+  }
+  if (event.target.name === "bagNumber") {
+    state.selectedSleeve = event.target.value;
+    if (state.selectedSleeve) {
+      fetchCoach(state.selectedSleeve).catch(() => {});
+    } else {
+      paintCoachCard();
+    }
   }
   if (event.target.name === "rating") {
     state.starRating = Number(event.target.value);
@@ -798,6 +1145,16 @@ document.addEventListener("change", (event) => {
     });
   }
   if (event.target.id === "chart-bottle") drawCharts(event.target.value);
+  if (event.target.id === "scan-grape-fix") {
+    const bottleId = event.target.dataset.scanBottle;
+    const grape = event.target.value;
+    api(`/api/host/bottles/${bottleId}`, { method: "PATCH", host: true, body: { grape } })
+      .then(() => {
+        if (state.lastLabelScan) state.lastLabelScan.grape = grape;
+        notice("Grape updated.");
+      })
+      .catch((error) => notice(error.message));
+  }
 });
 
 document.addEventListener("submit", (event) => {
@@ -814,6 +1171,80 @@ setInterval(() => {
     refresh({ reveal: true }).catch((error) => console.error("TV refresh failed:", error));
   }
 }, 7000);
+
+// --- Wine trivia banner (TV view only) ---
+const TRIVIA_ENABLED = true;
+
+const TRIVIA_FACTS = [
+  "A standard 750ml bottle holds roughly the same volume as a glassblower's single breath — that's how the size was standardized.",
+  "The word 'toast' traces back to ancient Rome, where a piece of charred bread was dropped in wine to reduce its acidity.",
+  "Champagne bottles must withstand up to 90 psi of internal pressure — three times the pressure inside a car tire.",
+  "White wine can be made from red grapes: the juice runs clear until it contacts the pigmented skins.",
+  "A single grapevine typically produces just 3–10 bottles of wine per growing season.",
+  "Georgia (the country) has evidence of winemaking dating back 8,000 years, making it the oldest known wine-producing region.",
+  "The world's most planted wine grape is Cabernet Sauvignon, cultivated on over 340,000 hectares worldwide.",
+  "Grapes are the most widely cultivated fruit crop on Earth.",
+  "Tannins in red wine come from grape skins, seeds, and stems — and from oak barrels used during aging.",
+  "Pinot Noir is so finicky to grow that winemakers have nicknamed it the 'heartbreak grape.'",
+  "Malbec originated in southwest France before emigrating to Argentina, where it became the country's signature red.",
+  "A wine is called 'corked' when contaminated by TCA, a compound that smells like wet cardboard or a musty basement.",
+  "Decanting a young red wine for an hour can mimic years of gentle aging by exposing it to oxygen.",
+  "The 'legs' that run down the inside of a wine glass reflect alcohol content, not sweetness.",
+  "Riesling vines can survive temperatures as low as −22°F (−30°C) without significant damage.",
+  "The term 'vintage' simply means the year the grapes were harvested — not that the wine is particularly old.",
+  "A Bordeaux barrel holds 225 liters — enough to fill exactly 300 standard bottles.",
+  "Swirling wine increases its surface area and releases aromatic compounds, making subtle aromas more detectable.",
+  "Port wine takes its name from Porto, Portugal, the city from which it was historically shipped to Britain.",
+  "The 1976 Judgment of Paris shocked the wine world when California wines outscored top French wines in a blind tasting.",
+  "A standard restaurant pour is 5 oz — about one-fifth of a bottle.",
+  "Wine aged in larger bottles (magnums, jeroboams) typically develops more slowly and gracefully than in standard bottles.",
+  "Ancient Romans sometimes sweetened wine with lead acetate — known as 'sugar of lead' — with predictable health consequences.",
+  "A magnum holds 1.5 liters, the equivalent of two standard bottles.",
+  "Young red wines are deep purple; as they age, the color gradually shifts toward brick red or garnet at the rim.",
+  "The Barossa Valley in South Australia is home to some of the world's oldest producing Shiraz vines — over 150 years old.",
+  "Champagne gets its bubbles from a second fermentation that happens inside the sealed bottle.",
+  "Grapes must reach a precise sugar level (measured in Brix) before harvest — picking too early or too late changes everything.",
+  "Sommeliers can legally earn the title Master Sommelier only after passing one of the most difficult examinations in the world.",
+  "A wine described as 'blind' means the taster doesn't know what they're drinking — not that the wine has anything to hide."
+];
+
+let triviaTimer = null;
+let triviaHideTimer = null;
+let triviaPool = [];
+
+function nextTriviaFact() {
+  if (!triviaPool.length) {
+    triviaPool = TRIVIA_FACTS.slice().sort(() => Math.random() - 0.5);
+  }
+  return triviaPool.pop();
+}
+
+function showTrivia() {
+  if (!TRIVIA_ENABLED || state.view !== "tv") return;
+  const banner = document.getElementById("trivia-banner");
+  if (!banner) return;
+  clearTimeout(triviaHideTimer);
+  banner.innerHTML = '<div class="trivia-card"><p class="trivia-text">' + escapeHtml(nextTriviaFact()) + '</p></div>';
+  banner.classList.add("visible");
+  triviaHideTimer = setTimeout(function() { banner.classList.remove("visible"); }, 30000);
+}
+
+function startTrivia() {
+  if (!TRIVIA_ENABLED || triviaTimer) return;
+  triviaTimer = setTimeout(function schedule() {
+    showTrivia();
+    triviaTimer = setTimeout(schedule, 480000 + Math.random() * 120000);
+  }, 120000);
+}
+
+function stopTrivia() {
+  clearTimeout(triviaTimer);
+  clearTimeout(triviaHideTimer);
+  triviaTimer = null;
+  triviaHideTimer = null;
+  const banner = document.getElementById("trivia-banner");
+  if (banner) banner.classList.remove("visible");
+}
 
 refresh({ photos: state.view === "album", reveal: state.view === "tv" }).catch((error) => {
   app.innerHTML = panel(`<p>${escapeHtml(error.message)}</p>`);
