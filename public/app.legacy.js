@@ -519,19 +519,22 @@ function renderSommelierScene(sommelier) {
   return "\n    <div class=\"reveal-scene-shell reveal-sommelier\">\n      <div class=\"reveal-sommelier-inner\">\n        <div class=\"reveal-scene-trophy\">\uD83C\uDFC6</div>\n        <p class=\"reveal-scene-kicker\">The Vine Whisperer</p>\n        <h2 class=\"reveal-sommelier-name\">".concat(hasWinner ? winnerText : "No correct guesses", "</h2>\n        <p class=\"reveal-scene-sub\">").concat(subtextBase, "</p>\n      </div>\n    </div>\n  ");
 }
 function renderPodiumScene(podium) {
-  // Display order: 3rd first, then 2nd, then 1st (revealed sequentially)
+  // Top to bottom, 1st → 2nd → 3rd; each row rises in starting with #1.
   var ordered = _toConsumableArray(podium).sort(function (a, b) {
-    return b.rank - a.rank;
+    return a.rank - b.rank;
   });
-  var cards = ordered.map(function (bottle, i) {
+  var medals = ["", "🥇", "🥈", "🥉"];
+  var places = ["", "1st", "2nd", "3rd"];
+  var rows = ordered.map(function (bottle, i) {
     var visible = podiumStep >= i + 1;
     var isFirst = bottle.rank === 1;
-    var photo = bottle.photoUrl ? "<img class=\"podium-card-photo\" src=\"".concat(escapeHtml(bottle.photoUrl), "\" alt=\"").concat(escapeHtml(bottle.bottleName), "\" loading=\"lazy\">") : "<div class=\"podium-card-no-photo\">#".concat(bottle.bagNumber, "</div>");
-    var filled = Math.round(bottle.averageRating);
-    var stars = "★".repeat(filled) + "☆".repeat(5 - filled);
-    return "\n      <div class=\"podium-card ".concat(isFirst ? "podium-card-first" : "", " ").concat(visible ? "podium-card-visible" : "", "\">\n        <p class=\"podium-rank-label\">").concat(["", "🥇 1st", "🥈 2nd", "🥉 3rd"][bottle.rank], "</p>\n        ").concat(photo, "\n        <div class=\"podium-card-info\">\n          <h3 class=\"podium-card-name\">").concat(escapeHtml(bottle.bottleName || "Sleeve ".concat(bottle.bagNumber)), "</h3>\n          <p class=\"podium-card-producer\">").concat(escapeHtml([bottle.producer, bottle.vintage].filter(Boolean).join(" · ")), "</p>\n          <p class=\"podium-card-grape\">").concat(escapeHtml(bottle.grape), "</p>\n          <p class=\"podium-card-rating\">").concat(stars, " ").concat(Number(bottle.averageRating).toFixed(1), "</p>\n        </div>\n      </div>\n    ");
+    var photo = bottle.photoUrl ? "<img class=\"podium-row-photo\" src=\"".concat(escapeHtml(bottle.photoUrl), "\" alt=\"").concat(escapeHtml(bottle.bottleName), "\" loading=\"lazy\">") : "<div class=\"podium-row-no-photo\">#".concat(bottle.bagNumber, "</div>");
+    var meta = [bottle.producer, bottle.region, bottle.vintage].filter(Boolean).join(" · ");
+    var critic = bottle.professionalRating ? " &middot; <span class=\"podium-row-critic\">\uD83C\uDF93 Critics ".concat(escapeHtml(String(bottle.professionalRating)), "</span>") : "";
+    var note = bottle.professionalCommentary ? "<p class=\"podium-row-note\">&ldquo;".concat(escapeHtml(bottle.professionalCommentary), "&rdquo;</p>") : "";
+    return "\n      <div class=\"podium-row ".concat(isFirst ? "podium-row-first" : "", " ").concat(visible ? "podium-row-visible" : "", "\">\n        <div class=\"podium-row-rank\">\n          <span class=\"podium-row-medal\">").concat(medals[bottle.rank], "</span>\n          <span class=\"podium-row-place\">").concat(places[bottle.rank], "</span>\n          <span class=\"podium-row-sleeve\">#").concat(bottle.bagNumber, "</span>\n        </div>\n        <div class=\"podium-row-body\">\n          ").concat(photo, "\n          <div class=\"podium-row-info\">\n            <h3 class=\"podium-row-name\">").concat(escapeHtml(bottle.bottleName || "Sleeve ".concat(bottle.bagNumber)), "</h3>\n            ").concat(meta ? "<p class=\"podium-row-meta\">".concat(escapeHtml(meta), "</p>") : "", "\n            ").concat(bottle.grape ? "<p class=\"podium-row-grape\">".concat(escapeHtml(bottle.grape), "</p>") : "", "\n            <p class=\"podium-row-scores\">\uD83C\uDF77 Crowd ").concat(Number(bottle.averageRating).toFixed(1), "/5").concat(critic, "</p>\n            ").concat(note, "\n          </div>\n        </div>\n      </div>\n    ");
   });
-  return "\n    <div class=\"reveal-scene-shell reveal-podium\">\n      <p class=\"reveal-scene-kicker reveal-podium-kicker\">Top Bottles</p>\n      <div class=\"podium-cards\">".concat(cards.join(""), "</div>\n    </div>\n  ");
+  return "\n    <div class=\"reveal-scene-shell reveal-podium\">\n      <div class=\"podium-rows\">".concat(rows.join(""), "</div>\n    </div>\n  ");
 }
 function renderRevealAllScene(revealAll) {
   var bottles = revealAll.map(function (bottle) {

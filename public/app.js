@@ -664,33 +664,44 @@ function renderSommelierScene(sommelier) {
   `;
 }
 function renderPodiumScene(podium) {
-  // Display order: 3rd first, then 2nd, then 1st (revealed sequentially)
-  const ordered = [...podium].sort((a, b) => b.rank - a.rank);
-  const cards = ordered.map((bottle, i) => {
+  // Top to bottom, 1st → 2nd → 3rd; each row rises in starting with #1.
+  const ordered = [...podium].sort((a, b) => a.rank - b.rank);
+  const medals = ["", "🥇", "🥈", "🥉"];
+  const places = ["", "1st", "2nd", "3rd"];
+  const rows = ordered.map((bottle, i) => {
     const visible = podiumStep >= (i + 1);
     const isFirst = bottle.rank === 1;
     const photo = bottle.photoUrl
-      ? `<img class="podium-card-photo" src="${escapeHtml(bottle.photoUrl)}" alt="${escapeHtml(bottle.bottleName)}" loading="lazy">`
-      : `<div class="podium-card-no-photo">#${bottle.bagNumber}</div>`;
-    const filled = Math.round(bottle.averageRating);
-    const stars = "★".repeat(filled) + "☆".repeat(5 - filled);
+      ? `<img class="podium-row-photo" src="${escapeHtml(bottle.photoUrl)}" alt="${escapeHtml(bottle.bottleName)}" loading="lazy">`
+      : `<div class="podium-row-no-photo">#${bottle.bagNumber}</div>`;
+    const meta = [bottle.producer, bottle.region, bottle.vintage].filter(Boolean).join(" · ");
+    const critic = bottle.professionalRating ? ` &middot; <span class="podium-row-critic">🎓 Critics ${escapeHtml(String(bottle.professionalRating))}</span>` : "";
+    const note = bottle.professionalCommentary
+      ? `<p class="podium-row-note">&ldquo;${escapeHtml(bottle.professionalCommentary)}&rdquo;</p>`
+      : "";
     return `
-      <div class="podium-card ${isFirst ? "podium-card-first" : ""} ${visible ? "podium-card-visible" : ""}">
-        <p class="podium-rank-label">${["", "🥇 1st", "🥈 2nd", "🥉 3rd"][bottle.rank]}</p>
-        ${photo}
-        <div class="podium-card-info">
-          <h3 class="podium-card-name">${escapeHtml(bottle.bottleName || `Sleeve ${bottle.bagNumber}`)}</h3>
-          <p class="podium-card-producer">${escapeHtml([bottle.producer, bottle.vintage].filter(Boolean).join(" · "))}</p>
-          <p class="podium-card-grape">${escapeHtml(bottle.grape)}</p>
-          <p class="podium-card-rating">${stars} ${Number(bottle.averageRating).toFixed(1)}</p>
+      <div class="podium-row ${isFirst ? "podium-row-first" : ""} ${visible ? "podium-row-visible" : ""}">
+        <div class="podium-row-rank">
+          <span class="podium-row-medal">${medals[bottle.rank]}</span>
+          <span class="podium-row-place">${places[bottle.rank]}</span>
+          <span class="podium-row-sleeve">#${bottle.bagNumber}</span>
+        </div>
+        <div class="podium-row-body">
+          ${photo}
+          <div class="podium-row-info">
+            <h3 class="podium-row-name">${escapeHtml(bottle.bottleName || `Sleeve ${bottle.bagNumber}`)}</h3>
+            ${meta ? `<p class="podium-row-meta">${escapeHtml(meta)}</p>` : ""}
+            ${bottle.grape ? `<p class="podium-row-grape">${escapeHtml(bottle.grape)}</p>` : ""}
+            <p class="podium-row-scores">🍷 Crowd ${Number(bottle.averageRating).toFixed(1)}/5${critic}</p>
+            ${note}
+          </div>
         </div>
       </div>
     `;
   });
   return `
     <div class="reveal-scene-shell reveal-podium">
-      <p class="reveal-scene-kicker reveal-podium-kicker">Top Bottles</p>
-      <div class="podium-cards">${cards.join("")}</div>
+      <div class="podium-rows">${rows.join("")}</div>
     </div>
   `;
 }

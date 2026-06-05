@@ -389,6 +389,16 @@ header {
   letter-spacing: -.01em;
 }
 
+/* Bigger title + W mark on the TV only (host/kiosk unaffected) */
+.tv-mode .tv-header-label {
+  font-size: 2.6rem;
+}
+.tv-mode .brand-mark {
+  width: 60px;
+  height: 60px;
+  font-size: 1.5rem;
+}
+
 .tv-guess-chip {
   border: 1px solid rgba(164, 244, 207, .22);
   border-radius: 999px;
@@ -633,46 +643,61 @@ dialog::backdrop {
   @apply text-6xl font-bold text-amber-300 mt-2 leading-tight;
 }
 .reveal-podium {
-  @apply flex-col gap-6 pt-12;
+  @apply flex-col items-center pt-8 w-full px-6;
 }
-.reveal-podium-kicker {
-  @apply text-amber-400 text-xl font-semibold tracking-widest uppercase;
+.podium-rows {
+  @apply flex flex-col gap-4 w-full max-w-4xl;
 }
-.podium-cards {
-  @apply flex gap-6 items-end justify-center flex-wrap px-8;
+.podium-row {
+  @apply flex items-center gap-5 bg-stone-900 border border-amber-100/15 rounded-2xl p-4 opacity-0 translate-y-10 transition-all duration-700;
 }
-.podium-card {
-  @apply flex flex-col items-center bg-stone-900 border border-amber-100/15 rounded-2xl p-5 w-64 opacity-0 translate-y-8 transition-all duration-700;
-}
-.podium-card-visible {
+.podium-row-visible {
   @apply opacity-100 translate-y-0;
 }
-.podium-card-first {
+.podium-row-first {
   @apply border-amber-400/60 shadow-[0_0_40px_rgba(251,191,36,0.2)];
 }
-.podium-rank-label {
-  @apply text-2xl font-bold mb-3;
+.podium-row-rank {
+  @apply flex flex-col items-center justify-center shrink-0 w-28;
 }
-.podium-card-photo {
-  @apply w-full aspect-[3/4] object-cover rounded-xl mb-4;
+.podium-row-medal {
+  @apply text-5xl leading-none;
 }
-.podium-card-no-photo {
-  @apply w-full aspect-[3/4] flex items-center justify-center rounded-xl bg-stone-800 text-4xl font-bold mb-4;
+.podium-row-place {
+  @apply text-lg font-bold text-amber-200 mt-1;
 }
-.podium-card-info {
-  @apply text-center w-full;
+.podium-row-sleeve {
+  @apply text-3xl font-black text-amber-300;
 }
-.podium-card-name {
-  @apply text-lg font-bold text-amber-100 leading-snug;
+.podium-row-body {
+  @apply flex items-center gap-5 flex-1 min-w-0;
 }
-.podium-card-producer {
-  @apply text-sm text-amber-100/60 mt-1;
+.podium-row-photo {
+  @apply w-24 aspect-[3/4] object-cover rounded-lg shrink-0;
 }
-.podium-card-grape {
-  @apply text-sm text-amber-300 mt-1;
+.podium-row-no-photo {
+  @apply w-24 aspect-[3/4] flex items-center justify-center rounded-lg bg-stone-800 text-2xl font-bold shrink-0;
 }
-.podium-card-rating {
-  @apply text-amber-400 mt-2 text-lg;
+.podium-row-info {
+  @apply text-left flex-1 min-w-0;
+}
+.podium-row-name {
+  @apply text-3xl font-bold text-amber-100 leading-tight;
+}
+.podium-row-meta {
+  @apply text-lg text-amber-100/60 mt-1;
+}
+.podium-row-grape {
+  @apply text-lg text-amber-300 mt-0.5;
+}
+.podium-row-scores {
+  @apply text-xl text-amber-400 mt-2;
+}
+.podium-row-critic {
+  @apply text-emerald-300;
+}
+.podium-row-note {
+  @apply text-base italic text-amber-100/70 mt-1;
 }
 
 /* ---- Reveal All scene ---- */

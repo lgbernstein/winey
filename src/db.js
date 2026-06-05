@@ -215,7 +215,8 @@ export function openWineDb({ dbFile }) {
 
         // Podium: top 3 by average rating
         const podium = sqlite.prepare(`
-          SELECT b.id, b.bag_number, b.bottle_name, b.producer, b.grape, b.photo_url, b.vintage,
+          SELECT b.id, b.bag_number, b.bottle_name, b.producer, b.region, b.grape, b.photo_url, b.vintage,
+                 b.professional_rating, b.professional_commentary,
                  ROUND(COALESCE(AVG(t.rating), 0), 2) AS avg_rating, COUNT(t.id) AS vote_count
           FROM wine_bottles b
           LEFT JOIN tasting_entries t ON t.bottle_id = b.id
@@ -227,9 +228,12 @@ export function openWineDb({ dbFile }) {
           bagNumber: row.bag_number,
           bottleName: row.bottle_name || "",
           producer: row.producer || "",
+          region: row.region || "",
           grape: row.grape || "",
           photoUrl: row.photo_url || null,
           vintage: row.vintage || "",
+          professionalRating: row.professional_rating || null,
+          professionalCommentary: row.professional_commentary || "",
           averageRating: row.avg_rating,
           voteCount: row.vote_count
         }));
