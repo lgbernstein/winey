@@ -331,7 +331,15 @@ function boardMarkup(items) {
     return right - left || a.bagNumber - b.bagNumber;
   });
   return "<ol class=\"tv-bottle-grid\">".concat(sorted.map(function (item) {
-    return "\n    <li class=\"tv-rank tv-bottle-card".concat(item.voting ? " voting" : "").concat(item.moving ? " moving" : "", "\" data-bag-number=\"").concat(item.bagNumber, "\">\n      <div class=\"bottle-flip\">\n        <div class=\"bottle-flip-inner\" data-flip-bag=\"").concat(item.bagNumber, "\">\n          <div class=\"bottle-flip-front\">\n            <div class=\"blind-bottle\" aria-label=\"Sleeve ").concat(item.bagNumber, "\">\n              <div class=\"blind-bottle-lip\"></div>\n              <div class=\"blind-bottle-neck\"></div>\n              <div class=\"blind-bottle-shoulders\"></div>\n              <div class=\"blind-bottle-body\"><span>#").concat(item.bagNumber, "</span></div>\n            </div>\n          </div>\n          <div class=\"bottle-flip-back\"></div>\n        </div>\n      </div>\n      <p class=\"tv-bottle-score\">").concat(item.voteCount ? "".concat(Number(item.averageRating).toFixed(1), " / 5") : "Awaiting ratings", "</p>\n      <p class=\"text-sm text-amber-50/65\">").concat(item.voteCount, " rating").concat(item.voteCount === 1 ? "" : "s", "</p>\n      <div class=\"mt-3 min-h-14\">\n        ").concat(item.grapeGuesses.length ? "\n          <div class=\"flex flex-wrap justify-center gap-1\">\n            <span class=\"tv-guess-chip\">".concat(escapeHtml(item.grapeGuesses[0].label), "</span>\n          </div>\n        ") : "", "\n      </div>\n    </li>\n  ");
+    return "\n    <li class=\"tv-rank tv-bottle-card".concat(item.voting ? " voting" : "").concat(item.moving ? " moving" : "", "\" data-bag-number=\"").concat(item.bagNumber, "\">\n      <div class=\"bottle-flip\">\n        <div class=\"bottle-flip-inner\" data-flip-bag=\"").concat(item.bagNumber, "\">\n          <div class=\"bottle-flip-front\">\n            <div class=\"blind-bottle\" aria-label=\"Sleeve ").concat(item.bagNumber, "\">\n              <div class=\"blind-bottle-lip\"></div>\n              <div class=\"blind-bottle-neck\"></div>\n              <div class=\"blind-bottle-shoulders\"></div>\n              <div class=\"blind-bottle-body\"><span>#").concat(item.bagNumber, "</span></div>\n            </div>\n          </div>\n          <div class=\"bottle-flip-back\"></div>\n        </div>\n      </div>\n      <p class=\"tv-bottle-score\">").concat(item.voteCount ? "".concat(Number(item.averageRating).toFixed(1), " / 5") : "Awaiting ratings", "</p>\n      <p class=\"text-sm text-amber-50/65\">").concat(item.voteCount, " rating").concat(item.voteCount === 1 ? "" : "s", "</p>\n      <div class=\"mt-3 min-h-14\">\n        ").concat(item.grapeGuesses.length ? function () {
+      var top = item.grapeGuesses[0].count;
+      var leaders = item.grapeGuesses.filter(function (g) {
+        return g.count === top;
+      });
+      return "<div class=\"flex flex-wrap justify-center gap-1\">".concat(leaders.map(function (g) {
+        return "<span class=\"tv-guess-chip\">".concat(g.count, " \xD7 ").concat(escapeHtml(g.label), "</span>");
+      }).join(""), "</div>");
+    }() : "", "\n      </div>\n    </li>\n  ");
   }).join(""), "</ol>");
 }
 function revealedBottleMarkup(bottle) {

@@ -422,11 +422,13 @@ function boardMarkup(items) {
       <p class="tv-bottle-score">${item.voteCount ? `${Number(item.averageRating).toFixed(1)} / 5` : "Awaiting ratings"}</p>
       <p class="text-sm text-amber-50/65">${item.voteCount} rating${item.voteCount === 1 ? "" : "s"}</p>
       <div class="mt-3 min-h-14">
-        ${item.grapeGuesses.length ? `
-          <div class="flex flex-wrap justify-center gap-1">
-            <span class="tv-guess-chip">${escapeHtml(item.grapeGuesses[0].label)}</span>
-          </div>
-        ` : ""}
+        ${item.grapeGuesses.length ? (() => {
+          const top = item.grapeGuesses[0].count;
+          const leaders = item.grapeGuesses.filter(g => g.count === top);
+          return `<div class="flex flex-wrap justify-center gap-1">${leaders.map(g =>
+            `<span class="tv-guess-chip">${g.count} × ${escapeHtml(g.label)}</span>`
+          ).join("")}</div>`;
+        })() : ""}
       </div>
     </li>
   `).join("")}</ol>`;
