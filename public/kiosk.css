@@ -79,6 +79,8 @@ input, textarea, select {
   -webkit-flex-wrap: wrap;
   flex-wrap: wrap;
   margin: 0 -4px;
+  -webkit-align-items: stretch;
+  align-items: stretch;
 }
 
 .chip {
@@ -112,15 +114,16 @@ input, textarea, select {
 .palate-row {
   display: -webkit-flex;
   display: flex;
-  -webkit-align-items: center;
-  align-items: center;
-  margin-bottom: 6px;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  margin-bottom: 10px;
 }
 
 .palate-metric {
-  -webkit-flex: 0 0 22%;
-  flex: 0 0 22%;
-  padding-right: 10px;
+  width: 100%;
+  padding-right: 0;
+  padding-top: 0;
+  padding-bottom: 6px;
   color: rgba(255, 215, 122, 0.95);
   font-size: 17px;
   font-weight: 800;
@@ -143,9 +146,17 @@ input, textarea, select {
   flex: 1 1 auto;
 }
 
+/* Aroma chips: exactly 2 per row, equal width */
+.chip-row:not(.palate-chips) .chip {
+  -webkit-flex: 0 0 calc(50% - 8px);
+  flex: 0 0 calc(50% - 8px);
+}
+
 .palate-chips .chip {
   -webkit-flex: 1 1 0%;
   flex: 1 1 0%;
+  -webkit-flex-basis: 0%;
+  flex-basis: 0%;
   margin: 3px;
   min-height: 46px;
   font-size: 16px;
