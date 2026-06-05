@@ -192,63 +192,33 @@ export function openWineDb({ dbFile }) {
       return scene ?? null;
     },
     revealData() {
-      // Sommelier: guest with most correct grape guesses
-      const sommelierRows = sqlite.prepare(`
-        SELECT u.display_name, COUNT(*) AS correct_count
-        FROM tasting_entries t
-        JOIN users u ON u.id = t.user_id
-        JOIN wine_bottles b ON b.id = t.bottle_id
-        WHERE lower(trim(t.grape_guess)) = lower(trim(b.grape))
-        GROUP BY t.user_id
-        ORDER BY correct_count DESC
-      `).all();
-      const topCount = sommelierRows[0]?.correct_count ?? 0;
-      const sommelierWinners = sommelierRows.filter(r => r.correct_count === topCount).map(r => r.display_name);
-      const totalBottles = sqlite.prepare("SELECT COUNT(*) AS n FROM wine_bottles").get().n;
+      sqlite.exec("BEGIN");
+      try {
+        // Sommelier: guest with most correct grape guesses
+        const sommelierRows = sqlite.prepare(`
+          SELECT u.display_name, COUNT(*) AS correct_count
+          FROM tasting_entries t
+          JOIN users u ON u.id = t.user_id
+          JOIN wine_bottles b ON b.id = t.bottle_id
+          WHERE lower(trim(t.grape_guess)) = lower(trim(b.grape))
+          GROUP BY t.user_id
+          ORDER BY correct_count DESC
+        `).all();
+        const topCount = sommelierRows[0]?.correct_count ?? 0;
+        const sommelierWinners = sommelierRows.filter(r => r.correct_count === topCount).map(r => r.display_name);
+        const totalBottles = sqlite.prepare("SELECT COUNT(*) AS n FROM wine_bottles").get().n;
 
-      // Podium: top 3 by average rating
-      const podium = sqlite.prepare(`
-        SELECT b.id, b.bag_number, b.bottle_name, b.producer, b.grape, b.photo_url, b.vintage,
-               ROUND(COALESCE(AVG(t.rating), 0), 2) AS avg_rating, COUNT(t.id) AS vote_count
-        FROM wine_bottles b
-        LEFT JOIN tasting_entries t ON t.bottle_id = b.id
-        GROUP BY b.id
-        ORDER BY avg_rating DESC, vote_count DESC, b.bag_number ASC
-        LIMIT 3
-      `).all().map((row, i) => ({
-        rank: i + 1,
-        bagNumber: row.bag_number,
-        bottleName: row.bottle_name || "",
-        producer: row.producer || "",
-        grape: row.grape || "",
-        photoUrl: row.photo_url || null,
-        vintage: row.vintage || "",
-        averageRating: row.avg_rating,
-        voteCount: row.vote_count
-      }));
-
-      // Reveal all: all bottles in bag number order with top nose aromas
-      const allEntries = sqlite.prepare(`
-        SELECT t.bottle_id, t.selected_nose
-        FROM tasting_entries t
-      `).all();
-      const revealAll = sqlite.prepare(`
-        SELECT b.id, b.bag_number, b.bottle_name, b.producer, b.grape, b.photo_url, b.vintage,
-               ROUND(COALESCE(AVG(t.rating), 0), 2) AS avg_rating, COUNT(t.id) AS vote_count
-        FROM wine_bottles b
-        LEFT JOIN tasting_entries t ON t.bottle_id = b.id
-        GROUP BY b.id
-        ORDER BY b.bag_number ASC
-      `).all().map(row => {
-        const entries = allEntries.filter(e => e.bottle_id === row.id);
-        const noseCounts = {};
-        entries.forEach(e => {
-          let noseArr = [];
-          try { noseArr = JSON.parse(e.selected_nose || "[]"); } catch { /* ignore */ }
-          noseArr.forEach(n => { noseCounts[n] = (noseCounts[n] || 0) + 1; });
-        });
-        const topNose = Object.entries(noseCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([label]) => label);
-        return {
+        // Podium: top 3 by average rating
+        const podium = sqlite.prepare(`
+          SELECT b.id, b.bag_number, b.bottle_name, b.producer, b.grape, b.photo_url, b.vintage,
+                 ROUND(COALESCE(AVG(t.rating), 0), 2) AS avg_rating, COUNT(t.id) AS vote_count
+          FROM wine_bottles b
+          LEFT JOIN tasting_entries t ON t.bottle_id = b.id
+          GROUP BY b.id
+          ORDER BY avg_rating DESC, vote_count DESC, b.bag_number ASC
+          LIMIT 3
+        `).all().map((row, i) => ({
+          rank: i + 1,
           bagNumber: row.bag_number,
           bottleName: row.bottle_name || "",
           producer: row.producer || "",
@@ -256,40 +226,78 @@ export function openWineDb({ dbFile }) {
           photoUrl: row.photo_url || null,
           vintage: row.vintage || "",
           averageRating: row.avg_rating,
-          voteCount: row.vote_count,
-          topNose
+          voteCount: row.vote_count
+        }));
+
+        // Reveal all: all bottles in bag number order with top nose aromas
+        const allEntries = sqlite.prepare(`
+          SELECT t.bottle_id, t.selected_nose
+          FROM tasting_entries t
+        `).all();
+        const revealAll = sqlite.prepare(`
+          SELECT b.id, b.bag_number, b.bottle_name, b.producer, b.grape, b.photo_url, b.vintage,
+                 ROUND(COALESCE(AVG(t.rating), 0), 2) AS avg_rating, COUNT(t.id) AS vote_count
+          FROM wine_bottles b
+          LEFT JOIN tasting_entries t ON t.bottle_id = b.id
+          GROUP BY b.id
+          ORDER BY b.bag_number ASC
+        `).all().map(row => {
+          const entries = allEntries.filter(e => e.bottle_id === row.id);
+          const noseCounts = {};
+          entries.forEach(e => {
+            let noseArr = [];
+            try { noseArr = JSON.parse(e.selected_nose || "[]"); } catch { /* ignore */ }
+            noseArr.forEach(n => { noseCounts[n] = (noseCounts[n] || 0) + 1; });
+          });
+          const topNose = Object.entries(noseCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([label]) => label);
+          return {
+            bagNumber: row.bag_number,
+            bottleName: row.bottle_name || "",
+            producer: row.producer || "",
+            grape: row.grape || "",
+            photoUrl: row.photo_url || null,
+            vintage: row.vintage || "",
+            averageRating: row.avg_rating,
+            voteCount: row.vote_count,
+            topNose
+          };
+        });
+
+        // Group accuracy
+        const accRow = sqlite.prepare(`
+          SELECT
+            COUNT(CASE WHEN lower(trim(t.grape_guess)) = lower(trim(b.grape)) THEN 1 END) AS correct,
+            COUNT(*) AS total
+          FROM tasting_entries t
+          JOIN wine_bottles b ON b.id = t.bottle_id
+        `).get();
+
+        // The Numbers
+        const numbersRow = sqlite.prepare(`
+          SELECT COUNT(DISTINCT b.id) AS bottle_count,
+                 COUNT(t.id) AS entry_count,
+                 ROUND(COALESCE(AVG(t.rating), 0), 2) AS avg_rating
+          FROM wine_bottles b
+          LEFT JOIN tasting_entries t ON t.bottle_id = b.id
+        `).get();
+
+        const result = {
+          sommelier: { winners: sommelierWinners, correctCount: topCount, totalBottles },
+          podium,
+          revealAll,
+          groupAccuracy: { correct: accRow.correct, total: accRow.total },
+          theNumbers: {
+            bottleCount: numbersRow.bottle_count,
+            entryCount: numbersRow.entry_count,
+            averageRating: numbersRow.avg_rating
+          }
         };
-      });
-
-      // Group accuracy
-      const accRow = sqlite.prepare(`
-        SELECT
-          COUNT(CASE WHEN lower(trim(t.grape_guess)) = lower(trim(b.grape)) THEN 1 END) AS correct,
-          COUNT(*) AS total
-        FROM tasting_entries t
-        JOIN wine_bottles b ON b.id = t.bottle_id
-      `).get();
-
-      // The Numbers
-      const numbersRow = sqlite.prepare(`
-        SELECT COUNT(DISTINCT b.id) AS bottle_count,
-               COUNT(t.id) AS entry_count,
-               ROUND(COALESCE(AVG(t.rating), 0), 2) AS avg_rating
-        FROM wine_bottles b
-        LEFT JOIN tasting_entries t ON t.bottle_id = b.id
-      `).get();
-
-      return {
-        sommelier: { winners: sommelierWinners, correctCount: topCount, totalBottles },
-        podium,
-        revealAll,
-        groupAccuracy: { correct: accRow.correct, total: accRow.total },
-        theNumbers: {
-          bottleCount: numbersRow.bottle_count,
-          entryCount: numbersRow.entry_count,
-          averageRating: numbersRow.avg_rating
-        }
-      };
+        sqlite.exec("COMMIT");
+        return result;
+      } catch (e) {
+        sqlite.exec("ROLLBACK");
+        throw e;
+      }
     },
     listGuests() {
       return guestRowsStmt.all().map((row) => ({ id: row.id, displayName: row.display_name }));
