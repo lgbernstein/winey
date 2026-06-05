@@ -322,6 +322,7 @@ async function refresh() {
 }
 
 async function submit() {
+  if (state.submitting) return;
   const sleeve = effectiveSleeve();
   if (!state.selectedGuestId || !sleeve || !state.selectedGrape || !state.starRating) return;
   state.submitting = true;
@@ -435,6 +436,13 @@ function handleTap(target) {
   if (starEl) {
     state.starRating = Number(starEl.getAttribute("data-star"));
     render();
+    return true;
+  }
+
+  // Save tasting on the fast touch path; submit() guards against double-fire.
+  const saveEl = closest(".save-btn");
+  if (saveEl && !saveEl.disabled) {
+    submit();
     return true;
   }
 

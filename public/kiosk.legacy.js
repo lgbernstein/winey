@@ -408,21 +408,27 @@ function _submit() {
     return _regenerator().w(function (_context3) {
       while (1) switch (_context3.p = _context3.n) {
         case 0:
-          sleeve = effectiveSleeve();
-          if (!(!state.selectedGuestId || !sleeve || !state.selectedGrape || !state.starRating)) {
+          if (!state.submitting) {
             _context3.n = 1;
             break;
           }
           return _context3.a(2);
         case 1:
+          sleeve = effectiveSleeve();
+          if (!(!state.selectedGuestId || !sleeve || !state.selectedGrape || !state.starRating)) {
+            _context3.n = 2;
+            break;
+          }
+          return _context3.a(2);
+        case 2:
           state.submitting = true;
           render();
-          _context3.p = 2;
+          _context3.p = 3;
           palatePayload = {};
           Object.keys(state.palate).forEach(function (m) {
             if (state.palate[m]) palatePayload[m] = state.palate[m];
           });
-          _context3.n = 3;
+          _context3.n = 4;
           return api("/api/tastings", {
             method: "POST",
             body: {
@@ -436,7 +442,7 @@ function _submit() {
               palate: palatePayload
             }
           });
-        case 3:
+        case 4:
           notice("Done. Now get back to tasting.");
           state.selectedGuestId = "";
           state.selectedSleeve = "";
@@ -451,24 +457,24 @@ function _submit() {
             Body: ""
           };
           state.showAddGuest = false;
-          _context3.n = 4;
+          _context3.n = 5;
           return refresh();
-        case 4:
-          _context3.n = 6;
-          break;
         case 5:
-          _context3.p = 5;
-          _t2 = _context3.v;
-          notice(_t2.message || "Could not save.", true);
+          _context3.n = 7;
+          break;
         case 6:
           _context3.p = 6;
+          _t2 = _context3.v;
+          notice(_t2.message || "Could not save.", true);
+        case 7:
+          _context3.p = 7;
           state.submitting = false;
           render();
-          return _context3.f(6);
-        case 7:
+          return _context3.f(7);
+        case 8:
           return _context3.a(2);
       }
-    }, _callee3, null, [[2, 5, 6, 7]]);
+    }, _callee3, null, [[3, 6, 7, 8]]);
   }));
   return _submit.apply(this, arguments);
 }
@@ -575,6 +581,13 @@ function handleTap(target) {
   if (starEl) {
     state.starRating = Number(starEl.getAttribute("data-star"));
     render();
+    return true;
+  }
+
+  // Save tasting on the fast touch path; submit() guards against double-fire.
+  var saveEl = closest(".save-btn");
+  if (saveEl && !saveEl.disabled) {
+    submit();
     return true;
   }
   if (target.classList && target.classList.contains("chip")) {
