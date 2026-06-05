@@ -111,6 +111,7 @@ input, textarea, select {
   color: #ffd77a;
 }
 
+/* Phone: stack label above chips so 3 chips fit on one row */
 .palate-row {
   display: -webkit-flex;
   display: flex;
@@ -131,6 +132,25 @@ input, textarea, select {
   text-transform: uppercase;
   -webkit-box-sizing: border-box;
   box-sizing: border-box;
+}
+
+/* iPad and wider: restore side-by-side to keep form compact */
+@media (min-width: 680px) {
+  .palate-row {
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    -webkit-align-items: flex-start;
+    align-items: flex-start;
+    margin-bottom: 6px;
+  }
+  .palate-metric {
+    -webkit-flex: 0 0 22%;
+    flex: 0 0 22%;
+    width: auto;
+    padding-right: 10px;
+    padding-bottom: 0;
+    padding-top: 12px;
+  }
 }
 
 @media (min-width: 900px) {
