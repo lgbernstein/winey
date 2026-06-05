@@ -1,0 +1,24 @@
+{
+  // Format files automatically when you save (Cmd+S). Keeps code clean without effort.
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // Show ESLint mistakes underlined as they happen.
+  "eslint.validate": ["javascript"],
+
+  // Vim's modal editing makes typing behave oddly. Off, project-wide.
+  "vim.disableExtension": true,
+
+  // Hide noise from the file tree so you see what matters.
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.playwright-mcp": true,
+    "**/.npm-cache": true,
+    "**/.codex-build": true,
+    "**/*.legacy.js": true,
+    "verify-*.png": true
+  },
+
+  // Use the project's Node version and the .env.keys file for secrets.
+  "terminal.integrated.cwd": "${workspaceFolder}"
+}

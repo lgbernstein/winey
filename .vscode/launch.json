@@ -1,0 +1,19 @@
+{
+  // Press F5 (or the green play button in "Run and Debug") to start Winey.
+  // Stops automatically when you hit the red stop button.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Winey (dev, auto-reload)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server.js",
+      "runtimeArgs": [
+        "--env-file-if-exists=/Users/larrybernstein/.env.keys",
+        "--watch"
+      ],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}

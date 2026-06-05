@@ -1,0 +1,12 @@
+{
+  // VS Code suggests these when the project opens. Already installed for you —
+  // this just pins them to Winey so a fresh machine knows what to add.
+  "recommendations": [
+    "anthropic.claude-code",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "eamodio.gitlens",
+    "rangav.vscode-thunder-client",
+    "pkief.material-icon-theme"
+  ]
+}
