@@ -730,29 +730,27 @@ function renderPodiumScene(podium) {
   `;
 }
 function renderRevealAllScene(revealAll) {
-  const bottles = revealAll.map(bottle => {
-    return `
-      <div class="bottle-flip">
-        <div class="bottle-flip-inner" data-flip-bag="${bottle.bagNumber}">
-          <div class="bottle-flip-front">
-            <div class="blind-bottle" aria-label="Sleeve ${bottle.bagNumber}">
-              <div class="blind-bottle-lip"></div>
-              <div class="blind-bottle-neck"></div>
-              <div class="blind-bottle-shoulders"></div>
-              <div class="blind-bottle-body"><span>#${bottle.bagNumber}</span></div>
-            </div>
-          </div>
-          <div class="bottle-flip-back">
-            ${revealedBottleMarkup(bottle)}
-          </div>
+  const sorted = [...revealAll].sort((a, b) => a.bagNumber - b.bagNumber);
+  const step = Math.min(state.bootstrap.revealAllStep || 0, sorted.length - 1);
+  const bottle = sorted[step];
+  if (!bottle) return `<div class="reveal-scene-shell"><p class="reveal-scene-kicker">The Wines</p></div>`;
+  const photo = bottle.photoUrl
+    ? `<img class="reveal-one-photo" src="${escapeHtml(bottle.photoUrl)}" alt="${escapeHtml(bottle.bottleName)}" loading="lazy">`
+    : `<div class="reveal-one-no-photo">#${bottle.bagNumber}</div>`;
+  const meta = [bottle.producer, bottle.region, bottle.vintage].filter(Boolean).join(" · ");
+  const total = sorted.length;
+  return `
+    <div class="reveal-scene-shell reveal-one-shell">
+      <div class="reveal-one-card" key="${bottle.bagNumber}">
+        ${photo}
+        <div class="reveal-one-info">
+          <p class="reveal-one-sleeve">Sleeve #${bottle.bagNumber}</p>
+          <h2 class="reveal-one-name">${escapeHtml(bottle.bottleName || `Sleeve ${bottle.bagNumber}`)}</h2>
+          ${meta ? `<p class="reveal-one-meta">${escapeHtml(meta)}</p>` : ""}
+          ${bottle.grape ? `<p class="reveal-one-grape">${escapeHtml(bottle.grape)}</p>` : ""}
+          <p class="reveal-one-progress">${step + 1} of ${total}</p>
         </div>
       </div>
-    `;
-  });
-  return `
-    <div class="reveal-scene-shell reveal-all-shell">
-      <p class="reveal-scene-kicker mb-6">The Wines</p>
-      <div class="reveal-all-grid">${bottles.join("")}</div>
     </div>
   `;
 }
@@ -967,6 +965,19 @@ function hostView() {
                   type="button"
                 >${label}</button>
               `).join("")}
+              ${state.bootstrap.revealScene === "reveal-all" ? `
+                <div class="reveal-all-controls">
+                  <button class="reveal-all-btn" data-reveal-all-step="prev">← Prev</button>
+                  <span class="reveal-all-counter">${
+                    (() => {
+                      const total = (state.revealData?.revealAll || state.reveal || []).length;
+                      const step = Math.min(state.bootstrap.revealAllStep || 0, total - 1);
+                      return total ? `${step + 1} / ${total}` : "—";
+                    })()
+                  }</span>
+                  <button class="reveal-all-btn reveal-all-btn-next" data-reveal-all-step="next">Next →</button>
+                </div>
+              ` : ""}
               ${state.bootstrap.revealScene ? `
                 <button class="reveal-host-btn-clear" data-reveal-scene="" type="button">✕ Clear scene</button>
               ` : ""}
@@ -1411,6 +1422,16 @@ document.addEventListener("click", async (event) => {
       .then(() => notice(`Event set to ${stateLabel(eventState)}.`))
       .catch((error) => notice(error.message));
   }
+  const revealAllStepEl = event.target.closest("[data-reveal-all-step]");
+  if (revealAllStepEl) {
+    const action = revealAllStepEl.dataset.revealAllStep;
+    try {
+      await api("/api/host/reveal-all-step", { method: "PATCH", body: { action }, host: true });
+    } catch (e) { notice(e.message); return; }
+    await refresh({ host: true });
+    return;
+  }
+
   const revealSceneEl = event.target.closest("[data-reveal-scene]");
   if (revealSceneEl && "revealScene" in revealSceneEl.dataset) {
     const scene = revealSceneEl.dataset.revealScene || null;
@@ -1542,9 +1563,10 @@ window.addEventListener("resize", () => { if (state.view === "tv") fitTvGrid(); 
 
 setInterval(async () => {
   if (state.view === "tv" && !state.demoBoard) {
-    // During a reveal scene the host drives everything manually — no need to
-    // hammer the server every 2s and risk re-triggering animations mid-reveal.
-    if (state.bootstrap?.revealScene) return;
+    // During static reveal scenes (host controls nothing on TV) skip polling to
+    // avoid re-triggering animations. reveal-all needs polling so Next/Prev land.
+    const scene = state.bootstrap?.revealScene;
+    if (scene && scene !== "reveal-all") return;
     try {
       await refresh({ reveal: true });
       if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {

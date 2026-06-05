@@ -74,6 +74,7 @@ function parseOptionalTasting(body) {
 }
 
 export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468", labelScanner = scanBottleLabel, coachGenerator = generateCoachText } = {}) {
+  let revealAllStep = 0;
   const paths = resolveDataPaths(dataDir);
   mkdirSync(paths.uploadRoot, { recursive: true });
   const db = openWineDb(paths);
@@ -146,6 +147,7 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
       state: db.getState(),
       nowPouring: db.getNowPouring(),
       revealScene: db.getRevealScene(),
+      revealAllStep,
       grapes: db.listGuessGrapes(),
       guests: db.listGuests(),
       bottles: db.listBlindBottles(),
@@ -361,7 +363,16 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
       return;
     }
     const revealScene = db.setRevealScene(scene);
+    revealAllStep = 0;
     res.json({ revealScene });
+  });
+
+  app.patch("/api/host/reveal-all-step", requireHost, (req, res) => {
+    const action = String(req.body.action || "next");
+    if (action === "prev") revealAllStep = Math.max(0, revealAllStep - 1);
+    else if (action === "reset") revealAllStep = 0;
+    else revealAllStep++;
+    res.json({ revealAllStep });
   });
 
   app.get("*splat", (_req, res) => res.sendFile("index.html", { root: "public" }));

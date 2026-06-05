@@ -753,6 +753,83 @@ dialog::backdrop {
   gap: 1rem;
 }
 
+/* ---- Reveal All: one wine at a time ---- */
+.reveal-one-shell {
+  @apply items-center justify-center w-full;
+  min-height: 78vh;
+}
+.reveal-one-card {
+  display: flex;
+  align-items: center;
+  gap: 5rem;
+  max-width: 1200px;
+  width: 100%;
+  padding: 3rem 4rem;
+  animation: reveal-one-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes reveal-one-in {
+  from { opacity: 0; transform: translateX(60px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.reveal-one-photo {
+  width: 22rem;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  border-radius: 1.25rem;
+  flex-shrink: 0;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+}
+.reveal-one-no-photo {
+  width: 22rem;
+  aspect-ratio: 3/4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.25rem;
+  background: #1c1412;
+  font-size: 4rem;
+  font-weight: 900;
+  color: #ffd47a;
+  flex-shrink: 0;
+}
+.reveal-one-info {
+  flex: 1;
+  min-width: 0;
+}
+.reveal-one-sleeve {
+  @apply text-2xl font-semibold text-amber-400 uppercase tracking-widest mb-2;
+}
+.reveal-one-name {
+  font-size: 5.5rem;
+  font-weight: 900;
+  color: #fff7ec;
+  line-height: 1;
+  margin-bottom: 1.25rem;
+}
+.reveal-one-meta {
+  @apply text-3xl text-amber-100/60 mb-2;
+}
+.reveal-one-grape {
+  @apply text-3xl text-amber-300 font-semibold mb-6;
+}
+.reveal-one-progress {
+  @apply text-2xl text-amber-200/50 mt-8 uppercase tracking-widest;
+}
+
+/* Host Next/Prev controls for reveal-all */
+.reveal-all-controls {
+  @apply flex items-center gap-3 mt-3 mb-1;
+}
+.reveal-all-btn {
+  @apply flex-1 rounded-lg border border-amber-100/30 bg-stone-900 px-4 py-3 text-lg font-bold text-amber-100;
+}
+.reveal-all-btn-next {
+  @apply bg-amber-500/20 border-amber-400/50 text-amber-200;
+}
+.reveal-all-counter {
+  @apply text-lg font-bold text-amber-300 w-16 text-center;
+}
+
 /* ---- Group Accuracy scene ---- */
 .reveal-accuracy-number {
   @apply text-8xl font-bold text-amber-300 mt-4 leading-none;

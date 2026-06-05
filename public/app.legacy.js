@@ -546,10 +546,16 @@ function renderPodiumScene(podium) {
   return "\n    <div class=\"reveal-scene-shell reveal-podium\">\n      <div class=\"podium-rows\">".concat(rows.join(""), "</div>\n    </div>\n  ");
 }
 function renderRevealAllScene(revealAll) {
-  var bottles = revealAll.map(function (bottle) {
-    return "\n      <div class=\"bottle-flip\">\n        <div class=\"bottle-flip-inner\" data-flip-bag=\"".concat(bottle.bagNumber, "\">\n          <div class=\"bottle-flip-front\">\n            <div class=\"blind-bottle\" aria-label=\"Sleeve ").concat(bottle.bagNumber, "\">\n              <div class=\"blind-bottle-lip\"></div>\n              <div class=\"blind-bottle-neck\"></div>\n              <div class=\"blind-bottle-shoulders\"></div>\n              <div class=\"blind-bottle-body\"><span>#").concat(bottle.bagNumber, "</span></div>\n            </div>\n          </div>\n          <div class=\"bottle-flip-back\">\n            ").concat(revealedBottleMarkup(bottle), "\n          </div>\n        </div>\n      </div>\n    ");
+  var sorted = _toConsumableArray(revealAll).sort(function (a, b) {
+    return a.bagNumber - b.bagNumber;
   });
-  return "\n    <div class=\"reveal-scene-shell reveal-all-shell\">\n      <p class=\"reveal-scene-kicker mb-6\">The Wines</p>\n      <div class=\"reveal-all-grid\">".concat(bottles.join(""), "</div>\n    </div>\n  ");
+  var step = Math.min(state.bootstrap.revealAllStep || 0, sorted.length - 1);
+  var bottle = sorted[step];
+  if (!bottle) return "<div class=\"reveal-scene-shell\"><p class=\"reveal-scene-kicker\">The Wines</p></div>";
+  var photo = bottle.photoUrl ? "<img class=\"reveal-one-photo\" src=\"".concat(escapeHtml(bottle.photoUrl), "\" alt=\"").concat(escapeHtml(bottle.bottleName), "\" loading=\"lazy\">") : "<div class=\"reveal-one-no-photo\">#".concat(bottle.bagNumber, "</div>");
+  var meta = [bottle.producer, bottle.region, bottle.vintage].filter(Boolean).join(" · ");
+  var total = sorted.length;
+  return "\n    <div class=\"reveal-scene-shell reveal-one-shell\">\n      <div class=\"reveal-one-card\" key=\"".concat(bottle.bagNumber, "\">\n        ").concat(photo, "\n        <div class=\"reveal-one-info\">\n          <p class=\"reveal-one-sleeve\">Sleeve #").concat(bottle.bagNumber, "</p>\n          <h2 class=\"reveal-one-name\">").concat(escapeHtml(bottle.bottleName || "Sleeve ".concat(bottle.bagNumber)), "</h2>\n          ").concat(meta ? "<p class=\"reveal-one-meta\">".concat(escapeHtml(meta), "</p>") : "", "\n          ").concat(bottle.grape ? "<p class=\"reveal-one-grape\">".concat(escapeHtml(bottle.grape), "</p>") : "", "\n          <p class=\"reveal-one-progress\">").concat(step + 1, " of ").concat(total, "</p>\n        </div>\n      </div>\n    </div>\n  ");
 }
 function consensusGridMarkup(consensus) {
   if (!consensus) return "";
@@ -658,7 +664,11 @@ function hostView() {
     var scene = _ref7.scene,
       label = _ref7.label;
     return "\n                <button\n                  class=\"reveal-host-btn ".concat(state.bootstrap.revealScene === scene ? "reveal-host-btn-active" : "", "\"\n                  data-reveal-scene=\"").concat(scene, "\"\n                  type=\"button\"\n                >").concat(label, "</button>\n              ");
-  }).join(""), "\n              ").concat(state.bootstrap.revealScene ? "\n                <button class=\"reveal-host-btn-clear\" data-reveal-scene=\"\" type=\"button\">\u2715 Clear scene</button>\n              " : "", "\n            </div>\n          </div>\n        ") : "", "\n        <p class=\"mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50\">Current state: ").concat(escapeHtml(stateLabel(state.host.state)), "</p>\n        <div class=\"mt-5 grid grid-cols-2 gap-3\">\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-amber-300\">").concat(state.host.bottles.length, "</p><p>Bottles</p></div>\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-emerald-300\">").concat(state.host.photos.length, "</p><p>Party photos</p></div>\n        </div>\n      ")), "\n    </div>\n    ").concat(state.host.bottles.length ? panel("\n      <div class=\"flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Pouring control</p>\n          <h2 class=\"screen-title\">Tell everyone what's in the glass</h2>\n        </div>\n        ".concat(state.bootstrap.nowPouring ? "\n          <button class=\"tap-quiet\" data-pour-sleeve=\"\" type=\"button\">Stop pouring</button>\n        " : "", "\n      </div>\n      ").concat(state.bootstrap.nowPouring ? "\n        <div class=\"mt-4 rounded-lg border border-amber-200/30 bg-amber-950/30 p-4 text-amber-50\">\n          <p class=\"kicker\">Now pouring</p>\n          <p class=\"text-6xl font-black text-amber-300\">#".concat(state.bootstrap.nowPouring, "</p>\n        </div>\n      ") : "\n        <p class=\"mt-2 text-amber-50/75\">Tap a sleeve to broadcast it to the TV and the kiosks. Guests will see coaching cues for that bottle.</p>\n      ", "\n      <div class=\"mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8\">\n        ").concat(_toConsumableArray(state.host.bottles).sort(function (a, b) {
+  }).join(""), "\n              ").concat(state.bootstrap.revealScene === "reveal-all" ? "\n                <div class=\"reveal-all-controls\">\n                  <button class=\"reveal-all-btn\" data-reveal-all-step=\"prev\">\u2190 Prev</button>\n                  <span class=\"reveal-all-counter\">".concat(function (_state$revealData2) {
+    var total = (((_state$revealData2 = state.revealData) === null || _state$revealData2 === void 0 ? void 0 : _state$revealData2.revealAll) || state.reveal || []).length;
+    var step = Math.min(state.bootstrap.revealAllStep || 0, total - 1);
+    return total ? "".concat(step + 1, " / ").concat(total) : "—";
+  }(), "</span>\n                  <button class=\"reveal-all-btn reveal-all-btn-next\" data-reveal-all-step=\"next\">Next \u2192</button>\n                </div>\n              ") : "", "\n              ").concat(state.bootstrap.revealScene ? "\n                <button class=\"reveal-host-btn-clear\" data-reveal-scene=\"\" type=\"button\">\u2715 Clear scene</button>\n              " : "", "\n            </div>\n          </div>\n        ") : "", "\n        <p class=\"mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50\">Current state: ").concat(escapeHtml(stateLabel(state.host.state)), "</p>\n        <div class=\"mt-5 grid grid-cols-2 gap-3\">\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-amber-300\">").concat(state.host.bottles.length, "</p><p>Bottles</p></div>\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-emerald-300\">").concat(state.host.photos.length, "</p><p>Party photos</p></div>\n        </div>\n      ")), "\n    </div>\n    ").concat(state.host.bottles.length ? panel("\n      <div class=\"flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Pouring control</p>\n          <h2 class=\"screen-title\">Tell everyone what's in the glass</h2>\n        </div>\n        ".concat(state.bootstrap.nowPouring ? "\n          <button class=\"tap-quiet\" data-pour-sleeve=\"\" type=\"button\">Stop pouring</button>\n        " : "", "\n      </div>\n      ").concat(state.bootstrap.nowPouring ? "\n        <div class=\"mt-4 rounded-lg border border-amber-200/30 bg-amber-950/30 p-4 text-amber-50\">\n          <p class=\"kicker\">Now pouring</p>\n          <p class=\"text-6xl font-black text-amber-300\">#".concat(state.bootstrap.nowPouring, "</p>\n        </div>\n      ") : "\n        <p class=\"mt-2 text-amber-50/75\">Tap a sleeve to broadcast it to the TV and the kiosks. Guests will see coaching cues for that bottle.</p>\n      ", "\n      <div class=\"mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8\">\n        ").concat(_toConsumableArray(state.host.bottles).sort(function (a, b) {
     return a.bagNumber - b.bagNumber;
   }).map(function (bottle) {
     return "\n          <button class=\"".concat(bottle.bagNumber === state.bootstrap.nowPouring ? 'tap-primary' : 'tap-quiet', " text-lg font-bold\" data-pour-sleeve=\"").concat(bottle.bagNumber, "\" type=\"button\">#").concat(bottle.bagNumber, "</button>\n        ");
@@ -1096,7 +1106,7 @@ function fetchCoach(_x7) {
 }
 function _fetchCoach() {
   _fetchCoach = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(bagNumber) {
-    var key, result, _t4;
+    var key, result, _t5;
     return _regenerator().w(function (_context10) {
       while (1) switch (_context10.p = _context10.n) {
         case 0:
@@ -1128,7 +1138,7 @@ function _fetchCoach() {
           break;
         case 5:
           _context10.p = 5;
-          _t4 = _context10.v;
+          _t5 = _context10.v;
           state.bottleCoach[key] = "";
         case 6:
           _context10.p = 6;
@@ -1380,7 +1390,7 @@ function drawCharts(id) {
 document.addEventListener("click", /*#__PURE__*/function () {
   var _ref0 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
     var _event$target$closest, _event$target$closest2, _event$target$closest3;
-    var view, editId, eventState, revealSceneEl, scene, pourEl, raw, bagNumber, input, names, _t, _t2;
+    var view, editId, eventState, revealAllStepEl, action, revealSceneEl, scene, pourEl, raw, bagNumber, input, names, _t, _t2, _t3;
     return _regenerator().w(function (_context) {
       while (1) switch (_context.p = _context.n) {
         case 0:
@@ -1475,18 +1485,18 @@ document.addEventListener("click", /*#__PURE__*/function () {
               return notice(error.message);
             });
           }
-          revealSceneEl = event.target.closest("[data-reveal-scene]");
-          if (!(revealSceneEl && "revealScene" in revealSceneEl.dataset)) {
+          revealAllStepEl = event.target.closest("[data-reveal-all-step]");
+          if (!revealAllStepEl) {
             _context.n = 17;
             break;
           }
-          scene = revealSceneEl.dataset.revealScene || null;
+          action = revealAllStepEl.dataset.revealAllStep;
           _context.p = 12;
           _context.n = 13;
-          return api("/api/host/reveal-scene", {
+          return api("/api/host/reveal-all-step", {
             method: "PATCH",
             body: {
-              scene: scene
+              action: action
             },
             host: true
           });
@@ -1506,6 +1516,37 @@ document.addEventListener("click", /*#__PURE__*/function () {
         case 16:
           return _context.a(2);
         case 17:
+          revealSceneEl = event.target.closest("[data-reveal-scene]");
+          if (!(revealSceneEl && "revealScene" in revealSceneEl.dataset)) {
+            _context.n = 23;
+            break;
+          }
+          scene = revealSceneEl.dataset.revealScene || null;
+          _context.p = 18;
+          _context.n = 19;
+          return api("/api/host/reveal-scene", {
+            method: "PATCH",
+            body: {
+              scene: scene
+            },
+            host: true
+          });
+        case 19:
+          _context.n = 21;
+          break;
+        case 20:
+          _context.p = 20;
+          _t3 = _context.v;
+          notice(_t3.message);
+          return _context.a(2);
+        case 21:
+          _context.n = 22;
+          return refresh({
+            host: true
+          });
+        case 22:
+          return _context.a(2);
+        case 23:
           pourEl = event.target.closest("[data-pour-sleeve]");
           if (pourEl) {
             raw = pourEl.dataset.pourSleeve;
@@ -1547,26 +1588,26 @@ document.addEventListener("click", /*#__PURE__*/function () {
             render();
           }
           if (!event.target.closest("#submit-guest-bulk")) {
-            _context.n = 20;
+            _context.n = 26;
             break;
           }
           input = document.querySelector("#guest-bulk-input");
           if (input) {
-            _context.n = 18;
+            _context.n = 24;
             break;
           }
           return _context.a(2);
-        case 18:
+        case 24:
           names = input.value.split(/[\n,]+/).map(function (s) {
             return s.trim();
           }).filter(Boolean);
           if (names.length) {
-            _context.n = 19;
+            _context.n = 25;
             break;
           }
           notice("Paste at least one name first.");
           return _context.a(2);
-        case 19:
+        case 25:
           state.guestBulkSubmitting = true;
           render();
           api("/api/host/guests/bulk", {
@@ -1587,7 +1628,7 @@ document.addEventListener("click", /*#__PURE__*/function () {
             render();
             notice(error.message);
           });
-        case 20:
+        case 26:
           if (event.target.closest("#seed-demo")) {
             seedDemo().catch(function (error) {
               return notice(error.message);
@@ -1601,10 +1642,10 @@ document.addEventListener("click", /*#__PURE__*/function () {
           if (event.target.closest("#stop-demo")) {
             stopDemo();
           }
-        case 21:
+        case 27:
           return _context.a(2);
       }
-    }, _callee, null, [[12, 14], [3, 5]]);
+    }, _callee, null, [[18, 20], [12, 14], [3, 5]]);
   }));
   return function (_x0) {
     return _ref0.apply(this, arguments);
@@ -1685,7 +1726,7 @@ window.addEventListener("resize", function () {
   if (state.view === "tv") fitTvGrid();
 });
 setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-  var _state$bootstrap5, _t3;
+  var _state$bootstrap5, scene, _t4;
   return _regenerator().w(function (_context2) {
     while (1) switch (_context2.p = _context2.n) {
       case 0:
@@ -1693,7 +1734,10 @@ setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(functio
           _context2.n = 4;
           break;
         }
-        if (!((_state$bootstrap5 = state.bootstrap) !== null && _state$bootstrap5 !== void 0 && _state$bootstrap5.revealScene)) {
+        // During static reveal scenes (host controls nothing on TV) skip polling to
+        // avoid re-triggering animations. reveal-all needs polling so Next/Prev land.
+        scene = (_state$bootstrap5 = state.bootstrap) === null || _state$bootstrap5 === void 0 ? void 0 : _state$bootstrap5.revealScene;
+        if (!(scene && scene !== "reveal-all")) {
           _context2.n = 1;
           break;
         }
@@ -1712,8 +1756,8 @@ setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(functio
         break;
       case 3:
         _context2.p = 3;
-        _t3 = _context2.v;
-        console.error("TV refresh failed:", _t3);
+        _t4 = _context2.v;
+        console.error("TV refresh failed:", _t4);
       case 4:
         return _context2.a(2);
     }
