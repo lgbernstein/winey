@@ -11,6 +11,7 @@ const state = {
   bootstrap: null,
   photos: [],
   reveal: [],
+  revealData: null,
   host: null,
   selectedGuestId: localStorage.getItem("wineGuestId") || "",
   starRating: 0,
@@ -451,8 +452,10 @@ function revealedBottleMarkup(bottle) {
 let revealFlipDone = false;
 
 function triggerRevealFlip() {
-  if (revealFlipDone || !state.reveal.length) return;
-  const revealMap = new Map(state.reveal.map((b) => [String(b.bagNumber), b]));
+  if (revealFlipDone) return;
+  const bottles = state.revealData?.revealAll || state.reveal;
+  if (!bottles.length) return;
+  const revealMap = new Map(bottles.map((b) => [String(b.bagNumber), b]));
   const inners = document.querySelectorAll(".bottle-flip-inner");
   if (!inners.length) return;
   revealFlipDone = true;
@@ -613,7 +616,34 @@ function renderTvHero() {
   }
 }
 
+function renderSommelierScene(s) { return `<div class="reveal-scene-shell"><p>Sommelier stub</p></div>`; }
+function renderPodiumScene(p) { return `<div class="reveal-scene-shell"><p>Podium stub</p></div>`; }
+function renderRevealAllScene(r) { return `<div class="reveal-scene-shell"><p>Reveal All stub</p></div>`; }
+function renderGroupAccuracyScene(g) { return `<div class="reveal-scene-shell"><p>Group Accuracy stub</p></div>`; }
+function renderTheNumbersScene(n) { return `<div class="reveal-scene-shell"><p>The Numbers stub</p></div>`; }
+
+function renderRevealScene(scene) {
+  const data = state.revealData;
+  if (!data) return `<div class="reveal-scene-shell"><p class="reveal-loading">Loading…</p></div>`;
+  switch (scene) {
+    case "sommelier": return renderSommelierScene(data.sommelier);
+    case "podium": return renderPodiumScene(data.podium);
+    case "reveal-all": return renderRevealAllScene(data.revealAll);
+    case "group-accuracy": return renderGroupAccuracyScene(data.groupAccuracy);
+    case "the-numbers": return renderTheNumbersScene(data.theNumbers);
+    default: return `<div class="reveal-scene-shell"></div>`;
+  }
+}
+
 function tvView() {
+  const eventState = state.bootstrap.state;
+  const scene = state.bootstrap.revealScene;
+
+  if ((eventState === "GRAND_REVEAL" || eventState === "ARCHIVE") && scene) {
+    return renderRevealScene(scene);
+  }
+
+  // Live board (LIVE_TASTING or GRAND_REVEAL standby with no scene)
   return `
     ${tvHeroMarkup()}
     ${panel(`
@@ -621,7 +651,7 @@ function tvView() {
       ${state.demoBoard ? `<div class="mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>` : ""}
       ${boardMarkup(state.bootstrap.leaderboard)}
     `)}
-    ${state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE" ? panel(`<h2 class="text-3xl font-semibold">Grand reveal</h2>${revealMarkup()}`, "mt-4") : ""}
+    ${eventState === "GRAND_REVEAL" || eventState === "ARCHIVE" ? panel(`<h2 class="text-3xl font-semibold">Grand reveal</h2>${revealMarkup()}`, "mt-4") : ""}
   `;
 }
 
@@ -850,7 +880,7 @@ function render() {
     && state.reveal[0]?.id
     && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)
   ) drawCharts(state.reveal[0].id);
-  if (state.view === "tv" && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state) && state.reveal.length) {
+  if (state.view === "tv" && state.bootstrap.revealScene === "reveal-all" && state.reveal.length) {
     triggerRevealFlip();
   } else if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
     revealFlipDone = false;
@@ -860,7 +890,12 @@ function render() {
 async function refresh({ photos = false, reveal = false, host = false } = {}) {
   state.bootstrap = await api("/api/bootstrap");
   if (photos) state.photos = await api("/api/photos");
-  if (reveal && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) state.reveal = await api("/api/reveal");
+  if (reveal && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
+    [state.reveal, state.revealData] = await Promise.all([
+      api("/api/reveal"),
+      api("/api/reveal-data")
+    ]);
+  }
   if (host && hostToken()) state.host = await api("/api/host/dashboard", { host: true });
   render();
 }
@@ -1228,9 +1263,19 @@ document.addEventListener("submit", (event) => {
 
 window.addEventListener("resize", () => { if (state.view === "tv") fitTvGrid(); });
 
-setInterval(() => {
+setInterval(async () => {
   if (state.view === "tv" && !state.demoBoard) {
-    refresh({ reveal: true }).catch((error) => console.error("TV refresh failed:", error));
+    try {
+      await refresh({ reveal: true });
+      if (["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state) && !state.revealData) {
+        state.revealData = await api("/api/reveal-data");
+      }
+      if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
+        state.revealData = null;
+      }
+    } catch (error) {
+      console.error("TV refresh failed:", error);
+    }
   }
 }, 2000);
 

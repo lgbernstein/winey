@@ -31,6 +31,7 @@ var state = {
   bootstrap: null,
   photos: [],
   reveal: [],
+  revealData: null,
   host: null,
   selectedGuestId: localStorage.getItem("wineGuestId") || "",
   starRating: 0,
@@ -176,42 +177,42 @@ function api(_x) {
   return _api.apply(this, arguments);
 }
 function _api() {
-  _api = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(url) {
+  _api = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(url) {
     var options,
       headers,
       response,
       payload,
-      _args2 = arguments;
-    return _regenerator().w(function (_context2) {
-      while (1) switch (_context2.n) {
+      _args3 = arguments;
+    return _regenerator().w(function (_context3) {
+      while (1) switch (_context3.n) {
         case 0:
-          options = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
+          options = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
           headers = _objectSpread(_objectSpread({}, options.body instanceof FormData ? {} : {
             "Content-Type": "application/json"
           }), options.headers);
           if (options.host) headers.Authorization = "Bearer ".concat(hostToken());
-          _context2.n = 1;
+          _context3.n = 1;
           return fetch(url, _objectSpread(_objectSpread({}, options), {}, {
             headers: headers,
             body: options.body instanceof FormData ? options.body : options.body && JSON.stringify(options.body)
           }));
         case 1:
-          response = _context2.v;
-          _context2.n = 2;
+          response = _context3.v;
+          _context3.n = 2;
           return response.json().catch(function () {
             return {};
           });
         case 2:
-          payload = _context2.v;
+          payload = _context3.v;
           if (response.ok) {
-            _context2.n = 3;
+            _context3.n = 3;
             break;
           }
           throw new Error(payload.error || "Request failed.");
         case 3:
-          return _context2.a(2, payload);
+          return _context3.a(2, payload);
       }
-    }, _callee2);
+    }, _callee3);
   }));
   return _api.apply(this, arguments);
 }
@@ -348,8 +349,11 @@ function revealedBottleMarkup(bottle) {
 }
 var revealFlipDone = false;
 function triggerRevealFlip() {
-  if (revealFlipDone || !state.reveal.length) return;
-  var revealMap = new Map(state.reveal.map(function (b) {
+  var _state$revealData;
+  if (revealFlipDone) return;
+  var bottles = ((_state$revealData = state.revealData) === null || _state$revealData === void 0 ? void 0 : _state$revealData.revealAll) || state.reveal;
+  if (!bottles.length) return;
+  var revealMap = new Map(bottles.map(function (b) {
     return [String(b.bagNumber), b];
   }));
   var inners = document.querySelectorAll(".bottle-flip-inner");
@@ -476,8 +480,48 @@ function renderTvHero() {
     main.insertAdjacentHTML("afterbegin", fresh);
   }
 }
+function renderSommelierScene(s) {
+  return "<div class=\"reveal-scene-shell\"><p>Sommelier stub</p></div>";
+}
+function renderPodiumScene(p) {
+  return "<div class=\"reveal-scene-shell\"><p>Podium stub</p></div>";
+}
+function renderRevealAllScene(r) {
+  return "<div class=\"reveal-scene-shell\"><p>Reveal All stub</p></div>";
+}
+function renderGroupAccuracyScene(g) {
+  return "<div class=\"reveal-scene-shell\"><p>Group Accuracy stub</p></div>";
+}
+function renderTheNumbersScene(n) {
+  return "<div class=\"reveal-scene-shell\"><p>The Numbers stub</p></div>";
+}
+function renderRevealScene(scene) {
+  var data = state.revealData;
+  if (!data) return "<div class=\"reveal-scene-shell\"><p class=\"reveal-loading\">Loading\u2026</p></div>";
+  switch (scene) {
+    case "sommelier":
+      return renderSommelierScene(data.sommelier);
+    case "podium":
+      return renderPodiumScene(data.podium);
+    case "reveal-all":
+      return renderRevealAllScene(data.revealAll);
+    case "group-accuracy":
+      return renderGroupAccuracyScene(data.groupAccuracy);
+    case "the-numbers":
+      return renderTheNumbersScene(data.theNumbers);
+    default:
+      return "<div class=\"reveal-scene-shell\"></div>";
+  }
+}
 function tvView() {
-  return "\n    ".concat(tvHeroMarkup(), "\n    ").concat(panel("\n      ".concat(state.demoBoard ? "<div class=\"mb-5 flex justify-end\"><button class=\"tap-quiet\" id=\"stop-demo\" type=\"button\">Stop demo</button></div>" : "", "\n      ").concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
+  var eventState = state.bootstrap.state;
+  var scene = state.bootstrap.revealScene;
+  if ((eventState === "GRAND_REVEAL" || eventState === "ARCHIVE") && scene) {
+    return renderRevealScene(scene);
+  }
+
+  // Live board (LIVE_TASTING or GRAND_REVEAL standby with no scene)
+  return "\n    ".concat(tvHeroMarkup(), "\n    ").concat(panel("\n      ".concat(state.demoBoard ? "<div class=\"mb-5 flex justify-end\"><button class=\"tap-quiet\" id=\"stop-demo\" type=\"button\">Stop demo</button></div>" : "", "\n      ").concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(eventState === "GRAND_REVEAL" || eventState === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
 }
 function hostBottleFields() {
   var _bottle$expertScore;
@@ -565,7 +609,7 @@ function render() {
     });
   }
   if (state.view === "tv" && state.reveal.length && (_state$reveal$ = state.reveal[0]) !== null && _state$reveal$ !== void 0 && _state$reveal$.id && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) drawCharts(state.reveal[0].id);
-  if (state.view === "tv" && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state) && state.reveal.length) {
+  if (state.view === "tv" && state.bootstrap.revealScene === "reveal-all" && state.reveal.length) {
     triggerRevealFlip();
   } else if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
     revealFlipDone = false;
@@ -575,57 +619,62 @@ function refresh() {
   return _refresh.apply(this, arguments);
 }
 function _refresh() {
-  _refresh = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
-    var _ref8,
-      _ref8$photos,
+  _refresh = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
+    var _ref9,
+      _ref9$photos,
       photos,
-      _ref8$reveal,
+      _ref9$reveal,
       reveal,
-      _ref8$host,
+      _ref9$host,
       host,
-      _args3 = arguments;
-    return _regenerator().w(function (_context3) {
-      while (1) switch (_context3.n) {
+      _yield$Promise$all,
+      _yield$Promise$all2,
+      _args4 = arguments;
+    return _regenerator().w(function (_context4) {
+      while (1) switch (_context4.n) {
         case 0:
-          _ref8 = _args3.length > 0 && _args3[0] !== undefined ? _args3[0] : {}, _ref8$photos = _ref8.photos, photos = _ref8$photos === void 0 ? false : _ref8$photos, _ref8$reveal = _ref8.reveal, reveal = _ref8$reveal === void 0 ? false : _ref8$reveal, _ref8$host = _ref8.host, host = _ref8$host === void 0 ? false : _ref8$host;
-          _context3.n = 1;
+          _ref9 = _args4.length > 0 && _args4[0] !== undefined ? _args4[0] : {}, _ref9$photos = _ref9.photos, photos = _ref9$photos === void 0 ? false : _ref9$photos, _ref9$reveal = _ref9.reveal, reveal = _ref9$reveal === void 0 ? false : _ref9$reveal, _ref9$host = _ref9.host, host = _ref9$host === void 0 ? false : _ref9$host;
+          _context4.n = 1;
           return api("/api/bootstrap");
         case 1:
-          state.bootstrap = _context3.v;
+          state.bootstrap = _context4.v;
           if (!photos) {
-            _context3.n = 3;
+            _context4.n = 3;
             break;
           }
-          _context3.n = 2;
+          _context4.n = 2;
           return api("/api/photos");
         case 2:
-          state.photos = _context3.v;
+          state.photos = _context4.v;
         case 3:
           if (!(reveal && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state))) {
-            _context3.n = 5;
+            _context4.n = 5;
             break;
           }
-          _context3.n = 4;
-          return api("/api/reveal");
+          _context4.n = 4;
+          return Promise.all([api("/api/reveal"), api("/api/reveal-data")]);
         case 4:
-          state.reveal = _context3.v;
+          _yield$Promise$all = _context4.v;
+          _yield$Promise$all2 = _slicedToArray(_yield$Promise$all, 2);
+          state.reveal = _yield$Promise$all2[0];
+          state.revealData = _yield$Promise$all2[1];
         case 5:
           if (!(host && hostToken())) {
-            _context3.n = 7;
+            _context4.n = 7;
             break;
           }
-          _context3.n = 6;
+          _context4.n = 6;
           return api("/api/host/dashboard", {
             host: true
           });
         case 6:
-          state.host = _context3.v;
+          state.host = _context4.v;
         case 7:
           render();
         case 8:
-          return _context3.a(2);
+          return _context4.a(2);
       }
-    }, _callee3);
+    }, _callee4);
   }));
   return _refresh.apply(this, arguments);
 }
@@ -654,11 +703,11 @@ function submitTasting(_x2) {
   return _submitTasting.apply(this, arguments);
 }
 function _submitTasting() {
-  _submitTasting = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(form) {
+  _submitTasting = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(form) {
     var _form$querySelector2, _form$querySelector3;
     var selectedGuestId, rating, payload;
-    return _regenerator().w(function (_context4) {
-      while (1) switch (_context4.n) {
+    return _regenerator().w(function (_context5) {
+      while (1) switch (_context5.n) {
         case 0:
           selectedGuestId = form.querySelector("#guest-select").value;
           rating = (_form$querySelector2 = form.querySelector('[name="rating"]:checked')) === null || _form$querySelector2 === void 0 ? void 0 : _form$querySelector2.value;
@@ -674,7 +723,7 @@ function _submitTasting() {
             }),
             palate: palatePayload(form)
           };
-          _context4.n = 1;
+          _context5.n = 1;
           return api("/api/tastings", {
             method: "POST",
             body: payload
@@ -685,12 +734,12 @@ function _submitTasting() {
           state.starRating = 0;
           state.selectedSleeve = "";
           notice("Tasting saved. Ready for the next guest.");
-          _context4.n = 2;
+          _context5.n = 2;
           return refresh();
         case 2:
-          return _context4.a(2);
+          return _context5.a(2);
       }
-    }, _callee4);
+    }, _callee5);
   }));
   return _submitTasting.apply(this, arguments);
 }
@@ -698,13 +747,13 @@ function addGuest(_x3) {
   return _addGuest.apply(this, arguments);
 }
 function _addGuest() {
-  _addGuest = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(form) {
+  _addGuest = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(form) {
     var name, guest;
-    return _regenerator().w(function (_context5) {
-      while (1) switch (_context5.n) {
+    return _regenerator().w(function (_context6) {
+      while (1) switch (_context6.n) {
         case 0:
           name = form.querySelector('[name="displayName"]').value;
-          _context5.n = 1;
+          _context6.n = 1;
           return api("/api/guests", {
             method: "POST",
             body: {
@@ -712,17 +761,17 @@ function _addGuest() {
             }
           });
         case 1:
-          guest = _context5.v;
+          guest = _context6.v;
           state.selectedGuestId = String(guest.id);
           localStorage.setItem("wineGuestId", guest.id);
-          _context5.n = 2;
+          _context6.n = 2;
           return refresh();
         case 2:
           notice("".concat(guest.displayName, " is ready to taste."));
         case 3:
-          return _context5.a(2);
+          return _context6.a(2);
       }
-    }, _callee5);
+    }, _callee6);
   }));
   return _addGuest.apply(this, arguments);
 }
@@ -730,14 +779,14 @@ function uploadPhoto(_x4) {
   return _uploadPhoto.apply(this, arguments);
 }
 function _uploadPhoto() {
-  _uploadPhoto = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(form) {
+  _uploadPhoto = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7(form) {
     var body;
-    return _regenerator().w(function (_context6) {
-      while (1) switch (_context6.n) {
+    return _regenerator().w(function (_context7) {
+      while (1) switch (_context7.n) {
         case 0:
           body = new FormData(form);
           if (state.selectedGuestId) body.append("userId", state.selectedGuestId);
-          _context6.n = 1;
+          _context7.n = 1;
           return api("/api/photos", {
             method: "POST",
             body: body
@@ -745,14 +794,14 @@ function _uploadPhoto() {
         case 1:
           form.reset();
           notice("Photo added to the shared album.");
-          _context6.n = 2;
+          _context7.n = 2;
           return refresh({
             photos: true
           });
         case 2:
-          return _context6.a(2);
+          return _context7.a(2);
       }
-    }, _callee6);
+    }, _callee7);
   }));
   return _uploadPhoto.apply(this, arguments);
 }
@@ -760,12 +809,12 @@ function unlockHost(_x5) {
   return _unlockHost.apply(this, arguments);
 }
 function _unlockHost() {
-  _unlockHost = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7(form) {
+  _unlockHost = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(form) {
     var result;
-    return _regenerator().w(function (_context7) {
-      while (1) switch (_context7.n) {
+    return _regenerator().w(function (_context8) {
+      while (1) switch (_context8.n) {
         case 0:
-          _context7.n = 1;
+          _context8.n = 1;
           return api("/api/host/session", {
             method: "POST",
             body: {
@@ -773,42 +822,9 @@ function _unlockHost() {
             }
           });
         case 1:
-          result = _context7.v;
+          result = _context8.v;
           localStorage.setItem("wineHostToken", result.token);
           notice("Host controls unlocked on this device.");
-          _context7.n = 2;
-          return refresh({
-            host: true
-          });
-        case 2:
-          return _context7.a(2);
-      }
-    }, _callee7);
-  }));
-  return _unlockHost.apply(this, arguments);
-}
-function saveBottle(_x6) {
-  return _saveBottle.apply(this, arguments);
-}
-function _saveBottle() {
-  _saveBottle = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(form) {
-    var body, editing, url, bottle;
-    return _regenerator().w(function (_context8) {
-      while (1) switch (_context8.n) {
-        case 0:
-          body = new FormData(form);
-          editing = state.editBottleId;
-          url = editing ? "/api/host/bottles/".concat(editing) : "/api/host/bottles";
-          _context8.n = 1;
-          return api(url, {
-            method: editing ? "PATCH" : "POST",
-            body: body,
-            host: true
-          });
-        case 1:
-          bottle = _context8.v;
-          state.editBottleId = null;
-          notice(editing ? "Sleeve ".concat(bottle.bagNumber, " updated.") : "Bottle checked in as sleeve ".concat(bottle.bagNumber, "."));
           _context8.n = 2;
           return refresh({
             host: true
@@ -818,24 +834,57 @@ function _saveBottle() {
       }
     }, _callee8);
   }));
+  return _unlockHost.apply(this, arguments);
+}
+function saveBottle(_x6) {
+  return _saveBottle.apply(this, arguments);
+}
+function _saveBottle() {
+  _saveBottle = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9(form) {
+    var body, editing, url, bottle;
+    return _regenerator().w(function (_context9) {
+      while (1) switch (_context9.n) {
+        case 0:
+          body = new FormData(form);
+          editing = state.editBottleId;
+          url = editing ? "/api/host/bottles/".concat(editing) : "/api/host/bottles";
+          _context9.n = 1;
+          return api(url, {
+            method: editing ? "PATCH" : "POST",
+            body: body,
+            host: true
+          });
+        case 1:
+          bottle = _context9.v;
+          state.editBottleId = null;
+          notice(editing ? "Sleeve ".concat(bottle.bagNumber, " updated.") : "Bottle checked in as sleeve ".concat(bottle.bagNumber, "."));
+          _context9.n = 2;
+          return refresh({
+            host: true
+          });
+        case 2:
+          return _context9.a(2);
+      }
+    }, _callee9);
+  }));
   return _saveBottle.apply(this, arguments);
 }
 function seedDemo() {
   return _seedDemo.apply(this, arguments);
 }
 function _seedDemo() {
-  _seedDemo = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9() {
-    return _regenerator().w(function (_context9) {
-      while (1) switch (_context9.n) {
+  _seedDemo = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
+    return _regenerator().w(function (_context0) {
+      while (1) switch (_context0.n) {
         case 0:
-          _context9.n = 1;
+          _context0.n = 1;
           return api("/api/host/demo", {
             method: "POST",
             host: true
           });
         case 1:
           notice("14 demo bottles loaded.");
-          _context9.n = 2;
+          _context0.n = 2;
           return refresh({
             host: true
           });
@@ -847,9 +896,9 @@ function _seedDemo() {
           render();
           if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) startDemoVoting();
         case 3:
-          return _context9.a(2);
+          return _context0.a(2);
       }
-    }, _callee9);
+    }, _callee0);
   }));
   return _seedDemo.apply(this, arguments);
 }
@@ -857,15 +906,15 @@ function seedDemo2() {
   return _seedDemo2.apply(this, arguments);
 }
 function _seedDemo2() {
-  _seedDemo2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
-    return _regenerator().w(function (_context0) {
-      while (1) switch (_context0.n) {
+  _seedDemo2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1() {
+    return _regenerator().w(function (_context1) {
+      while (1) switch (_context1.n) {
         case 0:
           if (state.bootstrap.leaderboard.length) {
-            _context0.n = 1;
+            _context1.n = 1;
             break;
           }
-          _context0.n = 1;
+          _context1.n = 1;
           return refresh({
             host: true,
             reveal: true
@@ -878,9 +927,9 @@ function _seedDemo2() {
           render();
           if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) startDemoVoting();
         case 2:
-          return _context0.a(2);
+          return _context1.a(2);
       }
-    }, _callee0);
+    }, _callee1);
   }));
   return _seedDemo2.apply(this, arguments);
 }
@@ -888,51 +937,51 @@ function fetchCoach(_x7) {
   return _fetchCoach.apply(this, arguments);
 }
 function _fetchCoach() {
-  _fetchCoach = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(bagNumber) {
-    var key, result, _t2;
-    return _regenerator().w(function (_context1) {
-      while (1) switch (_context1.p = _context1.n) {
+  _fetchCoach = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(bagNumber) {
+    var key, result, _t3;
+    return _regenerator().w(function (_context10) {
+      while (1) switch (_context10.p = _context10.n) {
         case 0:
           key = String(bagNumber);
           if (key) {
-            _context1.n = 1;
+            _context10.n = 1;
             break;
           }
-          return _context1.a(2);
+          return _context10.a(2);
         case 1:
           if (!(state.bottleCoach[key] !== undefined || state.bottleCoachLoading === key)) {
-            _context1.n = 2;
+            _context10.n = 2;
             break;
           }
           paintCoachCard();
           if (state.view === "tv") renderTvHero();
-          return _context1.a(2);
+          return _context10.a(2);
         case 2:
           state.bottleCoachLoading = key;
           paintCoachCard();
           if (state.view === "tv") renderTvHero();
-          _context1.p = 3;
-          _context1.n = 4;
+          _context10.p = 3;
+          _context10.n = 4;
           return api("/api/bottles/".concat(encodeURIComponent(key), "/coach"));
         case 4:
-          result = _context1.v;
+          result = _context10.v;
           state.bottleCoach[key] = result.coach || "";
-          _context1.n = 6;
+          _context10.n = 6;
           break;
         case 5:
-          _context1.p = 5;
-          _t2 = _context1.v;
+          _context10.p = 5;
+          _t3 = _context10.v;
           state.bottleCoach[key] = "";
         case 6:
-          _context1.p = 6;
+          _context10.p = 6;
           if (state.bottleCoachLoading === key) state.bottleCoachLoading = null;
           if (state.selectedSleeve === key) paintCoachCard();
           if (state.view === "tv" && String(state.bootstrap.nowPouring) === key) renderTvHero();
-          return _context1.f(6);
+          return _context10.f(6);
         case 7:
-          return _context1.a(2);
+          return _context10.a(2);
       }
-    }, _callee1, null, [[3, 5, 6, 7]]);
+    }, _callee10, null, [[3, 5, 6, 7]]);
   }));
   return _fetchCoach.apply(this, arguments);
 }
@@ -940,7 +989,7 @@ function compressImage(_x8) {
   return _compressImage.apply(this, arguments);
 }
 function _compressImage() {
-  _compressImage = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(file) {
+  _compressImage = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11(file) {
     var _file$type;
     var maxEdge,
       quality,
@@ -950,25 +999,25 @@ function _compressImage() {
       h,
       canvas,
       blob,
-      _args10 = arguments;
-    return _regenerator().w(function (_context10) {
-      while (1) switch (_context10.n) {
+      _args11 = arguments;
+    return _regenerator().w(function (_context11) {
+      while (1) switch (_context11.n) {
         case 0:
-          maxEdge = _args10.length > 1 && _args10[1] !== undefined ? _args10[1] : 1600;
-          quality = _args10.length > 2 && _args10[2] !== undefined ? _args10[2] : 0.85;
+          maxEdge = _args11.length > 1 && _args11[1] !== undefined ? _args11[1] : 1600;
+          quality = _args11.length > 2 && _args11[2] !== undefined ? _args11[2] : 0.85;
           if (!(!file || !((_file$type = file.type) !== null && _file$type !== void 0 && _file$type.startsWith("image/")))) {
-            _context10.n = 1;
+            _context11.n = 1;
             break;
           }
-          return _context10.a(2, file);
+          return _context11.a(2, file);
         case 1:
           if (!(file.size < 350 * 1024)) {
-            _context10.n = 2;
+            _context11.n = 2;
             break;
           }
-          return _context10.a(2, file);
+          return _context11.a(2, file);
         case 2:
-          _context10.n = 3;
+          _context11.n = 3;
           return window.createImageBitmap ? createImageBitmap(file) : new Promise(function (resolve, reject) {
             var img = new Image();
             img.onload = function () {
@@ -978,7 +1027,7 @@ function _compressImage() {
             img.src = URL.createObjectURL(file);
           });
         case 3:
-          bitmap = _context10.v;
+          bitmap = _context11.v;
           ratio = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
           w = Math.round(bitmap.width * ratio);
           h = Math.round(bitmap.height * ratio);
@@ -986,23 +1035,23 @@ function _compressImage() {
           canvas.width = w;
           canvas.height = h;
           canvas.getContext("2d").drawImage(bitmap, 0, 0, w, h);
-          _context10.n = 4;
+          _context11.n = 4;
           return new Promise(function (resolve) {
             return canvas.toBlob(resolve, "image/jpeg", quality);
           });
         case 4:
-          blob = _context10.v;
+          blob = _context11.v;
           if (!(!blob || blob.size >= file.size)) {
-            _context10.n = 5;
+            _context11.n = 5;
             break;
           }
-          return _context10.a(2, file);
+          return _context11.a(2, file);
         case 5:
-          return _context10.a(2, new File([blob], "label.jpg", {
+          return _context11.a(2, new File([blob], "label.jpg", {
             type: "image/jpeg"
           }));
       }
-    }, _callee10);
+    }, _callee11);
   }));
   return _compressImage.apply(this, arguments);
 }
@@ -1010,38 +1059,38 @@ function scanLabel(_x9) {
   return _scanLabel.apply(this, arguments);
 }
 function _scanLabel() {
-  _scanLabel = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11(form) {
+  _scanLabel = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12(form) {
     var _form$querySelector4;
     var original, photo, body, result;
-    return _regenerator().w(function (_context11) {
-      while (1) switch (_context11.p = _context11.n) {
+    return _regenerator().w(function (_context12) {
+      while (1) switch (_context12.p = _context12.n) {
         case 0:
           original = (_form$querySelector4 = form.querySelector('input[type="file"]')) === null || _form$querySelector4 === void 0 || (_form$querySelector4 = _form$querySelector4.files) === null || _form$querySelector4 === void 0 ? void 0 : _form$querySelector4[0];
           if (original) {
-            _context11.n = 1;
+            _context12.n = 1;
             break;
           }
           throw new Error("Pick a photo to scan.");
         case 1:
           state.labelScanPending = true;
           render();
-          _context11.p = 2;
-          _context11.n = 3;
+          _context12.p = 2;
+          _context12.n = 3;
           return compressImage(original).catch(function () {
             return original;
           });
         case 3:
-          photo = _context11.v;
+          photo = _context12.v;
           body = new FormData();
           body.append("photo", photo);
-          _context11.n = 4;
+          _context12.n = 4;
           return api("/api/host/bottles/scan", {
             method: "POST",
             body: body,
             host: true
           });
         case 4:
-          result = _context11.v;
+          result = _context12.v;
           state.lastLabelScan = {
             bottleId: result.bottle.id,
             bagNumber: result.bottle.bagNumber,
@@ -1052,19 +1101,19 @@ function _scanLabel() {
             notes: result.scan.notes
           };
           notice("Put this bottle in sleeve ".concat(result.bottle.bagNumber, "."));
-          _context11.n = 5;
+          _context12.n = 5;
           return refresh({
             host: true
           });
         case 5:
-          _context11.p = 5;
+          _context12.p = 5;
           state.labelScanPending = false;
           render();
-          return _context11.f(5);
+          return _context12.f(5);
         case 6:
-          return _context11.a(2);
+          return _context12.a(2);
       }
-    }, _callee11, null, [[2,, 5, 6]]);
+    }, _callee12, null, [[2,, 5, 6]]);
   }));
   return _scanLabel.apply(this, arguments);
 }
@@ -1446,15 +1495,44 @@ document.addEventListener("submit", function (event) {
 window.addEventListener("resize", function () {
   if (state.view === "tv") fitTvGrid();
 });
-setInterval(function () {
-  if (state.view === "tv" && !state.demoBoard) {
-    refresh({
-      reveal: true
-    }).catch(function (error) {
-      return console.error("TV refresh failed:", error);
-    });
-  }
-}, 2000);
+setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
+  var _t2;
+  return _regenerator().w(function (_context2) {
+    while (1) switch (_context2.p = _context2.n) {
+      case 0:
+        if (!(state.view === "tv" && !state.demoBoard)) {
+          _context2.n = 6;
+          break;
+        }
+        _context2.p = 1;
+        _context2.n = 2;
+        return refresh({
+          reveal: true
+        });
+      case 2:
+        if (!(["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state) && !state.revealData)) {
+          _context2.n = 4;
+          break;
+        }
+        _context2.n = 3;
+        return api("/api/reveal-data");
+      case 3:
+        state.revealData = _context2.v;
+      case 4:
+        if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
+          state.revealData = null;
+        }
+        _context2.n = 6;
+        break;
+      case 5:
+        _context2.p = 5;
+        _t2 = _context2.v;
+        console.error("TV refresh failed:", _t2);
+      case 6:
+        return _context2.a(2);
+    }
+  }, _callee2, null, [[1, 5]]);
+})), 2000);
 
 // --- Wine trivia banner (TV view only) ---
 var TRIVIA_ENABLED = true;
