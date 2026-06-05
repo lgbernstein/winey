@@ -1118,14 +1118,14 @@ function guestEditorMarkup() {
   const guests = (state.host && state.host.guests) || (state.bootstrap && state.bootstrap.guests) || [];
   const sorted = [...guests].sort((a, b) => a.displayName.localeCompare(b.displayName));
   const rows = sorted.map(g => `
-    <div class="flex items-center gap-2 py-1 border-b border-amber-100/10">
+    <div class="flex items-center gap-2 py-2 border-b border-amber-100/10">
       ${state.guestEditId === g.id ? `
         <input id="guest-edit-input" class="field flex-1 py-1 text-sm" value="${escapeHtml(g.displayName)}">
-        <button class="tap-primary text-sm px-3 py-1" data-save-guest="${g.id}">Save</button>
-        <button class="tap-quiet text-sm px-3 py-1" id="cancel-guest-edit">Cancel</button>
+        <button class="tap-primary text-sm px-3 py-1 ml-auto" data-save-guest="${g.id}">Save</button>
+        <button class="tap-quiet text-sm px-3 py-1" id="cancel-guest-edit">✕</button>
       ` : `
         <span class="flex-1 text-sm text-amber-50">${escapeHtml(g.displayName)}</span>
-        <button class="tap-quiet text-xs px-2 py-1" data-edit-guest="${g.id}">Edit</button>
+        <button class="tap-quiet text-xs px-3 py-1 ml-auto" data-edit-guest="${g.id}">Edit</button>
       `}
     </div>
   `).join("");
