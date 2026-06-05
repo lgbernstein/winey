@@ -176,6 +176,17 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
     }
   });
 
+  app.patch("/api/host/guests/:id", requireHost, (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id)) { res.status(400).json({ error: "Invalid id." }); return; }
+      const displayName = stringField(req.body.displayName, "Name", { max: 60 });
+      res.json(db.updateGuest(id, displayName));
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Which sleeves a single guest has already rated — used by the kiosk to warn
   // about repeats without broadcasting every guest's history in the bootstrap.
   app.get("/api/guests/:userId/rated-bags", (req, res) => {

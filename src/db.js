@@ -379,6 +379,14 @@ export function openWineDb({ dbFile }) {
       const result = addGuestStmt.run(name);
       return { id: Number(result.lastInsertRowid), displayName: name };
     },
+    updateGuest(id, displayName) {
+      const name = displayName.trim().replace(/\s+/g, " ");
+      if (!name) throw new Error("Name cannot be empty.");
+      sqlite.prepare("UPDATE users SET display_name = ? WHERE id = ?").run(name, id);
+      const row = sqlite.prepare("SELECT id, display_name FROM users WHERE id = ?").get(id);
+      if (!row) throw new Error("Guest not found.");
+      return { id: row.id, displayName: row.display_name };
+    },
     nextBagNumber() {
       return sqlite.prepare("SELECT COALESCE(MAX(bag_number), 0) + 1 AS next FROM wine_bottles").get().next;
     },

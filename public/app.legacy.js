@@ -49,7 +49,10 @@ var state = {
   selectedSleeve: "",
   showJoinQr: false,
   showGuestBulk: false,
-  guestBulkSubmitting: false
+  guestBulkSubmitting: false,
+  showGuestEditor: false,
+  guestEditId: null,
+  guestEditName: ""
 };
 var views = [["taste", "Taste"], ["album", "Album"], ["tv", "TV"], ["host", "Host"]];
 var app = document.querySelector("#app");
@@ -708,7 +711,7 @@ function hostView() {
     var total = (((_state$revealData2 = state.revealData) === null || _state$revealData2 === void 0 ? void 0 : _state$revealData2.revealAll) || state.reveal || []).length;
     var step = Math.min(state.bootstrap.revealAllStep || 0, total - 1);
     return total ? "".concat(step + 1, " / ").concat(total) : "—";
-  }(), "</span>\n                <button class=\"reveal-all-btn reveal-all-btn-next\" data-reveal-all-step=\"next\">Next \u2192</button>\n              </div>\n            ") : "", "\n            ").concat(state.bootstrap.revealScene ? "\n              <button class=\"reveal-host-btn-clear\" data-reveal-scene=\"\" type=\"button\">\u2715 Clear scene</button>\n            " : "", "\n          </div>\n        </div>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-join-qr\" type=\"button\">Show join QR for guests</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-guest-bulk\" type=\"button\">Pre-load guest list</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo\" type=\"button\">Load 15-bottle demo</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo-2\" type=\"button\">Load 3-bottle demo</button>\n        <p class=\"mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50\">Current state: ").concat(escapeHtml(stateLabel(state.host.state)), "</p>\n        <div class=\"mt-5 grid grid-cols-2 gap-3\">\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-amber-300\">").concat(state.host.bottles.length, "</p><p>Bottles</p></div>\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-emerald-300\">").concat(state.host.photos.length, "</p><p>Party photos</p></div>\n        </div>\n      ")), "\n    </div>\n    ").concat(state.host.bottles.length ? panel("\n      <div class=\"flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Pouring control</p>\n          <h2 class=\"screen-title\">Tell everyone what's in the glass</h2>\n        </div>\n        ".concat(state.bootstrap.nowPouring ? "\n          <button class=\"tap-quiet\" data-pour-sleeve=\"\" type=\"button\">Stop pouring</button>\n        " : "", "\n      </div>\n      ").concat(state.bootstrap.nowPouring ? "\n        <div class=\"mt-4 rounded-lg border border-amber-200/30 bg-amber-950/30 p-4 text-amber-50\">\n          <p class=\"kicker\">Now pouring</p>\n          <p class=\"text-6xl font-black text-amber-300\">#".concat(state.bootstrap.nowPouring, "</p>\n        </div>\n      ") : "\n        <p class=\"mt-2 text-amber-50/75\">Tap a sleeve to broadcast it to the TV and the kiosks. Guests will see coaching cues for that bottle.</p>\n      ", "\n      <div class=\"mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8\">\n        ").concat(_toConsumableArray(state.host.bottles).sort(function (a, b) {
+  }(), "</span>\n                <button class=\"reveal-all-btn reveal-all-btn-next\" data-reveal-all-step=\"next\">Next \u2192</button>\n              </div>\n            ") : "", "\n            ").concat(state.bootstrap.revealScene ? "\n              <button class=\"reveal-host-btn-clear\" data-reveal-scene=\"\" type=\"button\">\u2715 Clear scene</button>\n            " : "", "\n          </div>\n        </div>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-join-qr\" type=\"button\">Show join QR for guests</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-guest-bulk\" type=\"button\">Pre-load guest list</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-guest-editor\" type=\"button\">\u270F\uFE0F Edit guest names</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo\" type=\"button\">Load 15-bottle demo</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo-2\" type=\"button\">Load 3-bottle demo</button>\n        <p class=\"mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50\">Current state: ").concat(escapeHtml(stateLabel(state.host.state)), "</p>\n        <div class=\"mt-5 grid grid-cols-2 gap-3\">\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-amber-300\">").concat(state.host.bottles.length, "</p><p>Bottles</p></div>\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-emerald-300\">").concat(state.host.photos.length, "</p><p>Party photos</p></div>\n        </div>\n      ")), "\n    </div>\n    ").concat(state.host.bottles.length ? panel("\n      <div class=\"flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Pouring control</p>\n          <h2 class=\"screen-title\">Tell everyone what's in the glass</h2>\n        </div>\n        ".concat(state.bootstrap.nowPouring ? "\n          <button class=\"tap-quiet\" data-pour-sleeve=\"\" type=\"button\">Stop pouring</button>\n        " : "", "\n      </div>\n      ").concat(state.bootstrap.nowPouring ? "\n        <div class=\"mt-4 rounded-lg border border-amber-200/30 bg-amber-950/30 p-4 text-amber-50\">\n          <p class=\"kicker\">Now pouring</p>\n          <p class=\"text-6xl font-black text-amber-300\">#".concat(state.bootstrap.nowPouring, "</p>\n        </div>\n      ") : "\n        <p class=\"mt-2 text-amber-50/75\">Tap a sleeve to broadcast it to the TV and the kiosks. Guests will see coaching cues for that bottle.</p>\n      ", "\n      <div class=\"mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8\">\n        ").concat(_toConsumableArray(state.host.bottles).sort(function (a, b) {
     return a.bagNumber - b.bagNumber;
   }).map(function (bottle) {
     return "\n          <button class=\"".concat(bottle.bagNumber === state.bootstrap.nowPouring ? 'tap-primary' : 'tap-quiet', " text-lg font-bold\" data-pour-sleeve=\"").concat(bottle.bagNumber, "\" type=\"button\">#").concat(bottle.bagNumber, "</button>\n        ");
@@ -721,6 +724,17 @@ function guestBulkModalMarkup() {
   if (!state.showGuestBulk) return "";
   var guestCount = ((_state$bootstrap3 = state.bootstrap) === null || _state$bootstrap3 === void 0 || (_state$bootstrap3 = _state$bootstrap3.guests) === null || _state$bootstrap3 === void 0 ? void 0 : _state$bootstrap3.length) || 0;
   return "\n    <div id=\"guest-bulk-overlay\" class=\"fixed inset-0 z-50 flex items-center justify-center bg-stone-950/85 p-6\">\n      <div class=\"panel rounded-2xl p-6 max-w-lg w-full\">\n        <p class=\"kicker\">Setup</p>\n        <h2 class=\"screen-title mt-1\">Pre-load guest list</h2>\n        <p class=\"mt-2 text-amber-50/75 text-sm\">Paste names, one per line or comma-separated. Duplicates are skipped automatically. Currently ".concat(guestCount, " guest").concat(guestCount === 1 ? "" : "s", " loaded.</p>\n        <textarea id=\"guest-bulk-input\" class=\"field mt-3 min-h-40 w-full\" placeholder=\"Maria&#10;Hannah&#10;Ari, Mia, Noah&#10;Jess Taylor\"></textarea>\n        <div class=\"mt-4 grid gap-2 sm:grid-cols-2\">\n          <button class=\"tap-quiet\" id=\"cancel-guest-bulk\" type=\"button\">Cancel</button>\n          <button class=\"tap-primary\" id=\"submit-guest-bulk\" type=\"button\" ").concat(state.guestBulkSubmitting ? "disabled" : "", ">").concat(state.guestBulkSubmitting ? "Adding…" : "Add all", "</button>\n        </div>\n      </div>\n    </div>\n  ");
+}
+function guestEditorMarkup() {
+  if (!state.showGuestEditor) return "";
+  var guests = state.host && state.host.guests || state.bootstrap && state.bootstrap.guests || [];
+  var sorted = _toConsumableArray(guests).sort(function (a, b) {
+    return a.displayName.localeCompare(b.displayName);
+  });
+  var rows = sorted.map(function (g) {
+    return "\n    <div class=\"flex items-center gap-2 py-1 border-b border-amber-100/10\">\n      ".concat(state.guestEditId === g.id ? "\n        <input id=\"guest-edit-input\" class=\"field flex-1 py-1 text-sm\" value=\"".concat(escapeHtml(g.displayName), "\">\n        <button class=\"tap-primary text-sm px-3 py-1\" data-save-guest=\"").concat(g.id, "\">Save</button>\n        <button class=\"tap-quiet text-sm px-3 py-1\" id=\"cancel-guest-edit\">Cancel</button>\n      ") : "\n        <span class=\"flex-1 text-sm text-amber-50\">".concat(escapeHtml(g.displayName), "</span>\n        <button class=\"tap-quiet text-xs px-2 py-1\" data-edit-guest=\"").concat(g.id, "\">Edit</button>\n      "), "\n    </div>\n  ");
+  }).join("");
+  return "\n    <div id=\"guest-editor-overlay\" class=\"fixed inset-0 z-50 flex items-center justify-center bg-stone-950/85 p-6\">\n      <div class=\"panel rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto\">\n        <p class=\"kicker\">Host</p>\n        <h2 class=\"screen-title mt-1\">Edit guest names</h2>\n        <p class=\"mt-2 text-amber-50/75 text-sm\">Tap Edit next to any name to update it.</p>\n        <div class=\"mt-4\">".concat(rows, "</div>\n        <button class=\"tap-quiet mt-4 w-full\" id=\"close-guest-editor\">Done</button>\n      </div>\n    </div>\n  ");
 }
 function joinQrModalMarkup() {
   if (!state.showJoinQr) return "";
@@ -750,7 +764,7 @@ function render() {
     album: albumView,
     tv: tvView,
     host: hostView
-  }[state.view]() + joinQrModalMarkup() + guestBulkModalMarkup();
+  }[state.view]() + joinQrModalMarkup() + guestBulkModalMarkup() + guestEditorMarkup();
   if (state.showJoinQr) renderJoinQrCode();
   if (state.view === "tv") {
     var _state$bootstrap4;
@@ -1160,7 +1174,7 @@ function fetchCoach(_x7) {
 }
 function _fetchCoach() {
   _fetchCoach = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(bagNumber) {
-    var key, result, _t5;
+    var key, result, _t6;
     return _regenerator().w(function (_context10) {
       while (1) switch (_context10.p = _context10.n) {
         case 0:
@@ -1192,7 +1206,7 @@ function _fetchCoach() {
           break;
         case 5:
           _context10.p = 5;
-          _t5 = _context10.v;
+          _t6 = _context10.v;
           state.bottleCoach[key] = "";
         case 6:
           _context10.p = 6;
@@ -1444,7 +1458,7 @@ function drawCharts(id) {
 document.addEventListener("click", /*#__PURE__*/function () {
   var _ref0 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
     var _event$target$closest, _event$target$closest2, _event$target$closest3;
-    var view, editId, eventState, revealAllStepEl, action, revealSceneEl, scene, pourEl, raw, bagNumber, input, names, _t, _t2, _t3;
+    var view, editId, eventState, revealAllStepEl, action, editGuestEl, saveGuestEl, id, input, revealSceneEl, scene, pourEl, raw, bagNumber, _input, names, _t, _t2, _t3, _t4;
     return _regenerator().w(function (_context) {
       while (1) switch (_context.p = _context.n) {
         case 0:
@@ -1570,14 +1584,91 @@ document.addEventListener("click", /*#__PURE__*/function () {
         case 16:
           return _context.a(2);
         case 17:
+          if (!event.target.closest("#show-guest-editor")) {
+            _context.n = 18;
+            break;
+          }
+          state.showGuestEditor = true;
+          state.guestEditId = null;
+          render();
+          return _context.a(2);
+        case 18:
+          if (!(event.target.closest("#close-guest-editor") || event.target.id === "guest-editor-overlay")) {
+            _context.n = 19;
+            break;
+          }
+          state.showGuestEditor = false;
+          state.guestEditId = null;
+          render();
+          return _context.a(2);
+        case 19:
+          if (!event.target.closest("#cancel-guest-edit")) {
+            _context.n = 20;
+            break;
+          }
+          state.guestEditId = null;
+          render();
+          return _context.a(2);
+        case 20:
+          editGuestEl = event.target.closest("[data-edit-guest]");
+          if (!editGuestEl) {
+            _context.n = 21;
+            break;
+          }
+          state.guestEditId = Number(editGuestEl.dataset.editGuest);
+          render();
+          setTimeout(function () {
+            var _document$querySelect;
+            return (_document$querySelect = document.querySelector("#guest-edit-input")) === null || _document$querySelect === void 0 ? void 0 : _document$querySelect.focus();
+          }, 0);
+          return _context.a(2);
+        case 21:
+          saveGuestEl = event.target.closest("[data-save-guest]");
+          if (!saveGuestEl) {
+            _context.n = 27;
+            break;
+          }
+          id = Number(saveGuestEl.dataset.saveGuest);
+          input = document.querySelector("#guest-edit-input");
+          if (input) {
+            _context.n = 22;
+            break;
+          }
+          return _context.a(2);
+        case 22:
+          _context.p = 22;
+          _context.n = 23;
+          return api("/api/host/guests/".concat(id), {
+            method: "PATCH",
+            body: {
+              displayName: input.value
+            },
+            host: true
+          });
+        case 23:
+          state.guestEditId = null;
+          _context.n = 24;
+          return refresh({
+            host: true
+          });
+        case 24:
+          _context.n = 26;
+          break;
+        case 25:
+          _context.p = 25;
+          _t3 = _context.v;
+          notice(_t3.message);
+        case 26:
+          return _context.a(2);
+        case 27:
           revealSceneEl = event.target.closest("[data-reveal-scene]");
           if (!(revealSceneEl && "revealScene" in revealSceneEl.dataset)) {
-            _context.n = 23;
+            _context.n = 33;
             break;
           }
           scene = revealSceneEl.dataset.revealScene || null;
-          _context.p = 18;
-          _context.n = 19;
+          _context.p = 28;
+          _context.n = 29;
           return api("/api/host/reveal-scene", {
             method: "PATCH",
             body: {
@@ -1585,22 +1676,22 @@ document.addEventListener("click", /*#__PURE__*/function () {
             },
             host: true
           });
-        case 19:
-          _context.n = 21;
+        case 29:
+          _context.n = 31;
           break;
-        case 20:
-          _context.p = 20;
-          _t3 = _context.v;
-          notice(_t3.message);
+        case 30:
+          _context.p = 30;
+          _t4 = _context.v;
+          notice(_t4.message);
           return _context.a(2);
-        case 21:
-          _context.n = 22;
+        case 31:
+          _context.n = 32;
           return refresh({
             host: true
           });
-        case 22:
+        case 32:
           return _context.a(2);
-        case 23:
+        case 33:
           pourEl = event.target.closest("[data-pour-sleeve]");
           if (pourEl) {
             raw = pourEl.dataset.pourSleeve;
@@ -1633,8 +1724,8 @@ document.addEventListener("click", /*#__PURE__*/function () {
             state.showGuestBulk = true;
             render();
             setTimeout(function () {
-              var _document$querySelect;
-              return (_document$querySelect = document.querySelector("#guest-bulk-input")) === null || _document$querySelect === void 0 ? void 0 : _document$querySelect.focus();
+              var _document$querySelect2;
+              return (_document$querySelect2 = document.querySelector("#guest-bulk-input")) === null || _document$querySelect2 === void 0 ? void 0 : _document$querySelect2.focus();
             }, 0);
           }
           if (event.target.closest("#cancel-guest-bulk") || event.target.id === "guest-bulk-overlay") {
@@ -1642,26 +1733,26 @@ document.addEventListener("click", /*#__PURE__*/function () {
             render();
           }
           if (!event.target.closest("#submit-guest-bulk")) {
-            _context.n = 26;
+            _context.n = 36;
             break;
           }
-          input = document.querySelector("#guest-bulk-input");
-          if (input) {
-            _context.n = 24;
+          _input = document.querySelector("#guest-bulk-input");
+          if (_input) {
+            _context.n = 34;
             break;
           }
           return _context.a(2);
-        case 24:
-          names = input.value.split(/[\n,]+/).map(function (s) {
+        case 34:
+          names = _input.value.split(/[\n,]+/).map(function (s) {
             return s.trim();
           }).filter(Boolean);
           if (names.length) {
-            _context.n = 25;
+            _context.n = 35;
             break;
           }
           notice("Paste at least one name first.");
           return _context.a(2);
-        case 25:
+        case 35:
           state.guestBulkSubmitting = true;
           render();
           api("/api/host/guests/bulk", {
@@ -1682,7 +1773,7 @@ document.addEventListener("click", /*#__PURE__*/function () {
             render();
             notice(error.message);
           });
-        case 26:
+        case 36:
           if (event.target.closest("#seed-demo")) {
             seedDemo().catch(function (error) {
               return notice(error.message);
@@ -1696,10 +1787,10 @@ document.addEventListener("click", /*#__PURE__*/function () {
           if (event.target.closest("#stop-demo")) {
             stopDemo();
           }
-        case 27:
+        case 37:
           return _context.a(2);
       }
-    }, _callee, null, [[18, 20], [12, 14], [3, 5]]);
+    }, _callee, null, [[28, 30], [22, 25], [12, 14], [3, 5]]);
   }));
   return function (_x0) {
     return _ref0.apply(this, arguments);
@@ -1780,7 +1871,7 @@ window.addEventListener("resize", function () {
   if (state.view === "tv") fitTvGrid();
 });
 setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-  var _state$bootstrap5, scene, _t4;
+  var _state$bootstrap5, scene, _t5;
   return _regenerator().w(function (_context2) {
     while (1) switch (_context2.p = _context2.n) {
       case 0:
@@ -1810,8 +1901,8 @@ setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(functio
         break;
       case 3:
         _context2.p = 3;
-        _t4 = _context2.v;
-        console.error("TV refresh failed:", _t4);
+        _t5 = _context2.v;
+        console.error("TV refresh failed:", _t5);
       case 4:
         return _context2.a(2);
     }

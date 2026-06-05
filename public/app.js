@@ -29,7 +29,10 @@ const state = {
   selectedSleeve: "",
   showJoinQr: false,
   showGuestBulk: false,
-  guestBulkSubmitting: false
+  guestBulkSubmitting: false,
+  showGuestEditor: false,
+  guestEditId: null,
+  guestEditName: ""
 };
 
 const views = [
@@ -1036,6 +1039,7 @@ function hostView() {
         </div>
         <button class="tap-quiet mt-3 w-full" id="show-join-qr" type="button">Show join QR for guests</button>
         <button class="tap-quiet mt-3 w-full" id="show-guest-bulk" type="button">Pre-load guest list</button>
+        <button class="tap-quiet mt-3 w-full" id="show-guest-editor" type="button">✏️ Edit guest names</button>
         <button class="tap-quiet mt-3 w-full" id="seed-demo" type="button">Load 15-bottle demo</button>
         <button class="tap-quiet mt-3 w-full" id="seed-demo-2" type="button">Load 3-bottle demo</button>
         <p class="mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50">Current state: ${escapeHtml(stateLabel(state.host.state))}</p>
@@ -1109,6 +1113,35 @@ function guestBulkModalMarkup() {
   `;
 }
 
+function guestEditorMarkup() {
+  if (!state.showGuestEditor) return "";
+  const guests = (state.host && state.host.guests) || (state.bootstrap && state.bootstrap.guests) || [];
+  const sorted = [...guests].sort((a, b) => a.displayName.localeCompare(b.displayName));
+  const rows = sorted.map(g => `
+    <div class="flex items-center gap-2 py-1 border-b border-amber-100/10">
+      ${state.guestEditId === g.id ? `
+        <input id="guest-edit-input" class="field flex-1 py-1 text-sm" value="${escapeHtml(g.displayName)}">
+        <button class="tap-primary text-sm px-3 py-1" data-save-guest="${g.id}">Save</button>
+        <button class="tap-quiet text-sm px-3 py-1" id="cancel-guest-edit">Cancel</button>
+      ` : `
+        <span class="flex-1 text-sm text-amber-50">${escapeHtml(g.displayName)}</span>
+        <button class="tap-quiet text-xs px-2 py-1" data-edit-guest="${g.id}">Edit</button>
+      `}
+    </div>
+  `).join("");
+  return `
+    <div id="guest-editor-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/85 p-6">
+      <div class="panel rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+        <p class="kicker">Host</p>
+        <h2 class="screen-title mt-1">Edit guest names</h2>
+        <p class="mt-2 text-amber-50/75 text-sm">Tap Edit next to any name to update it.</p>
+        <div class="mt-4">${rows}</div>
+        <button class="tap-quiet mt-4 w-full" id="close-guest-editor">Done</button>
+      </div>
+    </div>
+  `;
+}
+
 function joinQrModalMarkup() {
   if (!state.showJoinQr) return "";
   const url = window.location.origin + "/kiosk.html";
@@ -1149,7 +1182,7 @@ function render() {
     album: albumView,
     tv: tvView,
     host: hostView
-  }[state.view]() + joinQrModalMarkup() + guestBulkModalMarkup();
+  }[state.view]() + joinQrModalMarkup() + guestBulkModalMarkup() + guestEditorMarkup();
   if (state.showJoinQr) renderJoinQrCode();
   if (state.view === "tv") {
     animateTvBoard(oldPositions);
@@ -1491,6 +1524,35 @@ document.addEventListener("click", async (event) => {
       await api("/api/host/reveal-all-step", { method: "PATCH", body: { action }, host: true });
     } catch (e) { notice(e.message); return; }
     await refresh({ host: true });
+    return;
+  }
+
+  if (event.target.closest("#show-guest-editor")) {
+    state.showGuestEditor = true; state.guestEditId = null; render(); return;
+  }
+  if (event.target.closest("#close-guest-editor") || event.target.id === "guest-editor-overlay") {
+    state.showGuestEditor = false; state.guestEditId = null; render(); return;
+  }
+  if (event.target.closest("#cancel-guest-edit")) {
+    state.guestEditId = null; render(); return;
+  }
+  const editGuestEl = event.target.closest("[data-edit-guest]");
+  if (editGuestEl) {
+    state.guestEditId = Number(editGuestEl.dataset.editGuest);
+    render();
+    setTimeout(() => document.querySelector("#guest-edit-input")?.focus(), 0);
+    return;
+  }
+  const saveGuestEl = event.target.closest("[data-save-guest]");
+  if (saveGuestEl) {
+    const id = Number(saveGuestEl.dataset.saveGuest);
+    const input = document.querySelector("#guest-edit-input");
+    if (!input) return;
+    try {
+      await api(`/api/host/guests/${id}`, { method: "PATCH", body: { displayName: input.value }, host: true });
+      state.guestEditId = null;
+      await refresh({ host: true });
+    } catch (e) { notice(e.message); }
     return;
   }
 
