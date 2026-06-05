@@ -703,7 +703,7 @@ function render() {
   if (state.view === "tv") {
     var _state$bootstrap4;
     animateTvBoard(oldPositions);
-    if ((_state$bootstrap4 = state.bootstrap) !== null && _state$bootstrap4 !== void 0 && _state$bootstrap4.revealScene) stopTrivia();else startTrivia();
+    if (((_state$bootstrap4 = state.bootstrap) === null || _state$bootstrap4 === void 0 ? void 0 : _state$bootstrap4.state) === "LIVE_TASTING") startTrivia();else stopTrivia();
     requestAnimationFrame(fitTvGrid);
   } else {
     stopTrivia();

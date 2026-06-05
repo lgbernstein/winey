@@ -1090,7 +1090,7 @@ function render() {
   if (state.showJoinQr) renderJoinQrCode();
   if (state.view === "tv") {
     animateTvBoard(oldPositions);
-    if (state.bootstrap?.revealScene) stopTrivia(); else startTrivia();
+    if (state.bootstrap?.state === "LIVE_TASTING") startTrivia(); else stopTrivia();
     requestAnimationFrame(fitTvGrid);
   } else {
     stopTrivia();
