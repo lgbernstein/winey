@@ -42,7 +42,13 @@ var state = {
   demoVoteTimer: null,
   demoAnimationPending: false,
   demoScoreUpdates: [],
-  charts: []
+  charts: [],
+  bottleCoach: {},
+  bottleCoachLoading: null,
+  selectedSleeve: "",
+  showJoinQr: false,
+  showGuestBulk: false,
+  guestBulkSubmitting: false
 };
 var views = [["taste", "Taste"], ["album", "Album"], ["tv", "TV"], ["host", "Host"]];
 var app = document.querySelector("#app");
@@ -86,17 +92,6 @@ function cloneDemoBoard(items) {
 function clampRating(value) {
   return Number(Math.max(0.1, Math.min(5, value)).toFixed(1));
 }
-function pickDemoTarget(board) {
-  var sorted = _toConsumableArray(board).sort(function (a, b) {
-    return b.averageRating - a.averageRating || b.voteCount - a.voteCount;
-  });
-  var threshold = Math.random();
-  var index = threshold < 0.6 ? Math.floor(Math.sqrt(Math.random()) * sorted.length) : Math.floor(Math.random() * sorted.length);
-  return {
-    sorted: sorted,
-    index: index
-  };
-}
 function buildDemoEvent(board) {
   var sorted = _toConsumableArray(board).sort(function (a, b) {
     return b.averageRating - a.averageRating || b.voteCount - a.voteCount || a.bagNumber - b.bagNumber;
@@ -131,9 +126,6 @@ function runDemoVoteStep() {
     }
     return;
   }
-  var beforeOrder = state.demoBoard.map(function (item) {
-    return item.bagNumber;
-  }).join(",");
   var event = buildDemoEvent(state.demoBoard);
   if (!event) return;
   state.demoBoard.forEach(function (item) {
@@ -149,14 +141,14 @@ function runDemoVoteStep() {
     target.moving = true;
     target.averageRating = event.newRating;
     target.voteCount = target.voteCount + 1;
-    changedBags.add(target.bagNumber);
+    changedBags.add(String(target.bagNumber));
     if (event.swapWith) {
       var neighbor = state.demoBoard.find(function (item) {
         return item.bagNumber === event.swapWith;
       });
       if (neighbor) {
         neighbor.moving = true;
-        changedBags.add(neighbor.bagNumber);
+        changedBags.add(String(neighbor.bagNumber));
       }
     }
   }
@@ -165,6 +157,7 @@ function runDemoVoteStep() {
   });
   state.demoScoreUpdates = _toConsumableArray(changedBags);
   state.demoAnimationPending = true;
+  state.demoVoteTimer = -1;
   render();
   state.demoVoteTimer = setTimeout(function () {
     if (!state.demoBoard || state.view !== "tv") {
@@ -250,12 +243,40 @@ function panel(content) {
 function guestOptions() {
   return "\n    <option value=\"\">Select your name</option>\n    ".concat(state.bootstrap.guests.map(function (guest) {
     return "<option value=\"".concat(guest.id, "\" ").concat(String(guest.id) === String(state.selectedGuestId) ? "selected" : "", ">").concat(escapeHtml(guest.displayName), "</option>");
-  }).join(""), "\n  ");
+  }).join(""), "\n    <option value=\"__add__\">+ Add new name\u2026</option>\n  ");
 }
 function bottleOptions() {
+  var effective = state.selectedSleeve || (state.bootstrap.nowPouring ? String(state.bootstrap.nowPouring) : "");
   return "\n    <option value=\"\">Sleeve number</option>\n    ".concat(state.bootstrap.bottles.map(function (bottle) {
-    return "<option value=\"".concat(bottle.bagNumber, "\">Bottle ").concat(bottle.bagNumber, "</option>");
+    var isSelected = String(bottle.bagNumber) === String(effective);
+    var isPouring = state.bootstrap.nowPouring === bottle.bagNumber;
+    var label = isPouring ? "Bottle ".concat(bottle.bagNumber, " \xB7 now pouring") : "Bottle ".concat(bottle.bagNumber);
+    return "<option value=\"".concat(bottle.bagNumber, "\"").concat(isSelected ? " selected" : "", ">").concat(label, "</option>");
   }).join(""), "\n  ");
+}
+function coachInnerMarkup(sleeve) {
+  if (!sleeve) return "";
+  var key = String(sleeve);
+  var coach = state.bottleCoach[key];
+  var pending = coach === undefined || state.bottleCoachLoading === key;
+  if (pending) {
+    return "\n      <p class=\"kicker mb-2\">Notice this \xB7 Sleeve #".concat(escapeHtml(key), "</p>\n      <p class=\"text-sm italic text-amber-50/75\">Checking with the sommelier\u2026</p>\n    ");
+  }
+  if (!coach) return "";
+  var formatted = escapeHtml(coach).replace(/\*\*(.+?)\*\*/g, '<strong class="text-amber-200">$1</strong>').replace(/\n/g, "<br>");
+  return "\n    <p class=\"kicker mb-2\">Notice this \xB7 Sleeve #".concat(escapeHtml(key), "</p>\n    <div class=\"text-sm leading-6\">").concat(formatted, "</div>\n  ");
+}
+function coachCardMarkup() {
+  var inner = coachInnerMarkup(state.selectedSleeve);
+  var hidden = inner ? "" : " hidden";
+  return "<div id=\"coach-card\" class=\"mt-4 rounded-lg border border-amber-200/25 bg-amber-950/25 p-4 text-amber-50".concat(hidden, "\">").concat(inner, "</div>");
+}
+function paintCoachCard() {
+  var card = document.querySelector("#coach-card");
+  if (!card) return;
+  var inner = coachInnerMarkup(state.selectedSleeve);
+  card.innerHTML = inner;
+  card.classList.toggle("hidden", !inner);
 }
 function stars() {
   return "\n    <div class=\"rounded-md border border-amber-100/15 bg-stone-950/55 p-3\" role=\"radiogroup\" aria-label=\"Rating\">\n      <div class=\"flex flex-nowrap items-center justify-between gap-1 sm:justify-start sm:gap-2\">\n        ".concat([1, 2, 3, 4, 5].map(function (rating) {
@@ -281,9 +302,10 @@ function tasteView() {
   if (state.bootstrap.state !== "LIVE_TASTING") {
     return panel("\n      <div class=\"mx-auto max-w-2xl py-8 text-center\">\n        <p class=\"kicker\">Ratings closed</p>\n        <h2 class=\"screen-title mt-2\">The reveal is on</h2>\n        <p class=\"mt-3 text-lg text-amber-50/80\">Head to the TV view for the bottles, crowd scores, and grape-guess results.</p>\n        <button class=\"tap-primary mt-6\" data-view=\"tv\" type=\"button\">See grand reveal</button>\n      </div>\n    ");
   }
-  return "\n    <div class=\"grid gap-4 lg:grid-cols-[1.4fr_.8fr]\">\n      ".concat(panel("\n        <div class=\"mb-5 flex flex-wrap items-end justify-between gap-3\">\n          <div>\n            <p class=\"kicker\">Fast tasting</p>\n            <h2 class=\"screen-title\">Rate the sleeve in a few taps</h2>\n          </div>\n          <span class=\"rounded-md bg-emerald-400/15 px-3 py-2 text-sm text-emerald-100\">".concat(escapeHtml(stateLabel(state.bootstrap.state)), "</span>\n        </div>\n        <form id=\"tasting-form\">\n          <div class=\"grid gap-3 sm:grid-cols-[1fr_auto]\">\n            <label>\n              <span class=\"mb-2 block text-sm font-bold text-amber-100\">Taster</span>\n              <select id=\"guest-select\" class=\"field\" required>").concat(guestOptions(), "</select>\n            </label>\n            <button class=\"tap-quiet self-end\" id=\"show-guest-form\" type=\"button\">Add name</button>\n          </div>\n          <div id=\"guest-form\" class=\"mt-3 hidden grid gap-2 sm:grid-cols-[1fr_auto]\">\n            <input class=\"field\" name=\"displayName\" maxlength=\"60\" placeholder=\"Guest name\" aria-label=\"Guest name\">\n            <button class=\"tap-primary\" type=\"button\" id=\"add-guest\">Join tasting</button>\n          </div>\n          <div class=\"mt-5 grid gap-4 md:grid-cols-2\">\n            <label>\n              <span class=\"mb-2 block text-sm font-bold text-amber-100\">Blind bottle</span>\n              <select name=\"bagNumber\" class=\"field\" required>").concat(bottleOptions(), "</select>\n            </label>\n            <label>\n              <span class=\"mb-2 block text-sm font-bold text-amber-100\">Grape guess</span>\n              <select name=\"grapeGuess\" class=\"field\" required>\n                ").concat(state.bootstrap.grapes.map(function (grape) {
-    return "<option>".concat(escapeHtml(grape), "</option>");
-  }).join(""), "\n              </select>\n            </label>\n          </div>\n          <fieldset class=\"mt-5\">\n            <legend class=\"mb-2 text-sm font-bold text-amber-100\">Your rating</legend>\n            ").concat(stars(), "\n          </fieldset>\n          <label class=\"mt-4 flex min-h-12 cursor-pointer items-center gap-3 rounded-md border border-rose-200/20 bg-rose-950/25 p-3\">\n            <input class=\"size-5 accent-rose-400\" type=\"checkbox\" name=\"isBookmarked\">\n            <span>Save this one as a favourite</span>\n          </label>\n          ").concat(tastingGrid(), "\n          <button class=\"tap-primary mt-5 w-full text-lg\" type=\"submit\">Save tasting</button>\n        </form>\n      ")), "\n      ").concat(panel("\n        <h2 class=\"text-xl font-semibold\">Party pace</h2>\n        <p class=\"mt-2 text-amber-50/80\">The core score is only stars and a grape guess. Hand the kiosk to the next taster after save.</p>\n        <div class=\"mt-5 grid gap-3\">\n          <div class=\"soft-stat rounded-md p-4\">\n            <p class=\"text-3xl font-semibold text-amber-300\">".concat(state.bootstrap.bottles.length, "</p>\n            <p class=\"text-amber-50/75\">blind bottles checked in</p>\n          </div>\n          <div class=\"soft-stat rounded-md p-4\">\n            <p class=\"text-3xl font-semibold text-emerald-300\">").concat(state.bootstrap.guests.length, "</p>\n            <p class=\"text-amber-50/75\">tasters on the list</p>\n          </div>\n        </div>\n      ")), "\n    </div>\n  ");
+  return "\n    <div class=\"grid gap-4 lg:grid-cols-[1.4fr_.8fr]\">\n      ".concat(panel("\n        <div class=\"mb-5 flex flex-wrap items-end justify-between gap-3\">\n          <div>\n            <p class=\"kicker\">Fast tasting</p>\n            <h2 class=\"screen-title\">Rate the sleeve in a few taps</h2>\n          </div>\n          <span class=\"rounded-md bg-emerald-400/15 px-3 py-2 text-sm text-emerald-100\">".concat(escapeHtml(stateLabel(state.bootstrap.state)), "</span>\n        </div>\n        <form id=\"tasting-form\">\n          <label>\n            <span class=\"mb-2 block text-sm font-bold text-amber-100\">Taster</span>\n            <select id=\"guest-select\" class=\"field\" required>").concat(guestOptions(), "</select>\n          </label>\n          <div id=\"guest-form\" class=\"mt-3 hidden grid gap-2 grid-cols-[1fr_auto]\">\n            <input class=\"field\" name=\"displayName\" maxlength=\"60\" placeholder=\"New taster name\" aria-label=\"New taster name\" autocomplete=\"off\">\n            <button class=\"tap-primary\" type=\"button\" id=\"add-guest\">Add</button>\n          </div>\n          <div class=\"mt-5 grid gap-4 md:grid-cols-[160px_1fr]\">\n            <label>\n              <span class=\"mb-2 block text-sm font-bold text-amber-100\">Blind bottle</span>\n              <select name=\"bagNumber\" class=\"field\" required>").concat(bottleOptions(), "</select>\n            </label>\n            <label>\n              <span class=\"mb-2 block text-sm font-bold text-amber-100\">Grape guess</span>\n              <select name=\"grapeGuess\" class=\"field\" required>\n                ").concat(state.bootstrap.grapes.map(function (grape) {
+    var hint = grape.appellations ? " \u2014 ".concat(grape.appellations) : "";
+    return "<option value=\"".concat(escapeHtml(grape.name), "\">").concat(escapeHtml(grape.name + hint), "</option>");
+  }).join(""), "\n              </select>\n            </label>\n          </div>\n          ").concat(coachCardMarkup(), "\n          <fieldset class=\"mt-5\">\n            <legend class=\"mb-2 text-sm font-bold text-amber-100\">Your rating</legend>\n            ").concat(stars(), "\n          </fieldset>\n          <label class=\"mt-4 flex min-h-12 cursor-pointer items-center gap-3 rounded-md border border-rose-200/20 bg-rose-950/25 p-3\">\n            <input class=\"size-5 accent-rose-400\" type=\"checkbox\" name=\"isBookmarked\">\n            <span>Save this one as a favourite</span>\n          </label>\n          ").concat(tastingGrid(), "\n          <button class=\"tap-primary mt-5 w-full text-lg\" type=\"submit\">Save tasting</button>\n        </form>\n      ")), "\n      ").concat(panel("\n        <h2 class=\"text-xl font-semibold\">Party pace</h2>\n        <p class=\"mt-2 text-amber-50/80\">The core score is only stars and a grape guess. Hand the kiosk to the next taster after save.</p>\n        <div class=\"mt-5 grid gap-3\">\n          <div class=\"soft-stat rounded-md p-4\">\n            <p class=\"text-3xl font-semibold text-amber-300\">".concat(state.bootstrap.bottles.length, "</p>\n            <p class=\"text-amber-50/75\">blind bottles checked in</p>\n          </div>\n          <div class=\"soft-stat rounded-md p-4\">\n            <p class=\"text-3xl font-semibold text-emerald-300\">").concat(state.bootstrap.guests.length, "</p>\n            <p class=\"text-amber-50/75\">tasters on the list</p>\n          </div>\n        </div>\n      ")), "\n    </div>\n  ");
 }
 function photosMarkup() {
   if (!state.photos.length) return "<p class=\"rounded-md border border-amber-100/15 bg-stone-950/40 p-5 text-amber-50/75\">The shared album is waiting for the first party photo.</p>";
@@ -326,17 +348,20 @@ function animateTvBoard(oldPositions) {
     var dx = oldRect.left - newRect.left;
     var dy = oldRect.top - newRect.top;
     if (!dx && !dy) return;
-    item.style.transform = "translate(".concat(dx, "px, ").concat(dy, "px)");
-    item.style.transition = "transform .75s cubic-bezier(0.22,1,0.36,1)";
-    item.style.willChange = "transform";
-    item.getBoundingClientRect();
-    requestAnimationFrame(function () {
-      item.style.transform = "";
+    item.style.zIndex = "2";
+    var animation = item.animate([{
+      transform: "translate(".concat(dx, "px, ").concat(dy, "px)")
+    }, {
+      transform: "translate(0, 0)"
+    }], {
+      duration: 650,
+      easing: "cubic-bezier(0.22,1,0.36,1)",
+      fill: "both"
     });
+    animation.onfinish = function () {
+      item.style.zIndex = "";
+    };
   });
-}
-function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3);
 }
 function animateDemoScores() {
   var updates = new Set(state.demoScoreUpdates || []);
@@ -362,15 +387,45 @@ function animateDemoScores() {
   state.demoScoreUpdates = [];
 }
 function revealMarkup() {
-  if (!state.reveal.length) return "<p class=\"rounded-md bg-stone-950/45 p-5\">The host controls the grand reveal.</p>";
+  var reveal = (state.reveal || []).filter(function (bottle) {
+    return bottle && bottle.id;
+  });
+  if (!reveal.length) return "<p class=\"rounded-md bg-stone-950/45 p-5\">The host controls the grand reveal.</p>";
   return "\n    <div class=\"mt-5 grid gap-4 xl:grid-cols-[.9fr_1.1fr]\">\n      <div class=\"grid gap-3\">\n        ".concat(state.reveal.map(function (bottle) {
     return "\n          <article class=\"rounded-lg border border-amber-100/15 bg-stone-950/60 p-4\">\n            <div class=\"grid gap-3 sm:grid-cols-[110px_1fr]\">\n              ".concat(bottle.photoUrl ? "<img class=\"aspect-[3/4] w-full rounded-md object-cover\" src=\"".concat(escapeHtml(bottle.photoUrl), "\" alt=\"").concat(escapeHtml(bottle.bottleName), " bottle\">") : "<div class=\"flex aspect-[3/4] items-center justify-center rounded-md bg-stone-800 text-4xl\">#".concat(bottle.bagNumber, "</div>"), "\n              <div>\n                <p class=\"text-sm font-bold text-amber-300\">Sleeve ").concat(bottle.bagNumber, "</p>\n                <h3 class=\"text-xl font-semibold\">").concat(escapeHtml(bottle.bottleName), "</h3>\n                <p class=\"text-emerald-100\">").concat(escapeHtml([bottle.producer, bottle.vintage, bottle.region].filter(Boolean).join(" · ")), "</p>\n                <p class=\"mt-2\"><strong>").concat(escapeHtml(bottle.grape), "</strong> \xB7 Crowd ").concat(Number(bottle.averageRating).toFixed(1), " / 5 \xB7 ").concat(bottle.voteCount, " votes</p>\n              </div>\n            </div>\n            <p class=\"mt-3 text-amber-50/85\">").concat(escapeHtml(bottle.expertScore === null ? "Host note" : "Expert ".concat(bottle.expertScore, "/100")), ": ").concat(escapeHtml(bottle.expertCommentary || "No expert note entered."), "</p>\n            <p class=\"mt-2 text-sm text-rose-100\">Correct grape guesses: ").concat(escapeHtml(bottle.correctGuests.join(", ") || "No correct guesses yet"), "</p>\n          </article>\n        ");
-  }).join(""), "\n      </div>\n      <div class=\"grid gap-4 content-start\">\n        <label class=\"rounded-lg border border-amber-100/15 bg-stone-950/60 p-4\">\n          <span class=\"mb-2 block font-semibold\">Chart bottle</span>\n          <select id=\"chart-bottle\" class=\"field\">").concat(state.reveal.map(function (bottle) {
+  }).join(""), "\n      </div>\n      <div class=\"grid gap-4 content-start\">\n        <label class=\"rounded-lg border border-amber-100/15 bg-stone-950/60 p-4\">\n          <span class=\"mb-2 block font-semibold\">Chart bottle</span>\n          <select id=\"chart-bottle\" class=\"field\">").concat(state.reveal.filter(function (bottle) {
+    return bottle && bottle.id;
+  }).map(function (bottle) {
     return "<option value=\"".concat(bottle.id, "\">Sleeve ").concat(bottle.bagNumber, ": ").concat(escapeHtml(bottle.bottleName), "</option>");
   }).join(""), "</select>\n        </label>\n        <div class=\"chart-shell rounded-lg border border-amber-100/15 bg-stone-950/60 p-4\"><canvas id=\"grape-chart\" aria-label=\"Grape guesses chart\"></canvas></div>\n        <div class=\"chart-shell rounded-lg border border-amber-100/15 bg-stone-950/60 p-4\"><canvas id=\"appearance-chart\" aria-label=\"Appearance chart\"></canvas></div>\n      </div>\n    </div>\n  ");
 }
+function tvHeroMarkup() {
+  var pour = state.bootstrap.nowPouring;
+  if (!pour) return "";
+  var key = String(pour);
+  var coach = state.bottleCoach[key];
+  var pending = coach === undefined || state.bottleCoachLoading === key;
+  var formatted = coach ? escapeHtml(coach).replace(/\*\*(.+?)\*\*/g, '<strong class="text-amber-200">$1</strong>').replace(/\n/g, "<br>") : "";
+  var body = pending ? '<p class="italic text-amber-50/70">Checking with the sommelier…</p>' : formatted || '<p class="italic text-amber-50/70">The sommelier&rsquo;s on a break. Trust your senses.</p>';
+  return "\n    <section class=\"tv-hero rounded-2xl border border-amber-200/30 bg-amber-950/40 p-6 sm:p-10 mb-4\">\n      <div class=\"grid gap-6 sm:grid-cols-[auto_1fr] sm:items-center\">\n        <div class=\"text-center\">\n          <p class=\"kicker\">Now pouring</p>\n          <p class=\"tv-hero-sleeve text-amber-300\">#".concat(pour, "</p>\n        </div>\n        <div>\n          <p class=\"kicker mb-3\">Notice this</p>\n          <div class=\"tv-hero-coach text-amber-50\">").concat(body, "</div>\n        </div>\n      </div>\n    </section>\n  ");
+}
+function renderTvHero() {
+  var main = document.querySelector("#app");
+  if (!main) return;
+  var existing = main.querySelector(".tv-hero");
+  var fresh = tvHeroMarkup().trim();
+  if (existing && fresh) {
+    var wrapper = document.createElement("div");
+    wrapper.innerHTML = fresh;
+    existing.replaceWith(wrapper.firstElementChild);
+  } else if (existing && !fresh) {
+    existing.remove();
+  } else if (!existing && fresh) {
+    main.insertAdjacentHTML("afterbegin", fresh);
+  }
+}
 function tvView() {
-  return "\n    ".concat(panel("\n      <div class=\"mb-5 flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Live standings</p>\n          <h2 class=\"screen-title\">Bottle race</h2>\n          <p class=\"mt-2 text-amber-50/75\">Sleeves move left-to-right by crowd rating. Bottle identities stay blind until reveal.</p>\n        </div>\n      </div>\n      ".concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
+  return "\n    ".concat(tvHeroMarkup(), "\n    ").concat(panel("\n      <div class=\"mb-5 flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Live standings</p>\n          <h2 class=\"screen-title\">Bottle race</h2>\n          <p class=\"mt-2 text-amber-50/75\">Sleeves move left-to-right by crowd rating. Bottle identities stay blind until reveal.</p>\n        </div>\n        ".concat(state.demoBoard ? "<button class=\"tap-quiet\" id=\"stop-demo\" type=\"button\">Stop demo</button>" : "", "\n      </div>\n      ").concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
 }
 function hostBottleFields() {
   var _bottle$expertScore;
@@ -384,11 +439,41 @@ function hostView() {
   var editing = state.host.bottles.find(function (bottle) {
     return bottle.id === state.editBottleId;
   });
-  return "\n    <div class=\"grid gap-4 xl:grid-cols-[1fr_.9fr]\">\n      ".concat(panel("\n        <div class=\"flex flex-wrap items-center justify-between gap-3\">\n          <div>\n            <p class=\"kicker\">Host check-in</p>\n            <h2 class=\"screen-title\">".concat(editing ? "Edit sleeve ".concat(editing.bagNumber) : "Scan arriving bottle", "</h2>\n          </div>\n          ").concat(editing ? "<button class=\"tap-quiet\" id=\"cancel-edit\" type=\"button\">New bottle</button>" : "", "\n        </div>\n        ").concat(!editing ? "\n          <form id=\"label-scan-form\" class=\"mt-4 rounded-lg border border-rose-100/15 bg-rose-950/20 p-4\">\n            <input id=\"label-photo\" class=\"sr-only\" name=\"photo\" type=\"file\" accept=\"image/*\" capture=\"environment\" required>\n            <label class=\"".concat(state.labelScanPending ? "opacity-60" : "", " tap-primary w-full cursor-pointer text-lg\" for=\"label-photo\">\n              ").concat(state.labelScanPending ? "Reading label..." : "Scan label", "\n            </label>\n            <p class=\"mt-2 text-sm text-amber-50/70\">Tap to open the camera. Winey scans the label, assigns the next sleeve, and saves the image for reveal.</p>\n          </form>\n          ").concat(state.lastLabelScan ? "\n            <div class=\"mt-3 rounded-lg border border-emerald-200/25 bg-emerald-950/45 p-4 text-emerald-50\">\n              <p class=\"text-sm font-bold uppercase text-emerald-200\">Bottle checked in</p>\n              <p class=\"mt-1 text-lg\">Put this bottle in sleeve</p>\n              <p class=\"text-7xl font-black text-amber-300\">#".concat(state.lastLabelScan.bagNumber, "</p>\n              <p class=\"mt-2 text-sm\">Label scan confidence: ").concat(escapeHtml(state.lastLabelScan.confidence), ".</p>\n              ").concat(state.lastLabelScan.notes ? "<p class=\"mt-1 text-sm\">".concat(escapeHtml(state.lastLabelScan.notes), "</p>") : "", "\n              <button class=\"tap-quiet mt-3 w-full\" data-edit-bottle=\"").concat(state.lastLabelScan.bottleId, "\" type=\"button\">Review bottle details</button>\n            </div>\n          ") : "", "\n          <details class=\"mt-4 rounded-md border border-amber-100/15 bg-stone-950/35 p-4\">\n            <summary class=\"cursor-pointer font-semibold\">Manual check-in</summary>\n        ") : "", "\n        <form id=\"bottle-form\" class=\"mt-4\">\n          ").concat(hostBottleFields(editing), "\n          <button class=\"tap-primary mt-4 w-full\" type=\"submit\">").concat(editing ? "Save bottle" : "Check in manually", "</button>\n        </form>\n        ").concat(!editing ? "</details>" : "", "\n      ")), "\n      ").concat(panel("\n        <h2 class=\"text-2xl font-semibold\">Event control</h2>\n        <div class=\"mt-4 grid gap-2 sm:grid-cols-2\">\n          <button class=\"tap-quiet\" data-event-state=\"LIVE_TASTING\" type=\"button\">Live tasting</button>\n          <button class=\"tap-primary\" data-event-state=\"GRAND_REVEAL\" type=\"button\">Grand reveal</button>\n        </div>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo\" type=\"button\">Load 15-bottle demo</button>\n        <p class=\"mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50\">Current state: ".concat(escapeHtml(stateLabel(state.host.state)), "</p>\n        <div class=\"mt-5 grid grid-cols-2 gap-3\">\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-amber-300\">").concat(state.host.bottles.length, "</p><p>Bottles</p></div>\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-emerald-300\">").concat(state.host.photos.length, "</p><p>Party photos</p></div>\n        </div>\n      ")), "\n    </div>\n    ").concat(panel("\n      <h2 class=\"mb-4 text-2xl font-semibold\">Checked-in bottles</h2>\n      <div class=\"grid gap-3 md:grid-cols-2 xl:grid-cols-3\">\n        ".concat(state.host.bottles.map(function (bottle) {
+  return "\n    <div class=\"grid gap-4 xl:grid-cols-[1fr_.9fr]\">\n      ".concat(panel("\n        <div class=\"flex flex-wrap items-center justify-between gap-3\">\n          <div>\n            <p class=\"kicker\">Host check-in</p>\n            <h2 class=\"screen-title\">".concat(editing ? "Edit sleeve ".concat(editing.bagNumber) : "Scan arriving bottle", "</h2>\n          </div>\n          ").concat(editing ? "<button class=\"tap-quiet\" id=\"cancel-edit\" type=\"button\">New bottle</button>" : "", "\n        </div>\n        ").concat(!editing ? "\n          <form id=\"label-scan-form\" class=\"mt-4 rounded-lg border border-rose-100/15 bg-rose-950/20 p-4\">\n            <input id=\"label-photo\" class=\"sr-only\" name=\"photo\" type=\"file\" accept=\"image/*\" capture=\"environment\" required>\n            <label class=\"".concat(state.labelScanPending ? "opacity-60" : "", " tap-primary w-full cursor-pointer text-lg\" for=\"label-photo\">\n              ").concat(state.labelScanPending ? "Reading label..." : "Scan label", "\n            </label>\n            <p class=\"mt-2 text-sm text-amber-50/70\">Tap to open the camera. Winey scans the label, assigns the next sleeve, and saves the image for reveal.</p>\n          </form>\n          ").concat(state.lastLabelScan ? "\n            <div class=\"mt-3 rounded-lg border border-emerald-200/25 bg-emerald-950/45 p-4 text-emerald-50\">\n              <p class=\"text-sm font-bold uppercase text-emerald-200\">Bottle checked in</p>\n              <p class=\"mt-1 text-lg\">Put this bottle in sleeve</p>\n              <p class=\"text-6xl font-black text-amber-300 sm:text-7xl\">#".concat(state.lastLabelScan.bagNumber, "</p>\n              ").concat(state.lastLabelScan.bottleName ? "<p class=\"mt-2 text-base\"><strong>".concat(escapeHtml(state.lastLabelScan.bottleName), "</strong></p>") : "", "\n              <div class=\"mt-2 grid gap-2\">\n                <label class=\"text-xs uppercase tracking-wide text-emerald-200\" for=\"scan-grape-fix\">Grape ").concat(state.lastLabelScan.grapeSource === "printed" ? "(on label)" : state.lastLabelScan.grapeSource === "inferred" ? "(inferred from region)" : "(unknown)", "</label>\n                <select id=\"scan-grape-fix\" class=\"field\" data-scan-bottle=\"").concat(state.lastLabelScan.bottleId, "\">\n                  ").concat(state.bootstrap.grapes.map(function (grape) {
+    var hint = grape.appellations ? " \u2014 ".concat(grape.appellations) : "";
+    var selected = grape.name === state.lastLabelScan.grape ? " selected" : "";
+    return "<option value=\"".concat(escapeHtml(grape.name), "\"").concat(selected, ">").concat(escapeHtml(grape.name + hint), "</option>");
+  }).join(""), "\n                </select>\n              </div>\n              <p class=\"mt-2 text-xs text-emerald-200/80\">Confidence: ").concat(escapeHtml(state.lastLabelScan.confidence), ".").concat(state.lastLabelScan.notes ? " ".concat(escapeHtml(state.lastLabelScan.notes)) : "", "</p>\n              <div class=\"mt-3 grid gap-2 sm:grid-cols-2\">\n                <label class=\"tap-primary cursor-pointer text-center\" for=\"label-photo\">Scan next bottle</label>\n                <button class=\"tap-quiet\" data-edit-bottle=\"").concat(state.lastLabelScan.bottleId, "\" type=\"button\">Review details</button>\n              </div>\n            </div>\n          ") : "", "\n          <details class=\"mt-4 rounded-md border border-amber-100/15 bg-stone-950/35 p-4\">\n            <summary class=\"cursor-pointer font-semibold\">Manual check-in</summary>\n        ") : "", "\n        <form id=\"bottle-form\" class=\"mt-4\">\n          ").concat(hostBottleFields(editing), "\n          <button class=\"tap-primary mt-4 w-full\" type=\"submit\">").concat(editing ? "Save bottle" : "Check in manually", "</button>\n        </form>\n        ").concat(!editing ? "</details>" : "", "\n      ")), "\n      ").concat(panel("\n        <h2 class=\"text-2xl font-semibold\">Event control</h2>\n        <div class=\"mt-4 grid gap-2 sm:grid-cols-2\">\n          <button class=\"tap-quiet\" data-event-state=\"LIVE_TASTING\" type=\"button\">Live tasting</button>\n          <button class=\"tap-primary\" data-event-state=\"GRAND_REVEAL\" type=\"button\">Grand reveal</button>\n        </div>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-join-qr\" type=\"button\">Show join QR for guests</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-guest-bulk\" type=\"button\">Pre-load guest list</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo\" type=\"button\">Load 15-bottle demo</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo-2\" type=\"button\">Load 3-bottle demo</button>\n        <p class=\"mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50\">Current state: ".concat(escapeHtml(stateLabel(state.host.state)), "</p>\n        <div class=\"mt-5 grid grid-cols-2 gap-3\">\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-amber-300\">").concat(state.host.bottles.length, "</p><p>Bottles</p></div>\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-emerald-300\">").concat(state.host.photos.length, "</p><p>Party photos</p></div>\n        </div>\n      ")), "\n    </div>\n    ").concat(state.host.bottles.length ? panel("\n      <div class=\"flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Pouring control</p>\n          <h2 class=\"screen-title\">Tell everyone what's in the glass</h2>\n        </div>\n        ".concat(state.bootstrap.nowPouring ? "\n          <button class=\"tap-quiet\" data-pour-sleeve=\"\" type=\"button\">Stop pouring</button>\n        " : "", "\n      </div>\n      ").concat(state.bootstrap.nowPouring ? "\n        <div class=\"mt-4 rounded-lg border border-amber-200/30 bg-amber-950/30 p-4 text-amber-50\">\n          <p class=\"kicker\">Now pouring</p>\n          <p class=\"text-6xl font-black text-amber-300\">#".concat(state.bootstrap.nowPouring, "</p>\n        </div>\n      ") : "\n        <p class=\"mt-2 text-amber-50/75\">Tap a sleeve to broadcast it to the TV and the kiosks. Guests will see coaching cues for that bottle.</p>\n      ", "\n      <div class=\"mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8\">\n        ").concat(_toConsumableArray(state.host.bottles).sort(function (a, b) {
+    return a.bagNumber - b.bagNumber;
+  }).map(function (bottle) {
+    return "\n          <button class=\"".concat(bottle.bagNumber === state.bootstrap.nowPouring ? 'tap-primary' : 'tap-quiet', " text-lg font-bold\" data-pour-sleeve=\"").concat(bottle.bagNumber, "\" type=\"button\">#").concat(bottle.bagNumber, "</button>\n        ");
+  }).join(""), "\n      </div>\n    "), "mt-4") : "", "\n    ").concat(panel("\n      <h2 class=\"mb-4 text-2xl font-semibold\">Checked-in bottles</h2>\n      <div class=\"grid gap-3 md:grid-cols-2 xl:grid-cols-3\">\n        ".concat(state.host.bottles.map(function (bottle) {
     return "\n          <article class=\"rounded-lg border border-amber-100/15 bg-stone-950/55 p-3\">\n            <div class=\"flex gap-3\">\n              ".concat(bottle.photoUrl ? "<img class=\"h-28 w-20 rounded-md object-cover\" src=\"".concat(escapeHtml(bottle.photoUrl), "\" alt=\"\">") : "", "\n              <div>\n                <p class=\"text-sm font-bold text-amber-300\">Sleeve ").concat(bottle.bagNumber, "</p>\n                <h3 class=\"font-semibold\">").concat(escapeHtml(bottle.bottleName), "</h3>\n                <p class=\"text-sm text-amber-50/75\">").concat(escapeHtml(bottle.grape), " \xB7 ").concat(bottle.voteCount, " ratings</p>\n              </div>\n            </div>\n            <button class=\"tap-quiet mt-3 w-full\" data-edit-bottle=\"").concat(bottle.id, "\" type=\"button\">Edit</button>\n          </article>\n        ");
   }).join("") || "<p class=\"text-amber-50/75\">No bottles checked in yet.</p>", "\n      </div>\n    "), "mt-4"), "\n  ");
 }
+function guestBulkModalMarkup() {
+  var _state$bootstrap;
+  if (!state.showGuestBulk) return "";
+  var guestCount = ((_state$bootstrap = state.bootstrap) === null || _state$bootstrap === void 0 || (_state$bootstrap = _state$bootstrap.guests) === null || _state$bootstrap === void 0 ? void 0 : _state$bootstrap.length) || 0;
+  return "\n    <div id=\"guest-bulk-overlay\" class=\"fixed inset-0 z-50 flex items-center justify-center bg-stone-950/85 p-6\">\n      <div class=\"panel rounded-2xl p-6 max-w-lg w-full\">\n        <p class=\"kicker\">Setup</p>\n        <h2 class=\"screen-title mt-1\">Pre-load guest list</h2>\n        <p class=\"mt-2 text-amber-50/75 text-sm\">Paste names, one per line or comma-separated. Duplicates are skipped automatically. Currently ".concat(guestCount, " guest").concat(guestCount === 1 ? "" : "s", " loaded.</p>\n        <textarea id=\"guest-bulk-input\" class=\"field mt-3 min-h-40 w-full\" placeholder=\"Maria&#10;Hannah&#10;Ari, Mia, Noah&#10;Jess Taylor\"></textarea>\n        <div class=\"mt-4 grid gap-2 sm:grid-cols-2\">\n          <button class=\"tap-quiet\" id=\"cancel-guest-bulk\" type=\"button\">Cancel</button>\n          <button class=\"tap-primary\" id=\"submit-guest-bulk\" type=\"button\" ").concat(state.guestBulkSubmitting ? "disabled" : "", ">").concat(state.guestBulkSubmitting ? "Adding…" : "Add all", "</button>\n        </div>\n      </div>\n    </div>\n  ");
+}
+function joinQrModalMarkup() {
+  if (!state.showJoinQr) return "";
+  var url = window.location.origin + "/kiosk.html";
+  return "\n    <div id=\"join-qr-overlay\" class=\"fixed inset-0 z-50 flex items-center justify-center bg-stone-950/85 p-6\">\n      <div class=\"panel rounded-2xl p-6 max-w-md w-full text-center\">\n        <p class=\"kicker\">Scan to join</p>\n        <h2 class=\"screen-title mt-1\">Rate from your phone</h2>\n        <p class=\"mt-2 text-amber-50/75 text-sm\">Connect to <strong>Wine Party Guest</strong> WiFi first, then scan this code.</p>\n        <div id=\"join-qr-canvas\" class=\"mx-auto mt-4 inline-block rounded-md bg-amber-50 p-4\"></div>\n        <p class=\"mt-3 break-all text-xs text-amber-50/60\">".concat(escapeHtml(url), "</p>\n        <button class=\"tap-primary mt-5 w-full\" id=\"close-join-qr\" type=\"button\">Close</button>\n      </div>\n    </div>\n  ");
+}
+function renderJoinQrCode() {
+  var node = document.querySelector("#join-qr-canvas");
+  if (!node || typeof window.qrcode !== "function") return;
+  node.innerHTML = "";
+  var url = window.location.origin + "/kiosk.html";
+  var qr = window.qrcode(0, "M");
+  qr.addData(url);
+  qr.make();
+  node.innerHTML = qr.createImgTag(8, 0);
+}
 function render() {
+  var _state$reveal$;
   navMarkup();
   if (!state.bootstrap) {
     app.innerHTML = panel("<p class=\"text-lg\">Loading the tasting room...</p>");
@@ -400,8 +485,23 @@ function render() {
     album: albumView,
     tv: tvView,
     host: hostView
-  }[state.view]();
-  if (state.view === "tv") animateTvBoard(oldPositions);
+  }[state.view]() + joinQrModalMarkup() + guestBulkModalMarkup();
+  if (state.showJoinQr) renderJoinQrCode();
+  if (state.view === "tv") {
+    animateTvBoard(oldPositions);
+    startTrivia();
+  } else {
+    stopTrivia();
+  }
+  if (state.view === "tv" && state.bootstrap.nowPouring) {
+    fetchCoach(state.bootstrap.nowPouring).then(function () {
+      if (state.view === "tv" && state.bootstrap.nowPouring) renderTvHero();
+    }).catch(function () {});
+  }
+  if (state.view === "taste" && state.bootstrap.nowPouring && !state.selectedSleeve) {
+    state.selectedSleeve = String(state.bootstrap.nowPouring);
+    fetchCoach(state.selectedSleeve).catch(function () {});
+  }
   if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) {
     startDemoVoting();
   }
@@ -411,7 +511,7 @@ function render() {
       return animateDemoScores();
     });
   }
-  if (state.view === "tv" && state.reveal.length) drawCharts(state.reveal[0].id);
+  if (state.view === "tv" && state.reveal.length && (_state$reveal$ = state.reveal[0]) !== null && _state$reveal$ !== void 0 && _state$reveal$.id && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) drawCharts(state.reveal[0].id);
 }
 function refresh() {
   return _refresh.apply(this, arguments);
@@ -525,6 +625,7 @@ function _submitTasting() {
           state.selectedGuestId = "";
           localStorage.removeItem("wineGuestId");
           state.starRating = 0;
+          state.selectedSleeve = "";
           notice("Tasting saved. Ready for the next guest.");
           _context4.n = 2;
           return refresh();
@@ -686,9 +787,7 @@ function _seedDemo() {
           state.view = "tv";
           history.replaceState({}, "", "?view=tv");
           render();
-          setTimeout(function () {
-            if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) startDemoVoting();
-          }, 50);
+          if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) startDemoVoting();
         case 3:
           return _context9.a(2);
       }
@@ -696,48 +795,218 @@ function _seedDemo() {
   }));
   return _seedDemo.apply(this, arguments);
 }
-function scanLabel(_x7) {
+function seedDemo2() {
+  return _seedDemo2.apply(this, arguments);
+}
+function _seedDemo2() {
+  _seedDemo2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
+    return _regenerator().w(function (_context0) {
+      while (1) switch (_context0.n) {
+        case 0:
+          if (state.bootstrap.leaderboard.length) {
+            _context0.n = 1;
+            break;
+          }
+          _context0.n = 1;
+          return refresh({
+            host: true,
+            reveal: true
+          });
+        case 1:
+          state.demoBoard = cloneDemoBoard(shuffleBoard(state.bootstrap.leaderboard).slice(0, 3));
+          state.demoAnimationPending = true;
+          state.view = "tv";
+          history.replaceState({}, "", "?view=tv");
+          render();
+          if (state.view === "tv" && state.demoBoard && !state.demoVoteTimer) startDemoVoting();
+        case 2:
+          return _context0.a(2);
+      }
+    }, _callee0);
+  }));
+  return _seedDemo2.apply(this, arguments);
+}
+function fetchCoach(_x7) {
+  return _fetchCoach.apply(this, arguments);
+}
+function _fetchCoach() {
+  _fetchCoach = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(bagNumber) {
+    var key, result, _t2;
+    return _regenerator().w(function (_context1) {
+      while (1) switch (_context1.p = _context1.n) {
+        case 0:
+          key = String(bagNumber);
+          if (key) {
+            _context1.n = 1;
+            break;
+          }
+          return _context1.a(2);
+        case 1:
+          if (!(state.bottleCoach[key] !== undefined || state.bottleCoachLoading === key)) {
+            _context1.n = 2;
+            break;
+          }
+          paintCoachCard();
+          if (state.view === "tv") renderTvHero();
+          return _context1.a(2);
+        case 2:
+          state.bottleCoachLoading = key;
+          paintCoachCard();
+          if (state.view === "tv") renderTvHero();
+          _context1.p = 3;
+          _context1.n = 4;
+          return api("/api/bottles/".concat(encodeURIComponent(key), "/coach"));
+        case 4:
+          result = _context1.v;
+          state.bottleCoach[key] = result.coach || "";
+          _context1.n = 6;
+          break;
+        case 5:
+          _context1.p = 5;
+          _t2 = _context1.v;
+          state.bottleCoach[key] = "";
+        case 6:
+          _context1.p = 6;
+          if (state.bottleCoachLoading === key) state.bottleCoachLoading = null;
+          if (state.selectedSleeve === key) paintCoachCard();
+          if (state.view === "tv" && String(state.bootstrap.nowPouring) === key) renderTvHero();
+          return _context1.f(6);
+        case 7:
+          return _context1.a(2);
+      }
+    }, _callee1, null, [[3, 5, 6, 7]]);
+  }));
+  return _fetchCoach.apply(this, arguments);
+}
+function compressImage(_x8) {
+  return _compressImage.apply(this, arguments);
+}
+function _compressImage() {
+  _compressImage = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(file) {
+    var _file$type;
+    var maxEdge,
+      quality,
+      bitmap,
+      ratio,
+      w,
+      h,
+      canvas,
+      blob,
+      _args10 = arguments;
+    return _regenerator().w(function (_context10) {
+      while (1) switch (_context10.n) {
+        case 0:
+          maxEdge = _args10.length > 1 && _args10[1] !== undefined ? _args10[1] : 1600;
+          quality = _args10.length > 2 && _args10[2] !== undefined ? _args10[2] : 0.85;
+          if (!(!file || !((_file$type = file.type) !== null && _file$type !== void 0 && _file$type.startsWith("image/")))) {
+            _context10.n = 1;
+            break;
+          }
+          return _context10.a(2, file);
+        case 1:
+          if (!(file.size < 350 * 1024)) {
+            _context10.n = 2;
+            break;
+          }
+          return _context10.a(2, file);
+        case 2:
+          _context10.n = 3;
+          return window.createImageBitmap ? createImageBitmap(file) : new Promise(function (resolve, reject) {
+            var img = new Image();
+            img.onload = function () {
+              return resolve(img);
+            };
+            img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+          });
+        case 3:
+          bitmap = _context10.v;
+          ratio = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+          w = Math.round(bitmap.width * ratio);
+          h = Math.round(bitmap.height * ratio);
+          canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext("2d").drawImage(bitmap, 0, 0, w, h);
+          _context10.n = 4;
+          return new Promise(function (resolve) {
+            return canvas.toBlob(resolve, "image/jpeg", quality);
+          });
+        case 4:
+          blob = _context10.v;
+          if (!(!blob || blob.size >= file.size)) {
+            _context10.n = 5;
+            break;
+          }
+          return _context10.a(2, file);
+        case 5:
+          return _context10.a(2, new File([blob], "label.jpg", {
+            type: "image/jpeg"
+          }));
+      }
+    }, _callee10);
+  }));
+  return _compressImage.apply(this, arguments);
+}
+function scanLabel(_x9) {
   return _scanLabel.apply(this, arguments);
 }
 function _scanLabel() {
-  _scanLabel = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(form) {
-    var body, result;
-    return _regenerator().w(function (_context0) {
-      while (1) switch (_context0.p = _context0.n) {
+  _scanLabel = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11(form) {
+    var _form$querySelector4;
+    var original, photo, body, result;
+    return _regenerator().w(function (_context11) {
+      while (1) switch (_context11.p = _context11.n) {
         case 0:
-          body = new FormData(form);
+          original = (_form$querySelector4 = form.querySelector('input[type="file"]')) === null || _form$querySelector4 === void 0 || (_form$querySelector4 = _form$querySelector4.files) === null || _form$querySelector4 === void 0 ? void 0 : _form$querySelector4[0];
+          if (original) {
+            _context11.n = 1;
+            break;
+          }
+          throw new Error("Pick a photo to scan.");
+        case 1:
           state.labelScanPending = true;
           render();
-          _context0.p = 1;
-          _context0.n = 2;
+          _context11.p = 2;
+          _context11.n = 3;
+          return compressImage(original).catch(function () {
+            return original;
+          });
+        case 3:
+          photo = _context11.v;
+          body = new FormData();
+          body.append("photo", photo);
+          _context11.n = 4;
           return api("/api/host/bottles/scan", {
             method: "POST",
             body: body,
             host: true
           });
-        case 2:
-          result = _context0.v;
+        case 4:
+          result = _context11.v;
           state.lastLabelScan = {
             bottleId: result.bottle.id,
             bagNumber: result.bottle.bagNumber,
+            bottleName: result.bottle.bottleName,
+            grape: result.bottle.grape,
+            grapeSource: result.scan.grapeSource,
             confidence: result.scan.confidence,
             notes: result.scan.notes
           };
           notice("Put this bottle in sleeve ".concat(result.bottle.bagNumber, "."));
-          form.reset();
-          _context0.n = 3;
+          _context11.n = 5;
           return refresh({
             host: true
           });
-        case 3:
-          _context0.p = 3;
+        case 5:
+          _context11.p = 5;
           state.labelScanPending = false;
           render();
-          return _context0.f(3);
-        case 4:
-          return _context0.a(2);
+          return _context11.f(5);
+        case 6:
+          return _context11.a(2);
       }
-    }, _callee0, null, [[1,, 3, 4]]);
+    }, _callee11, null, [[2,, 5, 6]]);
   }));
   return _scanLabel.apply(this, arguments);
 }
@@ -747,12 +1016,23 @@ function destroyCharts() {
   });
   state.charts = [];
 }
+function stopDemo() {
+  if (state.demoVoteTimer) {
+    clearTimeout(state.demoVoteTimer);
+  }
+  state.demoVoteTimer = null;
+  state.demoBoard = null;
+  state.demoAnimationPending = false;
+  render();
+}
 function drawCharts(id) {
   destroyCharts();
   var bottle = state.reveal.find(function (item) {
-    return item.id === Number(id);
+    return item && item.id === Number(id);
   });
-  if (!bottle || !window.Chart) return;
+  var grapeCanvas = document.querySelector("#grape-chart");
+  var appearanceCanvas = document.querySelector("#appearance-chart");
+  if (!bottle || !window.Chart || !grapeCanvas || !appearanceCanvas) return;
   var colors = ["#f2bd5d", "#d43f63", "#2d6a5b", "#9fb8d0", "#c37d46", "#e9d6a4"];
   var empty = [{
     label: "No optional notes yet",
@@ -760,7 +1040,7 @@ function drawCharts(id) {
   }];
   var grapeData = bottle.grapeGuesses.length ? bottle.grapeGuesses : empty;
   var appearanceData = bottle.appearance.length ? bottle.appearance : empty;
-  state.charts.push(new Chart(document.querySelector("#grape-chart"), {
+  state.charts.push(new Chart(grapeCanvas, {
     type: "bar",
     data: {
       labels: grapeData.map(function (item) {
@@ -800,7 +1080,7 @@ function drawCharts(id) {
       }
     }
   }));
-  state.charts.push(new Chart(document.querySelector("#appearance-chart"), {
+  state.charts.push(new Chart(appearanceCanvas, {
     type: "pie",
     data: {
       labels: appearanceData.map(function (item) {
@@ -834,14 +1114,14 @@ function drawCharts(id) {
 }
 document.addEventListener("click", /*#__PURE__*/function () {
   var _ref7 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
-    var _event$target$closest, _document$querySelect, _event$target$closest2, _event$target$closest3;
-    var view, editId, eventState;
+    var _event$target$closest, _event$target$closest2, _event$target$closest3;
+    var view, editId, eventState, pourEl, raw, bagNumber, input, names, _t;
     return _regenerator().w(function (_context) {
-      while (1) switch (_context.n) {
+      while (1) switch (_context.p = _context.n) {
         case 0:
           view = (_event$target$closest = event.target.closest("[data-view]")) === null || _event$target$closest === void 0 ? void 0 : _event$target$closest.dataset.view;
           if (!view) {
-            _context.n = 8;
+            _context.n = 11;
             break;
           }
           state.view = view;
@@ -855,40 +1135,50 @@ document.addEventListener("click", /*#__PURE__*/function () {
             photos: true
           });
         case 1:
-          _context.n = 7;
+          _context.n = 10;
           break;
         case 2:
           if (!(view === "host" && hostToken())) {
-            _context.n = 4;
+            _context.n = 7;
             break;
           }
-          _context.n = 3;
+          _context.p = 3;
+          _context.n = 4;
           return refresh({
             host: true
           });
-        case 3:
-          _context.n = 7;
-          break;
         case 4:
+          _context.n = 6;
+          break;
+        case 5:
+          _context.p = 5;
+          _t = _context.v;
+          localStorage.removeItem("wineHostToken");
+          state.host = null;
+          notice("Host PIN changed. Please unlock again.");
+          render();
+        case 6:
+          _context.n = 10;
+          break;
+        case 7:
           if (!(view === "tv")) {
-            _context.n = 6;
+            _context.n = 9;
             break;
           }
-          _context.n = 5;
+          _context.n = 8;
           return refresh({
             reveal: true
           });
-        case 5:
-          _context.n = 7;
+        case 8:
+          _context.n = 10;
           break;
-        case 6:
+        case 9:
           render();
-        case 7:
+        case 10:
           if (view === "tv" && state.demoBoard && !state.demoVoteTimer) {
             startDemoVoting();
           }
-        case 8:
-          if (event.target.closest("#show-guest-form")) (_document$querySelect = document.querySelector("#guest-form")) === null || _document$querySelect === void 0 || _document$querySelect.classList.toggle("hidden");
+        case 11:
           if (event.target.closest("#add-guest")) addGuest(document.querySelector("#tasting-form")).catch(function (error) {
             return notice(error.message);
           });
@@ -920,25 +1210,133 @@ document.addEventListener("click", /*#__PURE__*/function () {
               return notice(error.message);
             });
           }
+          pourEl = event.target.closest("[data-pour-sleeve]");
+          if (pourEl) {
+            raw = pourEl.dataset.pourSleeve;
+            bagNumber = raw === "" ? null : Number(raw);
+            api("/api/host/now-pouring", {
+              method: "PATCH",
+              host: true,
+              body: {
+                bagNumber: bagNumber
+              }
+            }).then(function () {
+              return refresh({
+                host: true
+              });
+            }).then(function () {
+              return notice(bagNumber === null ? "Stopped pouring." : "Now pouring sleeve #".concat(bagNumber, "."));
+            }).catch(function (error) {
+              return notice(error.message);
+            });
+          }
+          if (event.target.closest("#show-join-qr")) {
+            state.showJoinQr = true;
+            render();
+          }
+          if (event.target.closest("#close-join-qr") || event.target.id === "join-qr-overlay") {
+            state.showJoinQr = false;
+            render();
+          }
+          if (event.target.closest("#show-guest-bulk")) {
+            state.showGuestBulk = true;
+            render();
+            setTimeout(function () {
+              var _document$querySelect;
+              return (_document$querySelect = document.querySelector("#guest-bulk-input")) === null || _document$querySelect === void 0 ? void 0 : _document$querySelect.focus();
+            }, 0);
+          }
+          if (event.target.closest("#cancel-guest-bulk") || event.target.id === "guest-bulk-overlay") {
+            state.showGuestBulk = false;
+            render();
+          }
+          if (!event.target.closest("#submit-guest-bulk")) {
+            _context.n = 14;
+            break;
+          }
+          input = document.querySelector("#guest-bulk-input");
+          if (input) {
+            _context.n = 12;
+            break;
+          }
+          return _context.a(2);
+        case 12:
+          names = input.value.split(/[\n,]+/).map(function (s) {
+            return s.trim();
+          }).filter(Boolean);
+          if (names.length) {
+            _context.n = 13;
+            break;
+          }
+          notice("Paste at least one name first.");
+          return _context.a(2);
+        case 13:
+          state.guestBulkSubmitting = true;
+          render();
+          api("/api/host/guests/bulk", {
+            method: "POST",
+            host: true,
+            body: {
+              names: names
+            }
+          }).then(function (result) {
+            state.guestBulkSubmitting = false;
+            state.showGuestBulk = false;
+            notice("Added ".concat(result.count, " guest").concat(result.count === 1 ? "" : "s", "."));
+            refresh({
+              host: true
+            });
+          }).catch(function (error) {
+            state.guestBulkSubmitting = false;
+            render();
+            notice(error.message);
+          });
+        case 14:
           if (event.target.closest("#seed-demo")) {
             seedDemo().catch(function (error) {
               return notice(error.message);
             });
           }
-        case 9:
+          if (event.target.closest("#seed-demo-2")) {
+            seedDemo2().catch(function (error) {
+              return notice(error.message);
+            });
+          }
+          if (event.target.closest("#stop-demo")) {
+            stopDemo();
+          }
+        case 15:
           return _context.a(2);
       }
-    }, _callee);
+    }, _callee, null, [[3, 5]]);
   }));
-  return function (_x8) {
+  return function (_x0) {
     return _ref7.apply(this, arguments);
   };
 }());
 document.addEventListener("change", function (event) {
   var _event$target$files;
   if (event.target.id === "guest-select") {
-    state.selectedGuestId = event.target.value;
-    if (state.selectedGuestId) localStorage.setItem("wineGuestId", state.selectedGuestId);
+    var value = event.target.value;
+    var guestForm = document.querySelector("#guest-form");
+    if (value === "__add__") {
+      var _guestForm$querySelec;
+      guestForm === null || guestForm === void 0 || guestForm.classList.remove("hidden");
+      guestForm === null || guestForm === void 0 || (_guestForm$querySelec = guestForm.querySelector('input[name="displayName"]')) === null || _guestForm$querySelec === void 0 || _guestForm$querySelec.focus();
+      event.target.value = state.selectedGuestId || "";
+    } else {
+      state.selectedGuestId = value;
+      guestForm === null || guestForm === void 0 || guestForm.classList.add("hidden");
+      if (state.selectedGuestId) localStorage.setItem("wineGuestId", state.selectedGuestId);
+    }
+  }
+  if (event.target.name === "bagNumber") {
+    state.selectedSleeve = event.target.value;
+    if (state.selectedSleeve) {
+      fetchCoach(state.selectedSleeve).catch(function () {});
+    } else {
+      paintCoachCard();
+    }
   }
   if (event.target.name === "rating") {
     state.starRating = Number(event.target.value);
@@ -952,6 +1350,22 @@ document.addEventListener("change", function (event) {
     });
   }
   if (event.target.id === "chart-bottle") drawCharts(event.target.value);
+  if (event.target.id === "scan-grape-fix") {
+    var bottleId = event.target.dataset.scanBottle;
+    var grape = event.target.value;
+    api("/api/host/bottles/".concat(bottleId), {
+      method: "PATCH",
+      host: true,
+      body: {
+        grape: grape
+      }
+    }).then(function () {
+      if (state.lastLabelScan) state.lastLabelScan.grape = grape;
+      notice("Grape updated.");
+    }).catch(function (error) {
+      return notice(error.message);
+    });
+  }
 });
 document.addEventListener("submit", function (event) {
   event.preventDefault();
@@ -972,10 +1386,55 @@ document.addEventListener("submit", function (event) {
   });
 });
 setInterval(function () {
-  if (state.view === "tv") refresh({
-    reveal: true
-  }).catch(function () {});
+  if (state.view === "tv" && !state.demoBoard) {
+    refresh({
+      reveal: true
+    }).catch(function (error) {
+      return console.error("TV refresh failed:", error);
+    });
+  }
 }, 7000);
+
+// --- Wine trivia banner (TV view only) ---
+var TRIVIA_ENABLED = true;
+var TRIVIA_FACTS = ["A standard 750ml bottle holds roughly the same volume as a glassblower's single breath — that's how the size was standardized.", "The word 'toast' traces back to ancient Rome, where a piece of charred bread was dropped in wine to reduce its acidity.", "Champagne bottles must withstand up to 90 psi of internal pressure — three times the pressure inside a car tire.", "White wine can be made from red grapes: the juice runs clear until it contacts the pigmented skins.", "A single grapevine typically produces just 3–10 bottles of wine per growing season.", "Georgia (the country) has evidence of winemaking dating back 8,000 years, making it the oldest known wine-producing region.", "The world's most planted wine grape is Cabernet Sauvignon, cultivated on over 340,000 hectares worldwide.", "Grapes are the most widely cultivated fruit crop on Earth.", "Tannins in red wine come from grape skins, seeds, and stems — and from oak barrels used during aging.", "Pinot Noir is so finicky to grow that winemakers have nicknamed it the 'heartbreak grape.'", "Malbec originated in southwest France before emigrating to Argentina, where it became the country's signature red.", "A wine is called 'corked' when contaminated by TCA, a compound that smells like wet cardboard or a musty basement.", "Decanting a young red wine for an hour can mimic years of gentle aging by exposing it to oxygen.", "The 'legs' that run down the inside of a wine glass reflect alcohol content, not sweetness.", "Riesling vines can survive temperatures as low as −22°F (−30°C) without significant damage.", "The term 'vintage' simply means the year the grapes were harvested — not that the wine is particularly old.", "A Bordeaux barrel holds 225 liters — enough to fill exactly 300 standard bottles.", "Swirling wine increases its surface area and releases aromatic compounds, making subtle aromas more detectable.", "Port wine takes its name from Porto, Portugal, the city from which it was historically shipped to Britain.", "The 1976 Judgment of Paris shocked the wine world when California wines outscored top French wines in a blind tasting.", "A standard restaurant pour is 5 oz — about one-fifth of a bottle.", "Wine aged in larger bottles (magnums, jeroboams) typically develops more slowly and gracefully than in standard bottles.", "Ancient Romans sometimes sweetened wine with lead acetate — known as 'sugar of lead' — with predictable health consequences.", "A magnum holds 1.5 liters, the equivalent of two standard bottles.", "Young red wines are deep purple; as they age, the color gradually shifts toward brick red or garnet at the rim.", "The Barossa Valley in South Australia is home to some of the world's oldest producing Shiraz vines — over 150 years old.", "Champagne gets its bubbles from a second fermentation that happens inside the sealed bottle.", "Grapes must reach a precise sugar level (measured in Brix) before harvest — picking too early or too late changes everything.", "Sommeliers can legally earn the title Master Sommelier only after passing one of the most difficult examinations in the world.", "A wine described as 'blind' means the taster doesn't know what they're drinking — not that the wine has anything to hide."];
+var triviaTimer = null;
+var triviaHideTimer = null;
+var triviaPool = [];
+function nextTriviaFact() {
+  if (!triviaPool.length) {
+    triviaPool = TRIVIA_FACTS.slice().sort(function () {
+      return Math.random() - 0.5;
+    });
+  }
+  return triviaPool.pop();
+}
+function showTrivia() {
+  if (!TRIVIA_ENABLED || state.view !== "tv") return;
+  var banner = document.getElementById("trivia-banner");
+  if (!banner) return;
+  clearTimeout(triviaHideTimer);
+  banner.innerHTML = '<div class="trivia-card"><p class="trivia-text">' + escapeHtml(nextTriviaFact()) + '</p></div>';
+  banner.classList.add("visible");
+  triviaHideTimer = setTimeout(function () {
+    banner.classList.remove("visible");
+  }, 30000);
+}
+function startTrivia() {
+  if (!TRIVIA_ENABLED || triviaTimer) return;
+  triviaTimer = setTimeout(function schedule() {
+    showTrivia();
+    triviaTimer = setTimeout(schedule, 480000 + Math.random() * 120000);
+  }, 120000);
+}
+function stopTrivia() {
+  clearTimeout(triviaTimer);
+  clearTimeout(triviaHideTimer);
+  triviaTimer = null;
+  triviaHideTimer = null;
+  var banner = document.getElementById("trivia-banner");
+  if (banner) banner.classList.remove("visible");
+}
 refresh({
   photos: state.view === "album",
   reveal: state.view === "tv"

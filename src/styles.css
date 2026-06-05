@@ -157,22 +157,66 @@ header {
 }
 
 .tv-rank {
-  animation: rank-in .65s ease;
-  transition: transform .65s ease, background-color .4s ease, opacity .4s ease;
+  transition: background-color .4s ease, opacity .4s ease;
+}
+
+.tv-hero-sleeve {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 7rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.tv-hero-coach {
+  font-size: 2rem;
+  line-height: 1.35;
+}
+
+.tv-hero-coach strong {
+  font-weight: 800;
+}
+
+@media (min-width: 1280px) {
+  .tv-hero-sleeve { font-size: 9rem; }
+  .tv-hero-coach { font-size: 2.5rem; }
 }
 
 .tv-bottle-grid {
+  position: relative;
   display: grid;
   align-items: end;
   gap: 1.4rem 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  grid-template-columns: repeat(8, minmax(150px, 1fr));
   padding: .8rem 0 0;
+  max-height: calc(2 * 560px);
+  overflow-x: auto;
+  padding-bottom: .8rem;
 }
 
 .tv-bottle-card {
+  position: relative;
   min-height: 540px;
   padding: .25rem;
   text-align: center;
+  transition: opacity .4s, box-shadow .4s;
+  will-change: transform, box-shadow;
+  z-index: 1;
+}
+
+.tv-bottle-card.voting {
+  animation: vote-pulse .55s ease;
+  border-color: #ffd47a;
+}
+
+.tv-bottle-card.score-animating .tv-bottle-score {
+  color: #ffffff;
+  transform: scale(1.05);
+  transition: transform .2s ease, color .2s ease;
+}
+
+@keyframes vote-pulse {
+  0%, 100% { box-shadow: 0 24px 30px rgba(255, 194, 67, .12); }
+  50% { box-shadow: 0 32px 40px rgba(255, 194, 67, .3); }
 }
 
 .blind-bottle {
@@ -371,15 +415,74 @@ dialog::backdrop {
     padding-left: .45rem;
     font-size: .9rem;
   }
+
+  .tv-bottle-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem .6rem;
+    max-height: none;
+    overflow-x: visible;
+  }
+
+  .tv-bottle-card {
+    min-height: 0;
+    padding-bottom: 1rem;
+  }
+
+  .tv-bottle-card:not(:nth-child(-n+2)) {
+    margin-top: 0;
+  }
+
+  .blind-bottle-lip { width: 32px; height: 9px; }
+  .blind-bottle-neck { width: 34px; height: 68px; }
+  .blind-bottle-shoulders { width: 104px; height: 42px; }
+  .blind-bottle-body { width: 104px; min-height: 184px; }
+  .blind-bottle-body span {
+    min-width: 72px;
+    min-height: 86px;
+    font-size: 2rem;
+  }
+  .tv-bottle-score { font-size: 1.15rem; margin-top: .5rem; }
 }
 
-@keyframes rank-in {
-  from {
-    opacity: .35;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+#trivia-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  height: 54vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom, transparent 0%, rgba(12, 10, 9, 0.6) 40%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(100%);
+  transition: opacity 1s ease, transform 1s ease;
 }
+#trivia-banner.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.trivia-card {
+  max-width: 560px;
+  width: 88%;
+  padding: 2.25rem 2.75rem;
+  background: rgba(12, 10, 9, 0.91);
+  border: 2px solid rgba(202, 138, 4, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(12, 10, 9, 0.85),
+    0 0 0 5px rgba(202, 138, 4, 0.2),
+    0 12px 40px rgba(0, 0, 0, 0.65);
+  border-radius: 3px;
+  text-align: center;
+}
+.trivia-text {
+  color: #fef3c7;
+  font-size: 1.45rem;
+  line-height: 1.65;
+  margin: 0;
+}
+
