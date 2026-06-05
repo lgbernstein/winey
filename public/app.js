@@ -479,6 +479,25 @@ let podiumStep = 0;
 let podiumTimer = null;
 let grandStandbyQuip = 0;
 let grandStandbyTimer = null;
+let welcomeQuip = 0;
+let welcomeTimer = null;
+
+const WELCOME_QUIPS = [
+  { title: "Kiosks are all around the house 🍷",
+    sub: "…but if you absolutely need your phone, we support you. Unconditionally." },
+  { title: "There are kiosks literally everywhere 🍷",
+    sub: "…but fine, use your phone. We didn't set up multiple iPads for nothing, but fine." },
+  { title: "We put kiosks everywhere so you could keep drinking 🍷",
+    sub: "…but if you need your phone to taste wine, here you go. No judgment. (A little judgment.)" },
+  { title: "The kiosk is literally right there 🍷",
+    sub: "…but scan this if you'd rather squint at your phone all night." },
+  { title: "Pro tip: kiosks don't need charging 🍷",
+    sub: "…your phone, however, is at 12%. But scan away." },
+  { title: "You walked past three kiosks to get here 🍷",
+    sub: "…but here's the app anyway. We respect the commitment." },
+  { title: "Kiosks: tastefully placed throughout the home 🍷",
+    sub: "…but we see you reaching for your phone. We see you." }
+];
 
 const GRAND_REVEAL_QUIPS = [
   "The results are in. Please pretend you weren't just guessing.",
@@ -499,21 +518,23 @@ function makeQrSvg(data, size) {
 function renderWelcomeScreen() {
   const port = window.location.port || "3000";
   const ip = (state.bootstrap && state.bootstrap.lanIp) || window.location.hostname;
-  const kioskUrl = `http://${ip}:${port}/kiosk.html`;
-  const kioskQr = makeQrSvg(kioskUrl, 12);
+  const kioskUrl = "http://" + ip + ":" + port + "/kiosk.html";
+  const wifiQr  = makeQrSvg("WIFI:T:WPA;S:LGB7;P:" + ((state.bootstrap && state.bootstrap.wifiPassword) || "") + ";;", 10);
+  const kioskQr = makeQrSvg(kioskUrl, 10);
+  const q = WELCOME_QUIPS[welcomeQuip % WELCOME_QUIPS.length];
   return `
     <div class="welcome-screen">
-      <h1 class="welcome-title">Welcome to Winey 🍷</h1>
-      <p class="welcome-sub">Scan to connect, then open the kiosk to start tasting</p>
+      <h1 class="welcome-title">${escapeHtml(q.title)}</h1>
+      <p class="welcome-sub">${escapeHtml(q.sub)}</p>
       <div class="welcome-qrs">
         <div class="welcome-qr-block">
-          <div class="welcome-qr-box">${makeQrSvg("WIFI:T:WPA;S:LGB7;P:" + ((state.bootstrap && state.bootstrap.wifiPassword) || "") + ";;", 12)}</div>
+          <div class="welcome-qr-box"><div class="welcome-qr-inner">${wifiQr}</div></div>
           <p class="welcome-qr-label">📶 Join the Wi-Fi</p>
           <p class="welcome-qr-hint">LGB7</p>
         </div>
         <div class="welcome-qr-divider">then</div>
         <div class="welcome-qr-block">
-          <div class="welcome-qr-box" id="welcome-qr-kiosk">${kioskQr}</div>
+          <div class="welcome-qr-box"><div class="welcome-qr-inner">${kioskQr}</div></div>
           <p class="welcome-qr-label">📱 Open the Kiosk</p>
           <p class="welcome-qr-hint">Rate wines on your phone</p>
         </div>
@@ -1192,6 +1213,14 @@ function render() {
   } else {
     if (grandStandbyTimer) { clearInterval(grandStandbyTimer); grandStandbyTimer = null; }
     grandStandbyQuip = 0;
+  }
+  if (state.view === "tv" && state.bootstrap.state === "REGISTRATION") {
+    if (!welcomeTimer) {
+      welcomeTimer = setInterval(() => { welcomeQuip++; render(); }, 9000);
+    }
+  } else {
+    if (welcomeTimer) { clearInterval(welcomeTimer); welcomeTimer = null; }
+    welcomeQuip = 0;
   }
 }
 

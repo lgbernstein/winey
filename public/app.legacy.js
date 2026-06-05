@@ -379,6 +379,30 @@ var podiumStep = 0;
 var podiumTimer = null;
 var grandStandbyQuip = 0;
 var grandStandbyTimer = null;
+var welcomeQuip = 0;
+var welcomeTimer = null;
+var WELCOME_QUIPS = [{
+  title: "Kiosks are all around the house 🍷",
+  sub: "…but if you absolutely need your phone, we support you. Unconditionally."
+}, {
+  title: "There are kiosks literally everywhere 🍷",
+  sub: "…but fine, use your phone. We didn't set up multiple iPads for nothing, but fine."
+}, {
+  title: "We put kiosks everywhere so you could keep drinking 🍷",
+  sub: "…but if you need your phone to taste wine, here you go. No judgment. (A little judgment.)"
+}, {
+  title: "The kiosk is literally right there 🍷",
+  sub: "…but scan this if you'd rather squint at your phone all night."
+}, {
+  title: "Pro tip: kiosks don't need charging 🍷",
+  sub: "…your phone, however, is at 12%. But scan away."
+}, {
+  title: "You walked past three kiosks to get here 🍷",
+  sub: "…but here's the app anyway. We respect the commitment."
+}, {
+  title: "Kiosks: tastefully placed throughout the home 🍷",
+  sub: "…but we see you reaching for your phone. We see you."
+}];
 var GRAND_REVEAL_QUIPS = ["The results are in. Please pretend you weren't just guessing.", "Gather round, tasters — yes, even you out on the patio.", "Step away from the cheese board. History is about to be made.", "Round up the stragglers — check the kitchen, they're always in the kitchen.", "Find a seat. Or don't. But the Grand Reveal waits for no one."];
 function makeQrSvg(data, size) {
   if (typeof window.qrcode !== "function") return "";
@@ -390,9 +414,11 @@ function makeQrSvg(data, size) {
 function renderWelcomeScreen() {
   var port = window.location.port || "3000";
   var ip = state.bootstrap && state.bootstrap.lanIp || window.location.hostname;
-  var kioskUrl = "http://".concat(ip, ":").concat(port, "/kiosk.html");
-  var kioskQr = makeQrSvg(kioskUrl, 12);
-  return "\n    <div class=\"welcome-screen\">\n      <h1 class=\"welcome-title\">Welcome to Winey \uD83C\uDF77</h1>\n      <p class=\"welcome-sub\">Scan to connect, then open the kiosk to start tasting</p>\n      <div class=\"welcome-qrs\">\n        <div class=\"welcome-qr-block\">\n          <div class=\"welcome-qr-box\">".concat(makeQrSvg("WIFI:T:WPA;S:LGB7;P:" + (state.bootstrap && state.bootstrap.wifiPassword || "") + ";;", 12), "</div>\n          <p class=\"welcome-qr-label\">\uD83D\uDCF6 Join the Wi-Fi</p>\n          <p class=\"welcome-qr-hint\">LGB7</p>\n        </div>\n        <div class=\"welcome-qr-divider\">then</div>\n        <div class=\"welcome-qr-block\">\n          <div class=\"welcome-qr-box\" id=\"welcome-qr-kiosk\">").concat(kioskQr, "</div>\n          <p class=\"welcome-qr-label\">\uD83D\uDCF1 Open the Kiosk</p>\n          <p class=\"welcome-qr-hint\">Rate wines on your phone</p>\n        </div>\n      </div>\n    </div>\n  ");
+  var kioskUrl = "http://" + ip + ":" + port + "/kiosk.html";
+  var wifiQr = makeQrSvg("WIFI:T:WPA;S:LGB7;P:" + (state.bootstrap && state.bootstrap.wifiPassword || "") + ";;", 10);
+  var kioskQr = makeQrSvg(kioskUrl, 10);
+  var q = WELCOME_QUIPS[welcomeQuip % WELCOME_QUIPS.length];
+  return "\n    <div class=\"welcome-screen\">\n      <h1 class=\"welcome-title\">".concat(escapeHtml(q.title), "</h1>\n      <p class=\"welcome-sub\">").concat(escapeHtml(q.sub), "</p>\n      <div class=\"welcome-qrs\">\n        <div class=\"welcome-qr-block\">\n          <div class=\"welcome-qr-box\"><div class=\"welcome-qr-inner\">").concat(wifiQr, "</div></div>\n          <p class=\"welcome-qr-label\">\uD83D\uDCF6 Join the Wi-Fi</p>\n          <p class=\"welcome-qr-hint\">LGB7</p>\n        </div>\n        <div class=\"welcome-qr-divider\">then</div>\n        <div class=\"welcome-qr-block\">\n          <div class=\"welcome-qr-box\"><div class=\"welcome-qr-inner\">").concat(kioskQr, "</div></div>\n          <p class=\"welcome-qr-label\">\uD83D\uDCF1 Open the Kiosk</p>\n          <p class=\"welcome-qr-hint\">Rate wines on your phone</p>\n        </div>\n      </div>\n    </div>\n  ");
 }
 function renderGrandRevealStandby() {
   var quip = GRAND_REVEAL_QUIPS[grandStandbyQuip % GRAND_REVEAL_QUIPS.length];
@@ -795,6 +821,20 @@ function render() {
       grandStandbyTimer = null;
     }
     grandStandbyQuip = 0;
+  }
+  if (state.view === "tv" && state.bootstrap.state === "REGISTRATION") {
+    if (!welcomeTimer) {
+      welcomeTimer = setInterval(function () {
+        welcomeQuip++;
+        render();
+      }, 9000);
+    }
+  } else {
+    if (welcomeTimer) {
+      clearInterval(welcomeTimer);
+      welcomeTimer = null;
+    }
+    welcomeQuip = 0;
   }
 }
 function refresh() {
