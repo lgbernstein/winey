@@ -173,6 +173,17 @@ const REVEAL_SCENE_TITLES = {
   "the-numbers": "The Numbers"
 };
 
+// TV header when no reveal scene is active — matches the event state so the
+// title fits what's actually on screen (no "Live Standings" before tasting).
+function tvStandbyTitle(eventState) {
+  switch (eventState) {
+    case "REGISTRATION": return "Welcome";
+    case "GRAND_REVEAL": return "The Grand Reveal";
+    case "ARCHIVE": return "Final Standings";
+    default: return "Live Standings";
+  }
+}
+
 function navMarkup() {
   nav.innerHTML = views.map(([id, label]) => `
     <button class="${state.view === id ? "tap-primary" : "tap-quiet"}" data-view="${id}" type="button">${label}</button>
@@ -182,7 +193,11 @@ function navMarkup() {
   const headerLabel = document.getElementById("header-label");
   if (headerLabel) {
     const scene = state.bootstrap?.revealScene;
-    const title = (isTv && scene && REVEAL_SCENE_TITLES[scene]) || (isTv ? "Live Standings" : "");
+    const eventState = state.bootstrap?.state;
+    const sceneActive = (eventState === "GRAND_REVEAL" || eventState === "ARCHIVE") && scene;
+    const title = isTv
+      ? ((sceneActive && REVEAL_SCENE_TITLES[scene]) || tvStandbyTitle(eventState))
+      : "";
     headerLabel.innerHTML = isTv ? `<span class="tv-header-label">${escapeHtml(title)}</span>` : "";
   }
 }
