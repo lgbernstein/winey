@@ -159,6 +159,7 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
       revealScene: db.getRevealScene(),
       revealAllStep,
       lanIp: getLanIp(),
+      wifiPassword: process.env.WIFI_PASSWORD || "",
       grapes: db.listGuessGrapes(),
       guests: db.listGuests(),
       bottles: db.listBlindBottles(),
