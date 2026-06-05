@@ -355,6 +355,21 @@ header {
   display: none;
 }
 
+.tv-mode,
+.tv-mode body {
+  overflow: hidden;
+  scrollbar-width: none;
+}
+
+.tv-mode ::-webkit-scrollbar {
+  display: none;
+}
+
+.tv-mode #app,
+.tv-mode .app-header-inner {
+  max-width: 100%;
+}
+
 .tv-header-label {
   font-size: 1.75rem;
   font-weight: 700;
