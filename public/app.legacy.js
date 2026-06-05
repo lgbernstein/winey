@@ -377,6 +377,13 @@ function revealedBottleMarkup(bottle) {
 var revealFlipDone = false;
 var podiumStep = 0;
 var podiumTimer = null;
+var grandStandbyQuip = 0;
+var grandStandbyTimer = null;
+var GRAND_REVEAL_QUIPS = ["Gather round, tasters — yes, even you out in the backyard.", "The results are in. Please pretend you weren't just guessing.", "Step away from the cheese board. History is about to be made.", "Put your glass down… actually, bring your glass. Just get in here.", "Last call for hot takes. The wines have officially been judged.", "Round up the stragglers. Someone go check the patio.", "Find a seat. Or don't. But the Grand Reveal waits for no one."];
+function renderGrandRevealStandby() {
+  var quip = GRAND_REVEAL_QUIPS[grandStandbyQuip % GRAND_REVEAL_QUIPS.length];
+  return "\n    <div class=\"reveal-scene-shell grand-standby\">\n      <div class=\"grand-standby-glass\">\uD83C\uDF77</div>\n      <h1 class=\"grand-standby-title\">The Grand Reveal</h1>\n      <p class=\"grand-standby-quip\">".concat(escapeHtml(quip), "</p>\n      <p class=\"grand-standby-cue\">Grab a glass and gather round\u2026</p>\n    </div>\n  ");
+}
 function triggerRevealFlip() {
   var _state$revealData;
   if (revealFlipDone) return;
@@ -604,7 +611,12 @@ function tvView() {
     return renderRevealScene(scene);
   }
 
-  // Live board (LIVE_TASTING or GRAND_REVEAL standby with no scene)
+  // Grand Reveal, no scene yet: a fun "gather round" holding screen (no bottles).
+  if (eventState === "GRAND_REVEAL") {
+    return renderGrandRevealStandby();
+  }
+
+  // Live board (LIVE_TASTING / REGISTRATION, or ARCHIVE recap)
   return "\n    ".concat(tvHeroMarkup(), "\n    ").concat(panel("\n      ".concat(state.demoBoard ? "<div class=\"mb-5 flex justify-end\"><button class=\"tap-quiet\" id=\"stop-demo\" type=\"button\">Stop demo</button></div>" : "", "\n      ").concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(eventState === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
 }
 function hostBottleFields() {
@@ -735,6 +747,21 @@ function render() {
       podiumTimer = null;
     }
     if (state.bootstrap.revealScene !== "podium") podiumStep = 0;
+  }
+  // Rotate the Grand Reveal "gather round" quips while waiting on a scene.
+  if (state.view === "tv" && state.bootstrap.state === "GRAND_REVEAL" && !state.bootstrap.revealScene) {
+    if (!grandStandbyTimer) {
+      grandStandbyTimer = setInterval(function () {
+        grandStandbyQuip++;
+        render();
+      }, 5000);
+    }
+  } else {
+    if (grandStandbyTimer) {
+      clearInterval(grandStandbyTimer);
+      grandStandbyTimer = null;
+    }
+    grandStandbyQuip = 0;
   }
 }
 function refresh() {

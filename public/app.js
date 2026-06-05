@@ -477,6 +477,30 @@ function revealedBottleMarkup(bottle) {
 let revealFlipDone = false;
 let podiumStep = 0;
 let podiumTimer = null;
+let grandStandbyQuip = 0;
+let grandStandbyTimer = null;
+
+const GRAND_REVEAL_QUIPS = [
+  "Gather round, tasters — yes, even you out in the backyard.",
+  "The results are in. Please pretend you weren't just guessing.",
+  "Step away from the cheese board. History is about to be made.",
+  "Put your glass down… actually, bring your glass. Just get in here.",
+  "Last call for hot takes. The wines have officially been judged.",
+  "Round up the stragglers. Someone go check the patio.",
+  "Find a seat. Or don't. But the Grand Reveal waits for no one."
+];
+
+function renderGrandRevealStandby() {
+  const quip = GRAND_REVEAL_QUIPS[grandStandbyQuip % GRAND_REVEAL_QUIPS.length];
+  return `
+    <div class="reveal-scene-shell grand-standby">
+      <div class="grand-standby-glass">🍷</div>
+      <h1 class="grand-standby-title">The Grand Reveal</h1>
+      <p class="grand-standby-quip">${escapeHtml(quip)}</p>
+      <p class="grand-standby-cue">Grab a glass and gather round…</p>
+    </div>
+  `;
+}
 
 function triggerRevealFlip() {
   if (revealFlipDone) return;
@@ -820,7 +844,12 @@ function tvView() {
     return renderRevealScene(scene);
   }
 
-  // Live board (LIVE_TASTING or GRAND_REVEAL standby with no scene)
+  // Grand Reveal, no scene yet: a fun "gather round" holding screen (no bottles).
+  if (eventState === "GRAND_REVEAL") {
+    return renderGrandRevealStandby();
+  }
+
+  // Live board (LIVE_TASTING / REGISTRATION, or ARCHIVE recap)
   return `
     ${tvHeroMarkup()}
     ${panel(`
@@ -1108,6 +1137,15 @@ function render() {
   } else {
     if (podiumTimer) { clearInterval(podiumTimer); podiumTimer = null; }
     if (state.bootstrap.revealScene !== "podium") podiumStep = 0;
+  }
+  // Rotate the Grand Reveal "gather round" quips while waiting on a scene.
+  if (state.view === "tv" && state.bootstrap.state === "GRAND_REVEAL" && !state.bootstrap.revealScene) {
+    if (!grandStandbyTimer) {
+      grandStandbyTimer = setInterval(() => { grandStandbyQuip++; render(); }, 5000);
+    }
+  } else {
+    if (grandStandbyTimer) { clearInterval(grandStandbyTimer); grandStandbyTimer = null; }
+    grandStandbyQuip = 0;
   }
 }
 

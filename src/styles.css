@@ -700,6 +700,32 @@ dialog::backdrop {
   @apply text-base italic text-amber-100/70 mt-1;
 }
 
+/* ---- Grand Reveal standby (gather-round holding screen) ---- */
+.grand-standby {
+  @apply flex-col items-center justify-center text-center px-8;
+  min-height: 72vh;
+}
+.grand-standby-glass {
+  @apply mb-6;
+  font-size: 7rem;
+  line-height: 1;
+  animation: grand-bob 2.2s ease-in-out infinite;
+}
+.grand-standby-title {
+  @apply text-6xl font-black text-amber-300 mb-5;
+}
+.grand-standby-quip {
+  @apply text-3xl text-amber-100/85 max-w-3xl leading-snug;
+  transition: opacity .4s ease;
+}
+.grand-standby-cue {
+  @apply text-xl text-amber-200/55 mt-10 uppercase tracking-widest;
+}
+@keyframes grand-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
+}
+
 /* ---- Reveal All scene ---- */
 .reveal-all-shell {
   @apply flex-col pt-8 pb-8 px-4;
