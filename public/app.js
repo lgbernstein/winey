@@ -463,6 +463,22 @@ function triggerRevealFlip() {
   });
 }
 
+function fitTvGrid() {
+  if (state.view !== "tv") return;
+  const grid = document.querySelector(".tv-bottle-grid");
+  const header = document.querySelector("header");
+  if (!grid || !header) return;
+  const sampleBottle = grid.querySelector(".blind-bottle");
+  if (!sampleBottle) return;
+  const actualBottleH = sampleBottle.scrollHeight;
+  if (!actualBottleH) return;
+  const available = window.innerHeight - header.offsetHeight - 48;
+  const perRow = (available - 16) / 2;
+  const targetBottleH = perRow - 96;
+  const scale = Math.min(1, Math.max(0.4, targetBottleH / actualBottleH));
+  grid.querySelectorAll(".blind-bottle").forEach((el) => { el.style.zoom = scale; });
+}
+
 function recordTvBoardPositions() {
   const board = document.querySelector(".tv-bottle-grid");
   if (!board) return null;
@@ -809,7 +825,7 @@ function render() {
     host: hostView
   }[state.view]() + joinQrModalMarkup() + guestBulkModalMarkup();
   if (state.showJoinQr) renderJoinQrCode();
-  if (state.view === "tv") { animateTvBoard(oldPositions); startTrivia(); } else { stopTrivia(); }
+  if (state.view === "tv") { animateTvBoard(oldPositions); startTrivia(); requestAnimationFrame(fitTvGrid); } else { stopTrivia(); }
   if (state.view === "tv" && state.bootstrap.nowPouring) {
     fetchCoach(state.bootstrap.nowPouring).then(() => {
       if (state.view === "tv" && state.bootstrap.nowPouring) renderTvHero();
@@ -1207,6 +1223,8 @@ document.addEventListener("submit", (event) => {
   if (event.target.id === "label-scan-form") scanLabel(event.target).catch((error) => notice(error.message));
   if (event.target.id === "bottle-form") saveBottle(event.target).catch((error) => notice(error.message));
 });
+
+window.addEventListener("resize", () => { if (state.view === "tv") fitTvGrid(); });
 
 setInterval(() => {
   if (state.view === "tv" && !state.demoBoard) {

@@ -357,6 +357,23 @@ function triggerRevealFlip() {
     }, delay);
   });
 }
+function fitTvGrid() {
+  if (state.view !== "tv") return;
+  var grid = document.querySelector(".tv-bottle-grid");
+  var header = document.querySelector("header");
+  if (!grid || !header) return;
+  var sampleBottle = grid.querySelector(".blind-bottle");
+  if (!sampleBottle) return;
+  var actualBottleH = sampleBottle.scrollHeight;
+  if (!actualBottleH) return;
+  var available = window.innerHeight - header.offsetHeight - 48;
+  var perRow = (available - 16) / 2;
+  var targetBottleH = perRow - 96;
+  var scale = Math.min(1, Math.max(0.4, targetBottleH / actualBottleH));
+  grid.querySelectorAll(".blind-bottle").forEach(function (el) {
+    el.style.zoom = scale;
+  });
+}
 function recordTvBoardPositions() {
   var board = document.querySelector(".tv-bottle-grid");
   if (!board) return null;
@@ -517,6 +534,7 @@ function render() {
   if (state.view === "tv") {
     animateTvBoard(oldPositions);
     startTrivia();
+    requestAnimationFrame(fitTvGrid);
   } else {
     stopTrivia();
   }
@@ -1416,6 +1434,9 @@ document.addEventListener("submit", function (event) {
   if (event.target.id === "bottle-form") saveBottle(event.target).catch(function (error) {
     return notice(error.message);
   });
+});
+window.addEventListener("resize", function () {
+  if (state.view === "tv") fitTvGrid();
 });
 setInterval(function () {
   if (state.view === "tv" && !state.demoBoard) {
