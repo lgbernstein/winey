@@ -252,6 +252,14 @@ test("reveal-scene endpoint requires host auth and validates scene values", asyn
   });
   assert.equal(bad.response.status, 400);
 
+  // 409 when not in GRAND_REVEAL/ARCHIVE state
+  const notReady = await request("/api/host/reveal-scene", {
+    method: "PATCH",
+    body: { scene: "sommelier" },
+    headers: { Authorization: `Bearer ${auth}` }
+  });
+  assert.equal(notReady.response.status, 409);
+
   // Valid scene — requires GRAND_REVEAL state first
   await request("/api/host/state", { method: "PATCH", body: { state: "GRAND_REVEAL" }, headers: { Authorization: `Bearer ${auth}` } });
   const ok = await request("/api/host/reveal-scene", {
