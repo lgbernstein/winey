@@ -539,12 +539,24 @@ function renderRevealAllScene(revealAll) {
   });
   return "\n    <div class=\"reveal-scene-shell reveal-all-shell\">\n      <p class=\"reveal-scene-kicker mb-6\">The Wines</p>\n      <div class=\"reveal-all-grid\">".concat(bottles.join(""), "</div>\n    </div>\n  ");
 }
+function consensusGridMarkup(consensus) {
+  if (!consensus) return "";
+  var items = [["Aromas", consensus.aromas], ["Sweetness", consensus.sweetness], ["Acidity", consensus.acidity], ["Tannins", consensus.tannins], ["Body", consensus.body], ["Ratings", consensus.ratings]];
+  var stats = items.map(function (_ref5) {
+    var _ref6 = _slicedToArray(_ref5, 2),
+      label = _ref6[0],
+      value = _ref6[1];
+    return "\n    <div style=\"min-width:6rem\">\n      <p style=\"margin:0;font-size:2.4rem;font-weight:800;color:#ffe7b8;line-height:1\">".concat(Number(value) || 0, "%</p>\n      <p style=\"margin:0.25rem 0 0;font-size:0.95rem;color:rgba(255,247,236,0.72)\">").concat(label, "</p>\n    </div>\n  ");
+  }).join("");
+  return "\n    <p style=\"margin-top:2.5rem;text-transform:uppercase;letter-spacing:0.1em;font-size:0.9rem;color:rgba(255,231,184,0.65)\">Where the room agreed</p>\n    <div style=\"margin-top:1.1rem;display:flex;flex-wrap:wrap;justify-content:center;gap:1.5rem 2rem\">".concat(stats, "</div>\n  ");
+}
 function renderGroupAccuracyScene(groupAccuracy) {
   var correct = groupAccuracy.correct,
-    total = groupAccuracy.total;
+    total = groupAccuracy.total,
+    consensus = groupAccuracy.consensus;
   var pct = total > 0 ? correct / total : 0;
   var comment = pct >= 0.7 ? "Impressive palates in this room." : pct >= 0.4 ? "A respectable showing." : "The wines kept their secrets well.";
-  return "\n    <div class=\"reveal-scene-shell reveal-group-accuracy\">\n      <div class=\"text-center px-8 max-w-2xl\">\n        <div class=\"reveal-scene-trophy\">\uD83C\uDFAF</div>\n        <p class=\"reveal-scene-kicker\">How Did We Do?</p>\n        <p class=\"reveal-accuracy-number\">".concat(correct, " <span class=\"reveal-accuracy-of\">of</span> ").concat(total, "</p>\n        <p class=\"reveal-accuracy-label\">grapes correctly identified</p>\n        <p class=\"reveal-scene-sub mt-6\">").concat(comment, "</p>\n      </div>\n    </div>\n  ");
+  return "\n    <div class=\"reveal-scene-shell reveal-group-accuracy\">\n      <div class=\"text-center px-8 max-w-4xl\">\n        <div class=\"reveal-scene-trophy\">\uD83C\uDFAF</div>\n        <p class=\"reveal-scene-kicker\">How Did We Do?</p>\n        <p class=\"reveal-accuracy-number\">".concat(correct, " <span class=\"reveal-accuracy-of\">of</span> ").concat(total, "</p>\n        <p class=\"reveal-accuracy-label\">grapes correctly identified</p>\n        <p class=\"reveal-scene-sub mt-6\">").concat(comment, "</p>\n        ").concat(consensusGridMarkup(consensus), "\n      </div>\n    </div>\n  ");
 }
 function renderTheNumbersScene(theNumbers) {
   var bottleCount = theNumbers.bottleCount,
@@ -623,9 +635,9 @@ function hostView() {
   }, {
     scene: "the-numbers",
     label: "📊 The Numbers"
-  }].map(function (_ref5) {
-    var scene = _ref5.scene,
-      label = _ref5.label;
+  }].map(function (_ref7) {
+    var scene = _ref7.scene,
+      label = _ref7.label;
     return "\n                <button\n                  class=\"reveal-host-btn ".concat(state.bootstrap.revealScene === scene ? "reveal-host-btn-active" : "", "\"\n                  data-reveal-scene=\"").concat(scene, "\"\n                  type=\"button\"\n                >").concat(label, "</button>\n              ");
   }).join(""), "\n              ").concat(state.bootstrap.revealScene ? "\n                <button class=\"reveal-host-btn-clear\" data-reveal-scene=\"\" type=\"button\">\u2715 Clear scene</button>\n              " : "", "\n            </div>\n          </div>\n        ") : "", "\n        <p class=\"mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50\">Current state: ").concat(escapeHtml(stateLabel(state.host.state)), "</p>\n        <div class=\"mt-5 grid grid-cols-2 gap-3\">\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-amber-300\">").concat(state.host.bottles.length, "</p><p>Bottles</p></div>\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-emerald-300\">").concat(state.host.photos.length, "</p><p>Party photos</p></div>\n        </div>\n      ")), "\n    </div>\n    ").concat(state.host.bottles.length ? panel("\n      <div class=\"flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Pouring control</p>\n          <h2 class=\"screen-title\">Tell everyone what's in the glass</h2>\n        </div>\n        ".concat(state.bootstrap.nowPouring ? "\n          <button class=\"tap-quiet\" data-pour-sleeve=\"\" type=\"button\">Stop pouring</button>\n        " : "", "\n      </div>\n      ").concat(state.bootstrap.nowPouring ? "\n        <div class=\"mt-4 rounded-lg border border-amber-200/30 bg-amber-950/30 p-4 text-amber-50\">\n          <p class=\"kicker\">Now pouring</p>\n          <p class=\"text-6xl font-black text-amber-300\">#".concat(state.bootstrap.nowPouring, "</p>\n        </div>\n      ") : "\n        <p class=\"mt-2 text-amber-50/75\">Tap a sleeve to broadcast it to the TV and the kiosks. Guests will see coaching cues for that bottle.</p>\n      ", "\n      <div class=\"mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8\">\n        ").concat(_toConsumableArray(state.host.bottles).sort(function (a, b) {
     return a.bagNumber - b.bagNumber;
@@ -727,12 +739,12 @@ function refresh() {
 }
 function _refresh() {
   _refresh = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
-    var _ref0,
-      _ref0$photos,
+    var _ref10,
+      _ref10$photos,
       photos,
-      _ref0$reveal,
+      _ref10$reveal,
       reveal,
-      _ref0$host,
+      _ref10$host,
       host,
       _yield$Promise$all,
       _yield$Promise$all2,
@@ -740,7 +752,7 @@ function _refresh() {
     return _regenerator().w(function (_context4) {
       while (1) switch (_context4.n) {
         case 0:
-          _ref0 = _args4.length > 0 && _args4[0] !== undefined ? _args4[0] : {}, _ref0$photos = _ref0.photos, photos = _ref0$photos === void 0 ? false : _ref0$photos, _ref0$reveal = _ref0.reveal, reveal = _ref0$reveal === void 0 ? false : _ref0$reveal, _ref0$host = _ref0.host, host = _ref0$host === void 0 ? false : _ref0$host;
+          _ref10 = _args4.length > 0 && _args4[0] !== undefined ? _args4[0] : {}, _ref10$photos = _ref10.photos, photos = _ref10$photos === void 0 ? false : _ref10$photos, _ref10$reveal = _ref10.reveal, reveal = _ref10$reveal === void 0 ? false : _ref10$reveal, _ref10$host = _ref10.host, host = _ref10$host === void 0 ? false : _ref10$host;
           _context4.n = 1;
           return api("/api/bootstrap");
         case 1:
@@ -789,9 +801,9 @@ function palatePayload(form) {
   return Object.fromEntries(Object.keys(state.bootstrap.tastingGrid.palate).map(function (metric) {
     var _form$querySelector;
     return [metric, (_form$querySelector = form.querySelector("[name=\"palate-".concat(metric, "\"]:checked"))) === null || _form$querySelector === void 0 ? void 0 : _form$querySelector.value];
-  }).filter(function (_ref6) {
-    var _ref7 = _slicedToArray(_ref6, 2),
-      value = _ref7[1];
+  }).filter(function (_ref8) {
+    var _ref9 = _slicedToArray(_ref8, 2),
+      value = _ref9[1];
     return value;
   }));
 }
@@ -1327,7 +1339,7 @@ function drawCharts(id) {
   }));
 }
 document.addEventListener("click", /*#__PURE__*/function () {
-  var _ref8 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
+  var _ref0 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
     var _event$target$closest, _event$target$closest2, _event$target$closest3;
     var view, editId, eventState, revealSceneEl, scene, pourEl, raw, bagNumber, input, names, _t, _t2;
     return _regenerator().w(function (_context) {
@@ -1556,7 +1568,7 @@ document.addEventListener("click", /*#__PURE__*/function () {
     }, _callee, null, [[12, 14], [3, 5]]);
   }));
   return function (_x0) {
-    return _ref8.apply(this, arguments);
+    return _ref0.apply(this, arguments);
   };
 }());
 document.addEventListener("change", function (event) {

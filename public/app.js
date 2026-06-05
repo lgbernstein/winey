@@ -721,8 +721,30 @@ function renderRevealAllScene(revealAll) {
     </div>
   `;
 }
+function consensusGridMarkup(consensus) {
+  if (!consensus) return "";
+  const items = [
+    ["Aromas", consensus.aromas],
+    ["Sweetness", consensus.sweetness],
+    ["Acidity", consensus.acidity],
+    ["Tannins", consensus.tannins],
+    ["Body", consensus.body],
+    ["Ratings", consensus.ratings]
+  ];
+  const stats = items.map(([label, value]) => `
+    <div style="min-width:6rem">
+      <p style="margin:0;font-size:2.4rem;font-weight:800;color:#ffe7b8;line-height:1">${Number(value) || 0}%</p>
+      <p style="margin:0.25rem 0 0;font-size:0.95rem;color:rgba(255,247,236,0.72)">${label}</p>
+    </div>
+  `).join("");
+  return `
+    <p style="margin-top:2.5rem;text-transform:uppercase;letter-spacing:0.1em;font-size:0.9rem;color:rgba(255,231,184,0.65)">Where the room agreed</p>
+    <div style="margin-top:1.1rem;display:flex;flex-wrap:wrap;justify-content:center;gap:1.5rem 2rem">${stats}</div>
+  `;
+}
+
 function renderGroupAccuracyScene(groupAccuracy) {
-  const { correct, total } = groupAccuracy;
+  const { correct, total, consensus } = groupAccuracy;
   const pct = total > 0 ? correct / total : 0;
   const comment = pct >= 0.7
     ? "Impressive palates in this room."
@@ -731,12 +753,13 @@ function renderGroupAccuracyScene(groupAccuracy) {
     : "The wines kept their secrets well.";
   return `
     <div class="reveal-scene-shell reveal-group-accuracy">
-      <div class="text-center px-8 max-w-2xl">
+      <div class="text-center px-8 max-w-4xl">
         <div class="reveal-scene-trophy">🎯</div>
         <p class="reveal-scene-kicker">How Did We Do?</p>
         <p class="reveal-accuracy-number">${correct} <span class="reveal-accuracy-of">of</span> ${total}</p>
         <p class="reveal-accuracy-label">grapes correctly identified</p>
         <p class="reveal-scene-sub mt-6">${comment}</p>
+        ${consensusGridMarkup(consensus)}
       </div>
     </div>
   `;

@@ -286,11 +286,62 @@ export function openWineDb({ dbFile }) {
           LEFT JOIN tasting_entries t ON t.bottle_id = b.id
         `).get();
 
+        // Consensus: per wine, what share of the room landed on the same answer,
+        // averaged across wines. No "correct" answer — pure agreement.
+        const consensusRows = sqlite.prepare(`
+          SELECT bottle_id, rating, selected_nose, palate_structure FROM tasting_entries
+        `).all();
+        const entriesByBottle = {};
+        consensusRows.forEach((e) => {
+          (entriesByBottle[e.bottle_id] = entriesByBottle[e.bottle_id] || []).push(e);
+        });
+        const palateValue = (entry, metric) => {
+          try { return (JSON.parse(entry.palate_structure || "{}") || {})[metric] || null; }
+          catch { return null; }
+        };
+        // Share of the most-common value among defined answers (needs ≥2 opinions).
+        const modalShare = (values) => {
+          const defined = values.filter((v) => v !== null && v !== undefined && v !== "");
+          if (defined.length < 2) return null;
+          const counts = {};
+          defined.forEach((v) => { counts[v] = (counts[v] || 0) + 1; });
+          return Math.max(...Object.values(counts)) / defined.length;
+        };
+        // Aromas are multi-select: share of respondents picking the top aroma.
+        const aromaShare = (entries) => {
+          const counts = {};
+          let respondents = 0;
+          entries.forEach((e) => {
+            let arr = [];
+            try { arr = JSON.parse(e.selected_nose || "[]"); } catch { arr = []; }
+            if (arr.length) { respondents += 1; arr.forEach((a) => { counts[a] = (counts[a] || 0) + 1; }); }
+          });
+          if (respondents < 2) return null;
+          return Math.max(...Object.values(counts)) / respondents;
+        };
+        const averageAcross = (perBottle) => {
+          const shares = [];
+          Object.values(entriesByBottle).forEach((entries) => {
+            const s = perBottle(entries);
+            if (s !== null) shares.push(s);
+          });
+          if (!shares.length) return 0;
+          return Math.round((shares.reduce((a, b) => a + b, 0) / shares.length) * 100);
+        };
+        const consensus = {
+          aromas: averageAcross((entries) => aromaShare(entries)),
+          sweetness: averageAcross((entries) => modalShare(entries.map((e) => palateValue(e, "Sweetness")))),
+          acidity: averageAcross((entries) => modalShare(entries.map((e) => palateValue(e, "Acidity")))),
+          tannins: averageAcross((entries) => modalShare(entries.map((e) => palateValue(e, "Tannins")))),
+          body: averageAcross((entries) => modalShare(entries.map((e) => palateValue(e, "Body")))),
+          ratings: averageAcross((entries) => modalShare(entries.map((e) => e.rating)))
+        };
+
         const result = {
           sommelier: { winners: sommelierWinners, correctCount: topCount, totalBottles },
           podium,
           revealAll,
-          groupAccuracy: { correct: accRow.correct, total: accRow.total },
+          groupAccuracy: { correct: accRow.correct, total: accRow.total, consensus },
           theNumbers: {
             bottleCount: numbersRow.bottle_count,
             entryCount: numbersRow.entry_count,
