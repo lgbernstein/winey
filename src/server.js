@@ -4,6 +4,7 @@ import express from "express";
 import multer from "multer";
 import { EVENT_STATES, openWineDb, resolveDataPaths } from "./db.js";
 import { scanBottleLabel } from "./label-scan.js";
+import { generateCoachText } from "./coach.js";
 
 const maxUploadBytes = 8 * 1024 * 1024;
 const imageExtensions = new Map([
@@ -72,7 +73,7 @@ function parseOptionalTasting(body) {
   return { appearance, nose, palate: palateSelections };
 }
 
-export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468", labelScanner = scanBottleLabel } = {}) {
+export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468", labelScanner = scanBottleLabel, coachGenerator = generateCoachText } = {}) {
   const paths = resolveDataPaths(dataDir);
   mkdirSync(paths.uploadRoot, { recursive: true });
   const db = openWineDb(paths);
@@ -105,10 +106,46 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
     photoUrl: photoUrl("bottles", req) || undefined
   });
 
+  const coachInFlight = new Map();
+  app.get("/api/bottles/:bagNumber/coach", async (req, res) => {
+    try {
+      const bottle = db.getBottleByBagNumber(req.params.bagNumber);
+      if (!bottle) {
+        res.status(404).json({ error: "Sleeve not found." });
+        return;
+      }
+      if (bottle.coachText && bottle.coachText.includes("**Look:**") && bottle.coachText.length >= 160) {
+        res.json({ coach: bottle.coachText });
+        return;
+      }
+      const hasRealData = bottle.bottleName && bottle.bottleName !== "Reading label" && bottle.bottleName !== "Review label scan" && bottle.grape && bottle.grape.toLowerCase() !== "unknown";
+      if (!hasRealData) {
+        res.json({ coach: "" });
+        return;
+      }
+      let pending = coachInFlight.get(bottle.id);
+      if (!pending) {
+        pending = coachGenerator({ bottle })
+          .then((text) => {
+            if (text) db.setBottleCoachText(bottle.id, text);
+            return text;
+          })
+          .finally(() => coachInFlight.delete(bottle.id));
+        coachInFlight.set(bottle.id, pending);
+      }
+      const coach = await pending;
+      res.json({ coach });
+    } catch (error) {
+      res.status(200).json({ coach: "", error: error.message });
+    }
+  });
+
   app.get("/api/bootstrap", (_req, res) => {
     res.json({
       eventName: "Winey",
       state: db.getState(),
+      nowPouring: db.getNowPouring(),
+      revealScene: db.getRevealScene(),
       grapes: db.listGuessGrapes(),
       guests: db.listGuests(),
       bottles: db.listBlindBottles(),
@@ -172,6 +209,15 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
     }
     res.json(db.reveal());
   });
+
+  app.get("/api/reveal-data", (_req, res) => {
+    if (!["GRAND_REVEAL", "ARCHIVE"].includes(db.getState())) {
+      res.status(403).json({ error: "Reveal has not started." });
+      return;
+    }
+    res.json(db.revealData());
+  });
+
   app.post("/api/host/session", (req, res) => {
     if (!safeEqual(String(req.body.pin || ""), String(hostPin))) {
       res.status(401).json({ error: "Incorrect host PIN." });
@@ -195,28 +241,31 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
       res.status(400).json({ error: "Take a label photo to scan." });
       return;
     }
-    const placeholder = db.createBottle({
-      bottleName: "Reading label",
-      grape: "Unknown",
-      photoUrl: photoUrl("bottles", req)
-    });
+    const savedPhotoUrl = photoUrl("bottles", req);
+    let scan = null;
+    let scanError = null;
     try {
-      const scan = await labelScanner({ filePath: req.file.path, mediaType: req.file.mimetype });
-      const bottle = db.updateBottle(placeholder.id, {
-        bottleName: scan.bottleName || scan.producer || "Review label scan",
-        grape: scan.grape || "Unknown",
-        producer: scan.producer,
-        region: scan.region,
-        vintage: scan.vintage,
-        photoUrl: placeholder.photoUrl
-      });
-      res.status(201).json({ bottle, scan });
+      scan = await labelScanner({ filePath: req.file.path, mediaType: req.file.mimetype, grapes: db.listGuessGrapes() });
     } catch (error) {
+      scanError = error;
+    }
+    const bottle = db.createBottle({
+      bottleName: scan?.bottleName || scan?.producer || "Review label scan",
+      grape: scan?.grape || "Unknown",
+      producer: scan?.producer,
+      region: scan?.region,
+      vintage: scan?.vintage,
+      photoUrl: savedPhotoUrl
+    });
+    if (scan) {
+      res.status(201).json({ bottle, scan });
+    } else {
       res.status(201).json({
-        bottle: db.updateBottle(placeholder.id, { bottleName: "Review label scan" }),
+        bottle,
         scan: {
           confidence: "low",
-          notes: `Sleeve assigned. AI details need review: ${error.message}`
+          grapeSource: "unknown",
+          notes: `Sleeve assigned. AI details need review: ${scanError?.message || "scan failed"}`
         }
       });
     }
@@ -246,6 +295,61 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
       return;
     }
     res.json({ state: db.setState(req.body.state) });
+  });
+  app.post("/api/host/guests/bulk", requireHost, (req, res) => {
+    const raw = Array.isArray(req.body.names) ? req.body.names : [];
+    if (!raw.length) {
+      res.status(400).json({ error: "Provide a names array." });
+      return;
+    }
+    const seen = new Set();
+    const added = [];
+    const skipped = [];
+    for (const entry of raw) {
+      const trimmed = String(entry || "").replace(/\s+/g, " ").trim();
+      if (!trimmed) continue;
+      if (trimmed.length > 60) { skipped.push({ name: trimmed.slice(0, 60), reason: "Too long" }); continue; }
+      const key = trimmed.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      try {
+        added.push(db.addGuest(trimmed));
+      } catch (error) {
+        skipped.push({ name: trimmed, reason: error.message });
+      }
+    }
+    res.json({ added, skipped, count: added.length });
+  });
+  app.patch("/api/host/now-pouring", requireHost, (req, res) => {
+    const bagNumber = req.body.bagNumber;
+    if (bagNumber !== null && bagNumber !== undefined) {
+      const n = Number(bagNumber);
+      if (!Number.isFinite(n) || n < 1) {
+        res.status(400).json({ error: "bagNumber must be a positive number or null." });
+        return;
+      }
+      if (!db.getBottleByBagNumber(n)) {
+        res.status(404).json({ error: "No bottle in that sleeve." });
+        return;
+      }
+    }
+    res.json({ nowPouring: db.setNowPouring(bagNumber) });
+  });
+
+  app.patch("/api/host/reveal-scene", requireHost, (req, res) => {
+    const { scene } = req.body;
+    const allowed = ["sommelier", "podium", "reveal-all", "group-accuracy", "the-numbers", null];
+    if (!allowed.includes(scene)) {
+      res.status(400).json({ error: "Invalid reveal scene." });
+      return;
+    }
+    const current = db.getState();
+    if (current !== "GRAND_REVEAL" && current !== "ARCHIVE") {
+      res.status(409).json({ error: "Reveal sequence only available in GRAND_REVEAL or ARCHIVE state." });
+      return;
+    }
+    const revealScene = db.setRevealScene(scene);
+    res.json({ revealScene });
   });
 
   app.get("*splat", (_req, res) => res.sendFile("index.html", { root: "public" }));

@@ -72,18 +72,13 @@ test("host PIN gates check-in and blind bootstrap hides reveal fields", async ()
   const bootstrap = await request("/api/bootstrap");
   assert.equal(bootstrap.body.bottles[0].bagNumber, 1);
   assert.equal("bottleName" in bootstrap.body.bottles[0], false);
-  assert.deepEqual(bootstrap.body.grapes, [
-    "Not sure",
-    "Cabernet Sauvignon",
-    "Merlot",
-    "Pinot Noir",
-    "Syrah / Shiraz",
-    "Malbec",
-    "Zinfandel",
-    "Sangiovese",
-    "Tempranillo",
-    "Grenache"
-  ]);
+  const grapeNames = bootstrap.body.grapes.map((g) => g.name);
+  assert.ok(grapeNames.includes("Cabernet Sauvignon"));
+  assert.ok(grapeNames.includes("Sauvignon Blanc"));
+  assert.ok(grapeNames.includes("Nebbiolo"));
+  assert.ok(grapeNames.includes("Not sure"));
+  const cab = bootstrap.body.grapes.find((g) => g.name === "Cabernet Sauvignon");
+  assert.ok(cab.appellations.length > 0, "Cabernet Sauvignon should have appellation hints");
 });
 
 test("host demo seed populates 15 bottles and creates an active leaderboard", async () => {
@@ -189,19 +184,9 @@ test("label scan assigns the next sleeve and fills host bottle details", async (
   assert.equal(scan.body.scan.confidence, "high");
 
   const bootstrap = await request("/api/bootstrap");
-  assert.deepEqual(bootstrap.body.grapes, [
-    "Not sure",
-    "Cabernet Sauvignon",
-    "Merlot",
-    "Pinot Noir",
-    "Syrah / Shiraz",
-    "Malbec",
-    "Zinfandel",
-    "Sangiovese",
-    "Tempranillo",
-    "Grenache",
-    "Syrah"
-  ]);
+  const grapeNames = bootstrap.body.grapes.map((g) => g.name);
+  assert.ok(grapeNames.includes("Syrah"), "scanned grape should appear in bootstrap grape list");
+  assert.ok(grapeNames.includes("Cabernet Sauvignon"));
 });
 
 test("label scan still assigns a sleeve when AI details fail", async () => {
@@ -249,4 +234,73 @@ test("party photo persists in the shared album", async () => {
 
   const gallery = await request("/api/photos");
   assert.equal(gallery.body.length, 1);
+});
+
+test("reveal-scene endpoint requires host auth and validates scene values", async () => {
+  const session = await request("/api/host/session", { method: "POST", body: { pin: "9191" } });
+  const auth = session.body.token;
+
+  // Unauthenticated
+  const denied = await request("/api/host/reveal-scene", { method: "PATCH", body: { scene: "sommelier" } });
+  assert.equal(denied.response.status, 401);
+
+  // Invalid scene
+  const bad = await request("/api/host/reveal-scene", {
+    method: "PATCH",
+    body: { scene: "invalid-scene" },
+    headers: { Authorization: `Bearer ${auth}` }
+  });
+  assert.equal(bad.response.status, 400);
+
+  // Valid scene — requires GRAND_REVEAL state first
+  await request("/api/host/state", { method: "PATCH", body: { state: "GRAND_REVEAL" }, headers: { Authorization: `Bearer ${auth}` } });
+  const ok = await request("/api/host/reveal-scene", {
+    method: "PATCH",
+    body: { scene: "sommelier" },
+    headers: { Authorization: `Bearer ${auth}` }
+  });
+  assert.equal(ok.response.status, 200);
+  assert.equal(ok.body.revealScene, "sommelier");
+
+  // Bootstrap includes revealScene
+  const boot = await request("/api/bootstrap");
+  assert.equal(boot.body.revealScene, "sommelier");
+
+  // Clear scene
+  const cleared = await request("/api/host/reveal-scene", {
+    method: "PATCH",
+    body: { scene: null },
+    headers: { Authorization: `Bearer ${auth}` }
+  });
+  assert.equal(cleared.body.revealScene, null);
+});
+
+test("reveal-data endpoint returns all sequence data in GRAND_REVEAL state", async () => {
+  const session = await request("/api/host/session", { method: "POST", body: { pin: "9191" } });
+  const auth = session.body.token;
+
+  // Add a bottle
+  const bottleForm = new FormData();
+  bottleForm.set("bottleName", "Test Merlot");
+  bottleForm.set("grape", "Merlot");
+  bottleForm.set("producer", "Test Winery");
+  bottleForm.set("region", "Napa");
+  bottleForm.set("vintage", "2021");
+  const bottle = await request("/api/host/bottles", { method: "POST", body: bottleForm, headers: { Authorization: `Bearer ${auth}` } });
+  assert.equal(bottle.response.status, 201);
+
+  // Forbidden before GRAND_REVEAL
+  const forbidden = await request("/api/reveal-data");
+  assert.equal(forbidden.response.status, 403);
+
+  await request("/api/host/state", { method: "PATCH", body: { state: "GRAND_REVEAL" }, headers: { Authorization: `Bearer ${auth}` } });
+
+  const data = await request("/api/reveal-data");
+  assert.equal(data.response.status, 200);
+  assert.ok(Array.isArray(data.body.sommelier?.winners));
+  assert.ok(typeof data.body.sommelier?.correctCount === "number");
+  assert.ok(Array.isArray(data.body.podium));
+  assert.ok(Array.isArray(data.body.revealAll));
+  assert.ok(typeof data.body.groupAccuracy?.correct === "number");
+  assert.ok(typeof data.body.theNumbers?.bottleCount === "number");
 });
