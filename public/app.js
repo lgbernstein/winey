@@ -716,7 +716,7 @@ function renderPodiumScene(podium) {
             <h3 class="podium-row-name">${escapeHtml(bottle.bottleName || `Sleeve ${bottle.bagNumber}`)}</h3>
             ${meta ? `<p class="podium-row-meta">${escapeHtml(meta)}</p>` : ""}
             ${bottle.grape ? `<p class="podium-row-grape">${escapeHtml(bottle.grape)}</p>` : ""}
-            <p class="podium-row-scores">🍷 Crowd ${Number(bottle.averageRating).toFixed(1)}/5${critic}</p>
+            <p class="podium-row-scores">🍷 Crowd ${Number(bottle.averageRating).toFixed(1)} / 5.0${critic}</p>
             ${note}
           </div>
         </div>
