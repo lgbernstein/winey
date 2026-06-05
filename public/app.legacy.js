@@ -1446,7 +1446,7 @@ setInterval(function () {
       return console.error("TV refresh failed:", error);
     });
   }
-}, 7000);
+}, 2000);
 
 // --- Wine trivia banner (TV view only) ---
 var TRIVIA_ENABLED = true;
@@ -1491,6 +1491,13 @@ function stopTrivia() {
 refresh({
   photos: state.view === "album",
   reveal: state.view === "tv"
+}).then(function () {
+  if (state.view === "tv" && new URLSearchParams(location.search).has("demo") && state.bootstrap.leaderboard.length) {
+    state.demoBoard = cloneDemoBoard(shuffleBoard(state.bootstrap.leaderboard));
+    state.demoAnimationPending = true;
+    render();
+    startDemoVoting();
+  }
 }).catch(function (error) {
   app.innerHTML = panel("<p>".concat(escapeHtml(error.message), "</p>"));
 });

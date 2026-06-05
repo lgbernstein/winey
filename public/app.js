@@ -1230,7 +1230,7 @@ setInterval(() => {
   if (state.view === "tv" && !state.demoBoard) {
     refresh({ reveal: true }).catch((error) => console.error("TV refresh failed:", error));
   }
-}, 7000);
+}, 2000);
 
 // --- Wine trivia banner (TV view only) ---
 const TRIVIA_ENABLED = true;
@@ -1318,6 +1318,13 @@ function stopTrivia() {
   if (banner) banner.classList.remove("visible");
 }
 
-refresh({ photos: state.view === "album", reveal: state.view === "tv" }).catch((error) => {
+refresh({ photos: state.view === "album", reveal: state.view === "tv" }).then(() => {
+  if (state.view === "tv" && new URLSearchParams(location.search).has("demo") && state.bootstrap.leaderboard.length) {
+    state.demoBoard = cloneDemoBoard(shuffleBoard(state.bootstrap.leaderboard));
+    state.demoAnimationPending = true;
+    render();
+    startDemoVoting();
+  }
+}).catch((error) => {
   app.innerHTML = panel(`<p>${escapeHtml(error.message)}</p>`);
 });
