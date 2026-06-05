@@ -602,7 +602,7 @@ function tvView() {
   }
 
   // Live board (LIVE_TASTING or GRAND_REVEAL standby with no scene)
-  return "\n    ".concat(tvHeroMarkup(), "\n    ").concat(panel("\n      ".concat(state.demoBoard ? "<div class=\"mb-5 flex justify-end\"><button class=\"tap-quiet\" id=\"stop-demo\" type=\"button\">Stop demo</button></div>" : "", "\n      ").concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(eventState === "GRAND_REVEAL" || eventState === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
+  return "\n    ".concat(tvHeroMarkup(), "\n    ").concat(panel("\n      ".concat(state.demoBoard ? "<div class=\"mb-5 flex justify-end\"><button class=\"tap-quiet\" id=\"stop-demo\" type=\"button\">Stop demo</button></div>" : "", "\n      ").concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(eventState === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
 }
 function hostBottleFields() {
   var _bottle$expertScore;
