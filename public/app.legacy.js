@@ -224,6 +224,13 @@ function notice(message) {
     return toast.classList.add("hidden");
   }, 3200);
 }
+var REVEAL_SCENE_TITLES = {
+  "sommelier": "The Sommelier",
+  "podium": "Top 3 Bottles",
+  "reveal-all": "The Wines",
+  "group-accuracy": "How Did We Do?",
+  "the-numbers": "The Numbers"
+};
 function navMarkup() {
   nav.innerHTML = views.map(function (_ref) {
     var _ref2 = _slicedToArray(_ref, 2),
@@ -235,7 +242,10 @@ function navMarkup() {
   document.body.classList.toggle("tv-mode", isTv);
   var headerLabel = document.getElementById("header-label");
   if (headerLabel) {
-    headerLabel.innerHTML = isTv ? "<span class=\"tv-header-label\">Live Standings</span>" : "";
+    var _state$bootstrap;
+    var scene = (_state$bootstrap = state.bootstrap) === null || _state$bootstrap === void 0 ? void 0 : _state$bootstrap.revealScene;
+    var title = isTv && scene && REVEAL_SCENE_TITLES[scene] || (isTv ? "Live Standings" : "");
+    headerLabel.innerHTML = isTv ? "<span class=\"tv-header-label\">".concat(escapeHtml(title), "</span>") : "";
   }
 }
 function choice(name, value, label) {
@@ -609,9 +619,9 @@ function hostView() {
   }).join("") || "<p class=\"text-amber-50/75\">No bottles checked in yet.</p>", "\n      </div>\n    "), "mt-4"), "\n  ");
 }
 function guestBulkModalMarkup() {
-  var _state$bootstrap;
+  var _state$bootstrap2;
   if (!state.showGuestBulk) return "";
-  var guestCount = ((_state$bootstrap = state.bootstrap) === null || _state$bootstrap === void 0 || (_state$bootstrap = _state$bootstrap.guests) === null || _state$bootstrap === void 0 ? void 0 : _state$bootstrap.length) || 0;
+  var guestCount = ((_state$bootstrap2 = state.bootstrap) === null || _state$bootstrap2 === void 0 || (_state$bootstrap2 = _state$bootstrap2.guests) === null || _state$bootstrap2 === void 0 ? void 0 : _state$bootstrap2.length) || 0;
   return "\n    <div id=\"guest-bulk-overlay\" class=\"fixed inset-0 z-50 flex items-center justify-center bg-stone-950/85 p-6\">\n      <div class=\"panel rounded-2xl p-6 max-w-lg w-full\">\n        <p class=\"kicker\">Setup</p>\n        <h2 class=\"screen-title mt-1\">Pre-load guest list</h2>\n        <p class=\"mt-2 text-amber-50/75 text-sm\">Paste names, one per line or comma-separated. Duplicates are skipped automatically. Currently ".concat(guestCount, " guest").concat(guestCount === 1 ? "" : "s", " loaded.</p>\n        <textarea id=\"guest-bulk-input\" class=\"field mt-3 min-h-40 w-full\" placeholder=\"Maria&#10;Hannah&#10;Ari, Mia, Noah&#10;Jess Taylor\"></textarea>\n        <div class=\"mt-4 grid gap-2 sm:grid-cols-2\">\n          <button class=\"tap-quiet\" id=\"cancel-guest-bulk\" type=\"button\">Cancel</button>\n          <button class=\"tap-primary\" id=\"submit-guest-bulk\" type=\"button\" ").concat(state.guestBulkSubmitting ? "disabled" : "", ">").concat(state.guestBulkSubmitting ? "Adding…" : "Add all", "</button>\n        </div>\n      </div>\n    </div>\n  ");
 }
 function joinQrModalMarkup() {
@@ -645,8 +655,9 @@ function render() {
   }[state.view]() + joinQrModalMarkup() + guestBulkModalMarkup();
   if (state.showJoinQr) renderJoinQrCode();
   if (state.view === "tv") {
+    var _state$bootstrap3;
     animateTvBoard(oldPositions);
-    startTrivia();
+    if ((_state$bootstrap3 = state.bootstrap) !== null && _state$bootstrap3 !== void 0 && _state$bootstrap3.revealScene) stopTrivia();else startTrivia();
     requestAnimationFrame(fitTvGrid);
   } else {
     stopTrivia();

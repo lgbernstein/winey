@@ -165,6 +165,14 @@ function notice(message) {
   notice.timer = setTimeout(() => toast.classList.add("hidden"), 3200);
 }
 
+const REVEAL_SCENE_TITLES = {
+  "sommelier": "The Sommelier",
+  "podium": "Top 3 Bottles",
+  "reveal-all": "The Wines",
+  "group-accuracy": "How Did We Do?",
+  "the-numbers": "The Numbers"
+};
+
 function navMarkup() {
   nav.innerHTML = views.map(([id, label]) => `
     <button class="${state.view === id ? "tap-primary" : "tap-quiet"}" data-view="${id}" type="button">${label}</button>
@@ -173,7 +181,9 @@ function navMarkup() {
   document.body.classList.toggle("tv-mode", isTv);
   const headerLabel = document.getElementById("header-label");
   if (headerLabel) {
-    headerLabel.innerHTML = isTv ? `<span class="tv-header-label">Live Standings</span>` : "";
+    const scene = state.bootstrap?.revealScene;
+    const title = (isTv && scene && REVEAL_SCENE_TITLES[scene]) || (isTv ? "Live Standings" : "");
+    headerLabel.innerHTML = isTv ? `<span class="tv-header-label">${escapeHtml(title)}</span>` : "";
   }
 }
 
@@ -998,7 +1008,13 @@ function render() {
     host: hostView
   }[state.view]() + joinQrModalMarkup() + guestBulkModalMarkup();
   if (state.showJoinQr) renderJoinQrCode();
-  if (state.view === "tv") { animateTvBoard(oldPositions); startTrivia(); requestAnimationFrame(fitTvGrid); } else { stopTrivia(); }
+  if (state.view === "tv") {
+    animateTvBoard(oldPositions);
+    if (state.bootstrap?.revealScene) stopTrivia(); else startTrivia();
+    requestAnimationFrame(fitTvGrid);
+  } else {
+    stopTrivia();
+  }
   if (state.view === "tv" && state.bootstrap.nowPouring) {
     fetchCoach(state.bootstrap.nowPouring).then(() => {
       if (state.view === "tv" && state.bootstrap.nowPouring) renderTvHero();
