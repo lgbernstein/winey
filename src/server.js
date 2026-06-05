@@ -210,6 +210,7 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
     res.json(db.reveal());
   });
 
+  // Unprotected by design — TV view fetches this; state gate (403) prevents access before GRAND_REVEAL.
   app.get("/api/reveal-data", (_req, res) => {
     if (!["GRAND_REVEAL", "ARCHIVE"].includes(db.getState())) {
       res.status(403).json({ error: "Reveal has not started." });
