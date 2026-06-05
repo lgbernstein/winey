@@ -616,7 +616,26 @@ function renderTvHero() {
   }
 }
 
-function renderSommelierScene(s) { return `<div class="reveal-scene-shell"></div>`; }
+function renderSommelierScene(sommelier) {
+  const { winners, correctCount, totalBottles } = sommelier;
+  const hasWinner = correctCount > 0;
+  const winnerText = winners.length === 1
+    ? escapeHtml(winners[0])
+    : winners.map(escapeHtml).join(" &amp; ");
+  const subtextBase = hasWinner
+    ? `Correctly identified ${correctCount} of ${totalBottles} grape ${totalBottles === 1 ? "variety" : "varieties"}`
+    : "The grapes kept their secrets tonight.";
+  return `
+    <div class="reveal-scene-shell reveal-sommelier">
+      <div class="reveal-sommelier-inner">
+        <div class="reveal-scene-trophy">🏆</div>
+        <p class="reveal-scene-kicker">The Sommelier</p>
+        <h2 class="reveal-sommelier-name">${hasWinner ? winnerText : "No correct guesses"}</h2>
+        <p class="reveal-scene-sub">${subtextBase}</p>
+      </div>
+    </div>
+  `;
+}
 function renderPodiumScene(p) { return `<div class="reveal-scene-shell"></div>`; }
 function renderRevealAllScene(r) { return `<div class="reveal-scene-shell"></div>`; }
 function renderGroupAccuracyScene(g) { return `<div class="reveal-scene-shell"></div>`; }

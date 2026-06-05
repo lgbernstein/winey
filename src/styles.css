@@ -613,3 +613,22 @@ dialog::backdrop {
   margin: 0;
 }
 
+/* ── Reveal scenes ─────────────────────────────────────── */
+.reveal-scene-shell {
+  @apply flex min-h-screen items-center justify-center bg-stone-950 text-amber-50;
+}
+.reveal-scene-trophy {
+  @apply text-8xl mb-4;
+}
+.reveal-scene-kicker {
+  @apply text-amber-400 text-xl font-semibold tracking-widest uppercase mb-2;
+}
+.reveal-scene-sub {
+  @apply text-amber-100/70 text-2xl mt-4;
+}
+.reveal-sommelier-inner {
+  @apply text-center px-8 max-w-3xl;
+}
+.reveal-sommelier-name {
+  @apply text-6xl font-bold text-amber-300 mt-2 leading-tight;
+}

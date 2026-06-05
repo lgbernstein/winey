@@ -480,8 +480,14 @@ function renderTvHero() {
     main.insertAdjacentHTML("afterbegin", fresh);
   }
 }
-function renderSommelierScene(s) {
-  return "<div class=\"reveal-scene-shell\"></div>";
+function renderSommelierScene(sommelier) {
+  var winners = sommelier.winners,
+    correctCount = sommelier.correctCount,
+    totalBottles = sommelier.totalBottles;
+  var hasWinner = correctCount > 0;
+  var winnerText = winners.length === 1 ? escapeHtml(winners[0]) : winners.map(escapeHtml).join(" &amp; ");
+  var subtextBase = hasWinner ? "Correctly identified ".concat(correctCount, " of ").concat(totalBottles, " grape ").concat(totalBottles === 1 ? "variety" : "varieties") : "The grapes kept their secrets tonight.";
+  return "\n    <div class=\"reveal-scene-shell reveal-sommelier\">\n      <div class=\"reveal-sommelier-inner\">\n        <div class=\"reveal-scene-trophy\">\uD83C\uDFC6</div>\n        <p class=\"reveal-scene-kicker\">The Sommelier</p>\n        <h2 class=\"reveal-sommelier-name\">".concat(hasWinner ? winnerText : "No correct guesses", "</h2>\n        <p class=\"reveal-scene-sub\">").concat(subtextBase, "</p>\n      </div>\n    </div>\n  ");
 }
 function renderPodiumScene(p) {
   return "<div class=\"reveal-scene-shell\"></div>";
