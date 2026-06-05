@@ -395,7 +395,7 @@ function render() {
   // When this taster has already rated this sleeve, lock the form: no grape,
   // aromas, palate, rating, or save — just the prominent banner and Clear.
   var inputSection = alreadyRated ? '' : fieldButton("grape", "Grape guess", grapeLabel(), "Guess the grape") + '<div class="tight-group"><label class="legend tight-legend">Aromas</label><div class="chip-row">' + noseChips + '</div></div>' + '<div class="tight-group"><label class="legend tight-legend">Palate</label>' + palateRows + '</div>' + '<div class="tight-group"><label class="legend tight-legend">Your rating</label><div class="stars">' + starsHtml + '</div></div>' + '<button type="submit" class="save-btn"' + (canSubmit ? '' : ' disabled') + '>' + (state.submitting ? 'Saving…' : 'Save tasting') + '</button>';
-  main.innerHTML = (b.nowPouring ? '<div class="now-pouring"><div class="label">Now pouring</div><div class="sleeve">#' + b.nowPouring + '</div></div>' : '') + '<form id="form" autocomplete="off">' + fieldButton("taster", "Taster", guestLabel(), "Pick your name") + fieldButton("sleeve", "Sleeve", sleeveLabel(), "Pick a sleeve") + repeatBanner + inputSection + '</form>';
+  main.innerHTML = (b.nowPouring ? '<div class="now-pouring"><div class="label">Now pouring</div><div class="sleeve">#' + b.nowPouring + '</div></div>' : '') + '<form id="form" autocomplete="off">' + fieldButton("taster", "Taster", guestLabel(), "Pick your name") + fieldButton("sleeve", "Sleeve", sleeveLabel(), "Pick a sleeve") + repeatBanner + inputSection + '</form>' + '<a href="/?view=album" target="_blank" class="photo-link">📸 Share a photo from the evening</a>';
   paintModal();
 }
 function paintModal() {

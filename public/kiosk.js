@@ -320,7 +320,8 @@ function render() {
       fieldButton("sleeve", "Sleeve", sleeveLabel(), "Pick a sleeve") +
       repeatBanner +
       inputSection +
-    '</form>';
+    '</form>' +
+    '<a href="/?view=album" target="_blank" class="photo-link">📸 Share a photo from the evening</a>';
   paintModal();
 }
 
