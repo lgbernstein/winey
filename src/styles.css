@@ -185,17 +185,15 @@ header {
   position: relative;
   display: grid;
   align-items: end;
-  gap: 1.4rem 1rem;
-  grid-template-columns: repeat(8, minmax(150px, 1fr));
-  padding: .8rem 0 0;
-  max-height: calc(2 * 560px);
-  overflow-x: auto;
-  padding-bottom: .8rem;
+  gap: 1rem;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding: .5rem 0;
+  overflow: hidden;
 }
 
 .tv-bottle-card {
   position: relative;
-  min-height: 540px;
+  min-height: 0;
   padding: .25rem;
   text-align: center;
   transition: opacity .4s, box-shadow .4s;
@@ -354,6 +352,20 @@ header {
 .tv-mode .nav-shell {
   display: none;
 }
+
+/* Scale the bottle grid to fill the TV viewport exactly */
+.tv-mode #app {
+  padding-top: .5rem;
+  padding-bottom: 0;
+}
+
+.tv-mode .blind-bottle-lip    { height: 9px;  width: 34px; }
+.tv-mode .blind-bottle-neck   { height: 68px; width: 36px; }
+.tv-mode .blind-bottle-shoulders { height: 42px; width: 112px; }
+.tv-mode .blind-bottle-body   { min-height: 184px; width: 112px; }
+.tv-mode .blind-bottle-body span { min-width: 80px; min-height: 100px; font-size: 2.3rem; }
+.tv-mode .tv-bottle-score     { font-size: 1.1rem; margin-top: .4rem; }
+.tv-mode .tv-guess-chip       { font-size: .7rem; padding: .2rem .45rem; }
 
 .tv-mode,
 .tv-mode body {
