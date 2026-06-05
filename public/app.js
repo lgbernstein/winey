@@ -862,6 +862,29 @@ function hostView() {
         <button class="tap-quiet mt-3 w-full" id="show-guest-bulk" type="button">Pre-load guest list</button>
         <button class="tap-quiet mt-3 w-full" id="seed-demo" type="button">Load 15-bottle demo</button>
         <button class="tap-quiet mt-3 w-full" id="seed-demo-2" type="button">Load 3-bottle demo</button>
+        ${(state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE") ? `
+          <div class="mt-4">
+            <p class="mb-3 text-sm font-bold text-amber-300 uppercase tracking-widest">Reveal Sequence</p>
+            <div class="reveal-host-buttons">
+              ${[
+                { scene: "sommelier",      label: "🏆 The Sommelier" },
+                { scene: "podium",         label: "🥇 Top 3 Bottles" },
+                { scene: "reveal-all",     label: "🍷 Reveal All" },
+                { scene: "group-accuracy", label: "🎯 How Did We Do?" },
+                { scene: "the-numbers",    label: "📊 The Numbers" }
+              ].map(({ scene, label }) => `
+                <button
+                  class="reveal-host-btn ${state.bootstrap.revealScene === scene ? "reveal-host-btn-active" : ""}"
+                  data-reveal-scene="${scene}"
+                  type="button"
+                >${label}</button>
+              `).join("")}
+              ${state.bootstrap.revealScene ? `
+                <button class="reveal-host-btn-clear" data-reveal-scene="" type="button">✕ Clear scene</button>
+              ` : ""}
+            </div>
+          </div>
+        ` : ""}
         <p class="mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50">Current state: ${escapeHtml(stateLabel(state.host.state))}</p>
         <div class="mt-5 grid grid-cols-2 gap-3">
           <div class="rounded-md bg-stone-950/55 p-4"><p class="text-3xl text-amber-300">${state.host.bottles.length}</p><p>Bottles</p></div>
@@ -1281,6 +1304,18 @@ document.addEventListener("click", async (event) => {
       .then(() => refresh({ host: true, reveal: true }))
       .then(() => notice(`Event set to ${stateLabel(eventState)}.`))
       .catch((error) => notice(error.message));
+  }
+  const revealSceneEl = event.target.closest("[data-reveal-scene]");
+  if (revealSceneEl && "revealScene" in revealSceneEl.dataset) {
+    const scene = revealSceneEl.dataset.revealScene || null;
+    try {
+      await api("/api/host/reveal-scene", { method: "PATCH", body: { scene }, host: true });
+    } catch (e) {
+      notice(e.message);
+      return;
+    }
+    await refresh({ host: true });
+    return;
   }
   const pourEl = event.target.closest("[data-pour-sleeve]");
   if (pourEl) {

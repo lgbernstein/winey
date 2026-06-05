@@ -709,3 +709,18 @@ dialog::backdrop {
 .numbers-label {
   @apply text-xl text-amber-100/70 mt-2;
 }
+
+/* ---- Host reveal sequence panel ---- */
+.reveal-host-buttons {
+  @apply flex flex-col gap-3;
+}
+.reveal-host-btn {
+  @apply w-full rounded-xl border border-amber-200/30 bg-stone-900 px-6 py-5 text-left text-xl font-semibold text-amber-100 transition-colors hover:bg-stone-800 active:bg-stone-700;
+  min-height: 64px;
+}
+.reveal-host-btn-active {
+  @apply border-amber-400 bg-amber-950 text-amber-300;
+}
+.reveal-host-btn-clear {
+  @apply w-full rounded-xl border border-rose-400/30 bg-stone-900 px-6 py-4 text-left text-base text-rose-300 hover:bg-stone-800;
+}

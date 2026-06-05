@@ -581,7 +581,26 @@ function hostView() {
     var hint = grape.appellations ? " \u2014 ".concat(grape.appellations) : "";
     var selected = grape.name === state.lastLabelScan.grape ? " selected" : "";
     return "<option value=\"".concat(escapeHtml(grape.name), "\"").concat(selected, ">").concat(escapeHtml(grape.name + hint), "</option>");
-  }).join(""), "\n                </select>\n              </div>\n              <p class=\"mt-2 text-xs text-emerald-200/80\">Confidence: ").concat(escapeHtml(state.lastLabelScan.confidence), ".").concat(state.lastLabelScan.notes ? " ".concat(escapeHtml(state.lastLabelScan.notes)) : "", "</p>\n              <div class=\"mt-3 grid gap-2 sm:grid-cols-2\">\n                <label class=\"tap-primary cursor-pointer text-center\" for=\"label-photo\">Scan next bottle</label>\n                <button class=\"tap-quiet\" data-edit-bottle=\"").concat(state.lastLabelScan.bottleId, "\" type=\"button\">Review details</button>\n              </div>\n            </div>\n          ") : "", "\n          <details class=\"mt-4 rounded-md border border-amber-100/15 bg-stone-950/35 p-4\">\n            <summary class=\"cursor-pointer font-semibold\">Manual check-in</summary>\n        ") : "", "\n        <form id=\"bottle-form\" class=\"mt-4\">\n          ").concat(hostBottleFields(editing), "\n          <button class=\"tap-primary mt-4 w-full\" type=\"submit\">").concat(editing ? "Save bottle" : "Check in manually", "</button>\n        </form>\n        ").concat(!editing ? "</details>" : "", "\n      ")), "\n      ").concat(panel("\n        <h2 class=\"text-2xl font-semibold\">Event control</h2>\n        <div class=\"mt-4 grid gap-2 sm:grid-cols-2\">\n          <button class=\"tap-quiet\" data-event-state=\"LIVE_TASTING\" type=\"button\">Live tasting</button>\n          <button class=\"tap-primary\" data-event-state=\"GRAND_REVEAL\" type=\"button\">Grand reveal</button>\n        </div>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-join-qr\" type=\"button\">Show join QR for guests</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-guest-bulk\" type=\"button\">Pre-load guest list</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo\" type=\"button\">Load 15-bottle demo</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo-2\" type=\"button\">Load 3-bottle demo</button>\n        <p class=\"mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50\">Current state: ".concat(escapeHtml(stateLabel(state.host.state)), "</p>\n        <div class=\"mt-5 grid grid-cols-2 gap-3\">\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-amber-300\">").concat(state.host.bottles.length, "</p><p>Bottles</p></div>\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-emerald-300\">").concat(state.host.photos.length, "</p><p>Party photos</p></div>\n        </div>\n      ")), "\n    </div>\n    ").concat(state.host.bottles.length ? panel("\n      <div class=\"flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Pouring control</p>\n          <h2 class=\"screen-title\">Tell everyone what's in the glass</h2>\n        </div>\n        ".concat(state.bootstrap.nowPouring ? "\n          <button class=\"tap-quiet\" data-pour-sleeve=\"\" type=\"button\">Stop pouring</button>\n        " : "", "\n      </div>\n      ").concat(state.bootstrap.nowPouring ? "\n        <div class=\"mt-4 rounded-lg border border-amber-200/30 bg-amber-950/30 p-4 text-amber-50\">\n          <p class=\"kicker\">Now pouring</p>\n          <p class=\"text-6xl font-black text-amber-300\">#".concat(state.bootstrap.nowPouring, "</p>\n        </div>\n      ") : "\n        <p class=\"mt-2 text-amber-50/75\">Tap a sleeve to broadcast it to the TV and the kiosks. Guests will see coaching cues for that bottle.</p>\n      ", "\n      <div class=\"mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8\">\n        ").concat(_toConsumableArray(state.host.bottles).sort(function (a, b) {
+  }).join(""), "\n                </select>\n              </div>\n              <p class=\"mt-2 text-xs text-emerald-200/80\">Confidence: ").concat(escapeHtml(state.lastLabelScan.confidence), ".").concat(state.lastLabelScan.notes ? " ".concat(escapeHtml(state.lastLabelScan.notes)) : "", "</p>\n              <div class=\"mt-3 grid gap-2 sm:grid-cols-2\">\n                <label class=\"tap-primary cursor-pointer text-center\" for=\"label-photo\">Scan next bottle</label>\n                <button class=\"tap-quiet\" data-edit-bottle=\"").concat(state.lastLabelScan.bottleId, "\" type=\"button\">Review details</button>\n              </div>\n            </div>\n          ") : "", "\n          <details class=\"mt-4 rounded-md border border-amber-100/15 bg-stone-950/35 p-4\">\n            <summary class=\"cursor-pointer font-semibold\">Manual check-in</summary>\n        ") : "", "\n        <form id=\"bottle-form\" class=\"mt-4\">\n          ").concat(hostBottleFields(editing), "\n          <button class=\"tap-primary mt-4 w-full\" type=\"submit\">").concat(editing ? "Save bottle" : "Check in manually", "</button>\n        </form>\n        ").concat(!editing ? "</details>" : "", "\n      ")), "\n      ").concat(panel("\n        <h2 class=\"text-2xl font-semibold\">Event control</h2>\n        <div class=\"mt-4 grid gap-2 sm:grid-cols-2\">\n          <button class=\"tap-quiet\" data-event-state=\"LIVE_TASTING\" type=\"button\">Live tasting</button>\n          <button class=\"tap-primary\" data-event-state=\"GRAND_REVEAL\" type=\"button\">Grand reveal</button>\n        </div>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-join-qr\" type=\"button\">Show join QR for guests</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-guest-bulk\" type=\"button\">Pre-load guest list</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo\" type=\"button\">Load 15-bottle demo</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo-2\" type=\"button\">Load 3-bottle demo</button>\n        ".concat(state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE" ? "\n          <div class=\"mt-4\">\n            <p class=\"mb-3 text-sm font-bold text-amber-300 uppercase tracking-widest\">Reveal Sequence</p>\n            <div class=\"reveal-host-buttons\">\n              ".concat([{
+    scene: "sommelier",
+    label: "🏆 The Sommelier"
+  }, {
+    scene: "podium",
+    label: "🥇 Top 3 Bottles"
+  }, {
+    scene: "reveal-all",
+    label: "🍷 Reveal All"
+  }, {
+    scene: "group-accuracy",
+    label: "🎯 How Did We Do?"
+  }, {
+    scene: "the-numbers",
+    label: "📊 The Numbers"
+  }].map(function (_ref5) {
+    var scene = _ref5.scene,
+      label = _ref5.label;
+    return "\n                <button\n                  class=\"reveal-host-btn ".concat(state.bootstrap.revealScene === scene ? "reveal-host-btn-active" : "", "\"\n                  data-reveal-scene=\"").concat(scene, "\"\n                  type=\"button\"\n                >").concat(label, "</button>\n              ");
+  }).join(""), "\n              ").concat(state.bootstrap.revealScene ? "\n                <button class=\"reveal-host-btn-clear\" data-reveal-scene=\"\" type=\"button\">\u2715 Clear scene</button>\n              " : "", "\n            </div>\n          </div>\n        ") : "", "\n        <p class=\"mt-4 rounded-md bg-emerald-400/15 p-3 text-emerald-50\">Current state: ").concat(escapeHtml(stateLabel(state.host.state)), "</p>\n        <div class=\"mt-5 grid grid-cols-2 gap-3\">\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-amber-300\">").concat(state.host.bottles.length, "</p><p>Bottles</p></div>\n          <div class=\"rounded-md bg-stone-950/55 p-4\"><p class=\"text-3xl text-emerald-300\">").concat(state.host.photos.length, "</p><p>Party photos</p></div>\n        </div>\n      ")), "\n    </div>\n    ").concat(state.host.bottles.length ? panel("\n      <div class=\"flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Pouring control</p>\n          <h2 class=\"screen-title\">Tell everyone what's in the glass</h2>\n        </div>\n        ".concat(state.bootstrap.nowPouring ? "\n          <button class=\"tap-quiet\" data-pour-sleeve=\"\" type=\"button\">Stop pouring</button>\n        " : "", "\n      </div>\n      ").concat(state.bootstrap.nowPouring ? "\n        <div class=\"mt-4 rounded-lg border border-amber-200/30 bg-amber-950/30 p-4 text-amber-50\">\n          <p class=\"kicker\">Now pouring</p>\n          <p class=\"text-6xl font-black text-amber-300\">#".concat(state.bootstrap.nowPouring, "</p>\n        </div>\n      ") : "\n        <p class=\"mt-2 text-amber-50/75\">Tap a sleeve to broadcast it to the TV and the kiosks. Guests will see coaching cues for that bottle.</p>\n      ", "\n      <div class=\"mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8\">\n        ").concat(_toConsumableArray(state.host.bottles).sort(function (a, b) {
     return a.bagNumber - b.bagNumber;
   }).map(function (bottle) {
     return "\n          <button class=\"".concat(bottle.bagNumber === state.bootstrap.nowPouring ? 'tap-primary' : 'tap-quiet', " text-lg font-bold\" data-pour-sleeve=\"").concat(bottle.bagNumber, "\" type=\"button\">#").concat(bottle.bagNumber, "</button>\n        ");
@@ -680,12 +699,12 @@ function refresh() {
 }
 function _refresh() {
   _refresh = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
-    var _ref9,
-      _ref9$photos,
+    var _ref0,
+      _ref0$photos,
       photos,
-      _ref9$reveal,
+      _ref0$reveal,
       reveal,
-      _ref9$host,
+      _ref0$host,
       host,
       _yield$Promise$all,
       _yield$Promise$all2,
@@ -693,7 +712,7 @@ function _refresh() {
     return _regenerator().w(function (_context4) {
       while (1) switch (_context4.n) {
         case 0:
-          _ref9 = _args4.length > 0 && _args4[0] !== undefined ? _args4[0] : {}, _ref9$photos = _ref9.photos, photos = _ref9$photos === void 0 ? false : _ref9$photos, _ref9$reveal = _ref9.reveal, reveal = _ref9$reveal === void 0 ? false : _ref9$reveal, _ref9$host = _ref9.host, host = _ref9$host === void 0 ? false : _ref9$host;
+          _ref0 = _args4.length > 0 && _args4[0] !== undefined ? _args4[0] : {}, _ref0$photos = _ref0.photos, photos = _ref0$photos === void 0 ? false : _ref0$photos, _ref0$reveal = _ref0.reveal, reveal = _ref0$reveal === void 0 ? false : _ref0$reveal, _ref0$host = _ref0.host, host = _ref0$host === void 0 ? false : _ref0$host;
           _context4.n = 1;
           return api("/api/bootstrap");
         case 1:
@@ -742,9 +761,9 @@ function palatePayload(form) {
   return Object.fromEntries(Object.keys(state.bootstrap.tastingGrid.palate).map(function (metric) {
     var _form$querySelector;
     return [metric, (_form$querySelector = form.querySelector("[name=\"palate-".concat(metric, "\"]:checked"))) === null || _form$querySelector === void 0 ? void 0 : _form$querySelector.value];
-  }).filter(function (_ref5) {
-    var _ref6 = _slicedToArray(_ref5, 2),
-      value = _ref6[1];
+  }).filter(function (_ref6) {
+    var _ref7 = _slicedToArray(_ref6, 2),
+      value = _ref7[1];
     return value;
   }));
 }
@@ -998,7 +1017,7 @@ function fetchCoach(_x7) {
 }
 function _fetchCoach() {
   _fetchCoach = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(bagNumber) {
-    var key, result, _t3;
+    var key, result, _t4;
     return _regenerator().w(function (_context10) {
       while (1) switch (_context10.p = _context10.n) {
         case 0:
@@ -1030,7 +1049,7 @@ function _fetchCoach() {
           break;
         case 5:
           _context10.p = 5;
-          _t3 = _context10.v;
+          _t4 = _context10.v;
           state.bottleCoach[key] = "";
         case 6:
           _context10.p = 6;
@@ -1280,9 +1299,9 @@ function drawCharts(id) {
   }));
 }
 document.addEventListener("click", /*#__PURE__*/function () {
-  var _ref7 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
+  var _ref8 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
     var _event$target$closest, _event$target$closest2, _event$target$closest3;
-    var view, editId, eventState, pourEl, raw, bagNumber, input, names, _t;
+    var view, editId, eventState, revealSceneEl, scene, pourEl, raw, bagNumber, input, names, _t, _t2;
     return _regenerator().w(function (_context) {
       while (1) switch (_context.p = _context.n) {
         case 0:
@@ -1377,6 +1396,37 @@ document.addEventListener("click", /*#__PURE__*/function () {
               return notice(error.message);
             });
           }
+          revealSceneEl = event.target.closest("[data-reveal-scene]");
+          if (!(revealSceneEl && "revealScene" in revealSceneEl.dataset)) {
+            _context.n = 17;
+            break;
+          }
+          scene = revealSceneEl.dataset.revealScene || null;
+          _context.p = 12;
+          _context.n = 13;
+          return api("/api/host/reveal-scene", {
+            method: "PATCH",
+            body: {
+              scene: scene
+            },
+            host: true
+          });
+        case 13:
+          _context.n = 15;
+          break;
+        case 14:
+          _context.p = 14;
+          _t2 = _context.v;
+          notice(_t2.message);
+          return _context.a(2);
+        case 15:
+          _context.n = 16;
+          return refresh({
+            host: true
+          });
+        case 16:
+          return _context.a(2);
+        case 17:
           pourEl = event.target.closest("[data-pour-sleeve]");
           if (pourEl) {
             raw = pourEl.dataset.pourSleeve;
@@ -1418,26 +1468,26 @@ document.addEventListener("click", /*#__PURE__*/function () {
             render();
           }
           if (!event.target.closest("#submit-guest-bulk")) {
-            _context.n = 14;
+            _context.n = 20;
             break;
           }
           input = document.querySelector("#guest-bulk-input");
           if (input) {
-            _context.n = 12;
+            _context.n = 18;
             break;
           }
           return _context.a(2);
-        case 12:
+        case 18:
           names = input.value.split(/[\n,]+/).map(function (s) {
             return s.trim();
           }).filter(Boolean);
           if (names.length) {
-            _context.n = 13;
+            _context.n = 19;
             break;
           }
           notice("Paste at least one name first.");
           return _context.a(2);
-        case 13:
+        case 19:
           state.guestBulkSubmitting = true;
           render();
           api("/api/host/guests/bulk", {
@@ -1458,7 +1508,7 @@ document.addEventListener("click", /*#__PURE__*/function () {
             render();
             notice(error.message);
           });
-        case 14:
+        case 20:
           if (event.target.closest("#seed-demo")) {
             seedDemo().catch(function (error) {
               return notice(error.message);
@@ -1472,13 +1522,13 @@ document.addEventListener("click", /*#__PURE__*/function () {
           if (event.target.closest("#stop-demo")) {
             stopDemo();
           }
-        case 15:
+        case 21:
           return _context.a(2);
       }
-    }, _callee, null, [[3, 5]]);
+    }, _callee, null, [[12, 14], [3, 5]]);
   }));
   return function (_x0) {
-    return _ref7.apply(this, arguments);
+    return _ref8.apply(this, arguments);
   };
 }());
 document.addEventListener("change", function (event) {
@@ -1556,7 +1606,7 @@ window.addEventListener("resize", function () {
   if (state.view === "tv") fitTvGrid();
 });
 setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-  var _t2;
+  var _t3;
   return _regenerator().w(function (_context2) {
     while (1) switch (_context2.p = _context2.n) {
       case 0:
@@ -1577,8 +1627,8 @@ setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(functio
         break;
       case 3:
         _context2.p = 3;
-        _t2 = _context2.v;
-        console.error("TV refresh failed:", _t2);
+        _t3 = _context2.v;
+        console.error("TV refresh failed:", _t3);
       case 4:
         return _context2.a(2);
     }
