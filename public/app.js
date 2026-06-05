@@ -616,11 +616,11 @@ function renderTvHero() {
   }
 }
 
-function renderSommelierScene(s) { return `<div class="reveal-scene-shell"><p>Sommelier stub</p></div>`; }
-function renderPodiumScene(p) { return `<div class="reveal-scene-shell"><p>Podium stub</p></div>`; }
-function renderRevealAllScene(r) { return `<div class="reveal-scene-shell"><p>Reveal All stub</p></div>`; }
-function renderGroupAccuracyScene(g) { return `<div class="reveal-scene-shell"><p>Group Accuracy stub</p></div>`; }
-function renderTheNumbersScene(n) { return `<div class="reveal-scene-shell"><p>The Numbers stub</p></div>`; }
+function renderSommelierScene(s) { return `<div class="reveal-scene-shell"></div>`; }
+function renderPodiumScene(p) { return `<div class="reveal-scene-shell"></div>`; }
+function renderRevealAllScene(r) { return `<div class="reveal-scene-shell"></div>`; }
+function renderGroupAccuracyScene(g) { return `<div class="reveal-scene-shell"></div>`; }
+function renderTheNumbersScene(n) { return `<div class="reveal-scene-shell"></div>`; }
 
 function renderRevealScene(scene) {
   const data = state.revealData;
@@ -882,7 +882,10 @@ function render() {
   ) drawCharts(state.reveal[0].id);
   if (state.view === "tv" && state.bootstrap.revealScene === "reveal-all" && state.reveal.length) {
     triggerRevealFlip();
-  } else if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
+  } else if (
+    !["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state) ||
+    state.bootstrap.revealScene !== "reveal-all"
+  ) {
     revealFlipDone = false;
   }
 }
@@ -1267,9 +1270,6 @@ setInterval(async () => {
   if (state.view === "tv" && !state.demoBoard) {
     try {
       await refresh({ reveal: true });
-      if (["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state) && !state.revealData) {
-        state.revealData = await api("/api/reveal-data");
-      }
       if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
         state.revealData = null;
       }

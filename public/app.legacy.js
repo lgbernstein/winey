@@ -481,19 +481,19 @@ function renderTvHero() {
   }
 }
 function renderSommelierScene(s) {
-  return "<div class=\"reveal-scene-shell\"><p>Sommelier stub</p></div>";
+  return "<div class=\"reveal-scene-shell\"></div>";
 }
 function renderPodiumScene(p) {
-  return "<div class=\"reveal-scene-shell\"><p>Podium stub</p></div>";
+  return "<div class=\"reveal-scene-shell\"></div>";
 }
 function renderRevealAllScene(r) {
-  return "<div class=\"reveal-scene-shell\"><p>Reveal All stub</p></div>";
+  return "<div class=\"reveal-scene-shell\"></div>";
 }
 function renderGroupAccuracyScene(g) {
-  return "<div class=\"reveal-scene-shell\"><p>Group Accuracy stub</p></div>";
+  return "<div class=\"reveal-scene-shell\"></div>";
 }
 function renderTheNumbersScene(n) {
-  return "<div class=\"reveal-scene-shell\"><p>The Numbers stub</p></div>";
+  return "<div class=\"reveal-scene-shell\"></div>";
 }
 function renderRevealScene(scene) {
   var data = state.revealData;
@@ -611,7 +611,7 @@ function render() {
   if (state.view === "tv" && state.reveal.length && (_state$reveal$ = state.reveal[0]) !== null && _state$reveal$ !== void 0 && _state$reveal$.id && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) drawCharts(state.reveal[0].id);
   if (state.view === "tv" && state.bootstrap.revealScene === "reveal-all" && state.reveal.length) {
     triggerRevealFlip();
-  } else if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
+  } else if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state) || state.bootstrap.revealScene !== "reveal-all") {
     revealFlipDone = false;
   }
 }
@@ -1501,7 +1501,7 @@ setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(functio
     while (1) switch (_context2.p = _context2.n) {
       case 0:
         if (!(state.view === "tv" && !state.demoBoard)) {
-          _context2.n = 6;
+          _context2.n = 4;
           break;
         }
         _context2.p = 1;
@@ -1510,28 +1510,19 @@ setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(functio
           reveal: true
         });
       case 2:
-        if (!(["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state) && !state.revealData)) {
-          _context2.n = 4;
-          break;
-        }
-        _context2.n = 3;
-        return api("/api/reveal-data");
-      case 3:
-        state.revealData = _context2.v;
-      case 4:
         if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
           state.revealData = null;
         }
-        _context2.n = 6;
+        _context2.n = 4;
         break;
-      case 5:
-        _context2.p = 5;
+      case 3:
+        _context2.p = 3;
         _t2 = _context2.v;
         console.error("TV refresh failed:", _t2);
-      case 6:
+      case 4:
         return _context2.a(2);
     }
-  }, _callee2, null, [[1, 5]]);
+  }, _callee2, null, [[1, 3]]);
 })), 2000);
 
 // --- Wine trivia banner (TV view only) ---
