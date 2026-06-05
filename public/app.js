@@ -166,7 +166,7 @@ function notice(message) {
 }
 
 const REVEAL_SCENE_TITLES = {
-  "sommelier": "The Sommelier",
+  "sommelier": "The Vine Whisperer",
   "podium": "Top 3 Bottles",
   "reveal-all": "The Wines",
   "group-accuracy": "How Did We Do?",
@@ -656,7 +656,7 @@ function renderSommelierScene(sommelier) {
     <div class="reveal-scene-shell reveal-sommelier">
       <div class="reveal-sommelier-inner">
         <div class="reveal-scene-trophy">🏆</div>
-        <p class="reveal-scene-kicker">The Sommelier</p>
+        <p class="reveal-scene-kicker">The Vine Whisperer</p>
         <h2 class="reveal-sommelier-name">${hasWinner ? winnerText : "No correct guesses"}</h2>
         <p class="reveal-scene-sub">${subtextBase}</p>
       </div>
@@ -915,9 +915,9 @@ function hostView() {
             <p class="mb-3 text-sm font-bold text-amber-300 uppercase tracking-widest">Reveal Sequence</p>
             <div class="reveal-host-buttons">
               ${[
-                { scene: "sommelier",      label: "🏆 The Sommelier" },
                 { scene: "podium",         label: "🥇 Top 3 Bottles" },
                 { scene: "reveal-all",     label: "🍷 Reveal All" },
+                { scene: "sommelier",      label: "🏆 The Vine Whisperer" },
                 { scene: "group-accuracy", label: "🎯 How Did We Do?" },
                 { scene: "the-numbers",    label: "📊 The Numbers" }
               ].map(({ scene, label }) => `

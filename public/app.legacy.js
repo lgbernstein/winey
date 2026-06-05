@@ -225,7 +225,7 @@ function notice(message) {
   }, 3200);
 }
 var REVEAL_SCENE_TITLES = {
-  "sommelier": "The Sommelier",
+  "sommelier": "The Vine Whisperer",
   "podium": "Top 3 Bottles",
   "reveal-all": "The Wines",
   "group-accuracy": "How Did We Do?",
@@ -516,7 +516,7 @@ function renderSommelierScene(sommelier) {
   var hasWinner = correctCount > 0;
   var winnerText = winners.length === 1 ? escapeHtml(winners[0]) : winners.map(escapeHtml).join(" &amp; ");
   var subtextBase = hasWinner ? "Correctly identified ".concat(correctCount, " of ").concat(totalBottles, " grape ").concat(totalBottles === 1 ? "variety" : "varieties") : "The grapes kept their secrets tonight.";
-  return "\n    <div class=\"reveal-scene-shell reveal-sommelier\">\n      <div class=\"reveal-sommelier-inner\">\n        <div class=\"reveal-scene-trophy\">\uD83C\uDFC6</div>\n        <p class=\"reveal-scene-kicker\">The Sommelier</p>\n        <h2 class=\"reveal-sommelier-name\">".concat(hasWinner ? winnerText : "No correct guesses", "</h2>\n        <p class=\"reveal-scene-sub\">").concat(subtextBase, "</p>\n      </div>\n    </div>\n  ");
+  return "\n    <div class=\"reveal-scene-shell reveal-sommelier\">\n      <div class=\"reveal-sommelier-inner\">\n        <div class=\"reveal-scene-trophy\">\uD83C\uDFC6</div>\n        <p class=\"reveal-scene-kicker\">The Vine Whisperer</p>\n        <h2 class=\"reveal-sommelier-name\">".concat(hasWinner ? winnerText : "No correct guesses", "</h2>\n        <p class=\"reveal-scene-sub\">").concat(subtextBase, "</p>\n      </div>\n    </div>\n  ");
 }
 function renderPodiumScene(podium) {
   // Display order: 3rd first, then 2nd, then 1st (revealed sequentially)
@@ -621,14 +621,14 @@ function hostView() {
     var selected = grape.name === state.lastLabelScan.grape ? " selected" : "";
     return "<option value=\"".concat(escapeHtml(grape.name), "\"").concat(selected, ">").concat(escapeHtml(grape.name + hint), "</option>");
   }).join(""), "\n                </select>\n              </div>\n              <p class=\"mt-2 text-xs text-emerald-200/80\">Confidence: ").concat(escapeHtml(state.lastLabelScan.confidence), ".").concat(state.lastLabelScan.notes ? " ".concat(escapeHtml(state.lastLabelScan.notes)) : "", "</p>\n              <div class=\"mt-3 grid gap-2 sm:grid-cols-2\">\n                <label class=\"tap-primary cursor-pointer text-center\" for=\"label-photo\">Scan next bottle</label>\n                <button class=\"tap-quiet\" data-edit-bottle=\"").concat(state.lastLabelScan.bottleId, "\" type=\"button\">Review details</button>\n              </div>\n            </div>\n          ") : "", "\n          <details class=\"mt-4 rounded-md border border-amber-100/15 bg-stone-950/35 p-4\">\n            <summary class=\"cursor-pointer font-semibold\">Manual check-in</summary>\n        ") : "", "\n        <form id=\"bottle-form\" class=\"mt-4\">\n          ").concat(hostBottleFields(editing), "\n          <button class=\"tap-primary mt-4 w-full\" type=\"submit\">").concat(editing ? "Save bottle" : "Check in manually", "</button>\n        </form>\n        ").concat(!editing ? "</details>" : "", "\n      ")), "\n      ").concat(panel("\n        <h2 class=\"text-2xl font-semibold\">Event control</h2>\n        <div class=\"mt-4 grid gap-2 sm:grid-cols-2\">\n          <button class=\"".concat(state.bootstrap.state === "LIVE_TASTING" ? "tap-primary" : "tap-quiet", "\" data-event-state=\"LIVE_TASTING\" type=\"button\">Live tasting").concat(state.bootstrap.state === "LIVE_TASTING" ? " ●" : "", "</button>\n          <button class=\"").concat(state.bootstrap.state === "GRAND_REVEAL" ? "tap-primary" : "tap-quiet", "\" data-event-state=\"GRAND_REVEAL\" type=\"button\">Grand reveal").concat(state.bootstrap.state === "GRAND_REVEAL" ? " ●" : "", "</button>\n        </div>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-join-qr\" type=\"button\">Show join QR for guests</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"show-guest-bulk\" type=\"button\">Pre-load guest list</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo\" type=\"button\">Load 15-bottle demo</button>\n        <button class=\"tap-quiet mt-3 w-full\" id=\"seed-demo-2\" type=\"button\">Load 3-bottle demo</button>\n        ").concat(state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE" ? "\n          <div class=\"mt-4\">\n            <p class=\"mb-3 text-sm font-bold text-amber-300 uppercase tracking-widest\">Reveal Sequence</p>\n            <div class=\"reveal-host-buttons\">\n              ".concat([{
-    scene: "sommelier",
-    label: "🏆 The Sommelier"
-  }, {
     scene: "podium",
     label: "🥇 Top 3 Bottles"
   }, {
     scene: "reveal-all",
     label: "🍷 Reveal All"
+  }, {
+    scene: "sommelier",
+    label: "🏆 The Vine Whisperer"
   }, {
     scene: "group-accuracy",
     label: "🎯 How Did We Do?"
