@@ -25,6 +25,22 @@ function armNoSleep() {
 document.addEventListener("click", armNoSleep, true);
 document.addEventListener("touchstart", armNoSleep, true);
 var IDLE_TIMEOUT_MS = 60000;
+function clearForm() {
+  state.selectedGuestId = "";
+  state.selectedSleeve = "";
+  state.selectedGrape = "";
+  state.starRating = 0;
+  state.appearance = "";
+  state.nose = [];
+  state.palate = {
+    Sweetness: "",
+    Acidity: "",
+    Tannins: "",
+    Body: ""
+  };
+  state.openModal = null;
+  state.showAddGuest = false;
+}
 var idleTimer = null;
 function resetIdleTimer() {
   if (idleTimer) clearTimeout(idleTimer);
@@ -33,20 +49,7 @@ function resetIdleTimer() {
     if (!state.selectedGuestId && !state.selectedSleeve && !state.selectedGrape && !state.starRating && !state.openModal && !state.showAddGuest && !state.appearance && !state.nose.length && !Object.keys(state.palate).some(function (m) {
       return state.palate[m];
     })) return;
-    state.selectedGuestId = "";
-    state.selectedSleeve = "";
-    state.selectedGrape = "";
-    state.starRating = 0;
-    state.appearance = "";
-    state.nose = [];
-    state.palate = {
-      Sweetness: "",
-      Acidity: "",
-      Tannins: "",
-      Body: ""
-    };
-    state.openModal = null;
-    state.showAddGuest = false;
+    clearForm();
     render();
   }, IDLE_TIMEOUT_MS);
 }
@@ -344,7 +347,7 @@ function render() {
     return String(g.id) === state.selectedGuestId;
   })[0] : null;
   var alreadyRated = !!(selectedGuest && sleeve && selectedGuest.ratedBags && selectedGuest.ratedBags.indexOf(Number(sleeve)) >= 0);
-  var repeatBanner = alreadyRated ? '<div class="repeat-note">🍷 You\'ve already rated sleeve #' + escapeHtml(String(sleeve)) + '. No need to do it again — saving will simply update your earlier notes.</div>' : '';
+  var repeatBanner = alreadyRated ? '<div class="repeat-note"><span>🍷 Already rated sleeve #' + escapeHtml(String(sleeve)) + '</span><button type="button" class="repeat-clear" data-clear-form aria-label="Clear and start over">Clear</button></div>' : '';
   var noseChips = NOSE_OPTIONS.map(function (o) {
     var sel = state.nose.indexOf(o.value) >= 0 ? " selected" : "";
     return '<button type="button" class="chip' + sel + '" data-toggle-nose="' + escapeHtml(o.value) + '">' + escapeHtml(o.label) + '</button>';
@@ -585,6 +588,14 @@ function handleTap(target) {
   var starEl = closest("[data-star]");
   if (starEl) {
     state.starRating = Number(starEl.getAttribute("data-star"));
+    render();
+    return true;
+  }
+
+  // Discreet "Clear" — wipe the form and slip back to tasting.
+  var clearEl = closest("[data-clear-form]");
+  if (clearEl) {
+    clearForm();
     render();
     return true;
   }

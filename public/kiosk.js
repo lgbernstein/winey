@@ -21,21 +21,25 @@ document.addEventListener("click", armNoSleep, true);
 document.addEventListener("touchstart", armNoSleep, true);
 
 const IDLE_TIMEOUT_MS = 60000;
+function clearForm() {
+  state.selectedGuestId = "";
+  state.selectedSleeve = "";
+  state.selectedGrape = "";
+  state.starRating = 0;
+  state.appearance = "";
+  state.nose = [];
+  state.palate = { Sweetness: "", Acidity: "", Tannins: "", Body: "" };
+  state.openModal = null;
+  state.showAddGuest = false;
+}
+
 let idleTimer = null;
 function resetIdleTimer() {
   if (idleTimer) clearTimeout(idleTimer);
   idleTimer = setTimeout(() => {
     if (state.submitting) return;
     if (!state.selectedGuestId && !state.selectedSleeve && !state.selectedGrape && !state.starRating && !state.openModal && !state.showAddGuest && !state.appearance && !state.nose.length && !Object.keys(state.palate).some((m) => state.palate[m])) return;
-    state.selectedGuestId = "";
-    state.selectedSleeve = "";
-    state.selectedGrape = "";
-    state.starRating = 0;
-    state.appearance = "";
-    state.nose = [];
-    state.palate = { Sweetness: "", Acidity: "", Tannins: "", Body: "" };
-    state.openModal = null;
-    state.showAddGuest = false;
+    clearForm();
     render();
   }, IDLE_TIMEOUT_MS);
 }
@@ -265,8 +269,8 @@ function render() {
   const alreadyRated = !!(selectedGuest && sleeve && selectedGuest.ratedBags
     && selectedGuest.ratedBags.indexOf(Number(sleeve)) >= 0);
   const repeatBanner = alreadyRated
-    ? '<div class="repeat-note">🍷 You\'ve already rated sleeve #' + escapeHtml(String(sleeve)) +
-      '. No need to do it again — saving will simply update your earlier notes.</div>'
+    ? '<div class="repeat-note"><span>🍷 Already rated sleeve #' + escapeHtml(String(sleeve)) +
+      '</span><button type="button" class="repeat-clear" data-clear-form aria-label="Clear and start over">Clear</button></div>'
     : '';
 
   const noseChips = NOSE_OPTIONS.map((o) => {
@@ -446,6 +450,14 @@ function handleTap(target) {
   const starEl = closest("[data-star]");
   if (starEl) {
     state.starRating = Number(starEl.getAttribute("data-star"));
+    render();
+    return true;
+  }
+
+  // Discreet "Clear" — wipe the form and slip back to tasting.
+  const clearEl = closest("[data-clear-form]");
+  if (clearEl) {
+    clearForm();
     render();
     return true;
   }
