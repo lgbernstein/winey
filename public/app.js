@@ -696,8 +696,49 @@ function renderRevealAllScene(revealAll) {
     </div>
   `;
 }
-function renderGroupAccuracyScene(g) { return `<div class="reveal-scene-shell"></div>`; }
-function renderTheNumbersScene(n) { return `<div class="reveal-scene-shell"></div>`; }
+function renderGroupAccuracyScene(groupAccuracy) {
+  const { correct, total } = groupAccuracy;
+  const pct = total > 0 ? correct / total : 0;
+  const comment = pct >= 0.7
+    ? "Impressive palates in this room."
+    : pct >= 0.4
+    ? "A respectable showing."
+    : "The wines kept their secrets well.";
+  return `
+    <div class="reveal-scene-shell reveal-group-accuracy">
+      <div class="text-center px-8 max-w-2xl">
+        <div class="reveal-scene-trophy">🎯</div>
+        <p class="reveal-scene-kicker">How Did We Do?</p>
+        <p class="reveal-accuracy-number">${correct} <span class="reveal-accuracy-of">of</span> ${total}</p>
+        <p class="reveal-accuracy-label">grapes correctly identified</p>
+        <p class="reveal-scene-sub mt-6">${comment}</p>
+      </div>
+    </div>
+  `;
+}
+function renderTheNumbersScene(theNumbers) {
+  const { bottleCount, entryCount, averageRating } = theNumbers;
+  const stats = [
+    { value: bottleCount, label: "bottles tasted" },
+    { value: entryCount, label: "tasting notes submitted" },
+    { value: Number(averageRating).toFixed(1) + " / 5", label: "average rating" }
+  ];
+  return `
+    <div class="reveal-scene-shell reveal-the-numbers">
+      <div class="text-center w-full max-w-4xl px-8">
+        <p class="reveal-scene-kicker">The Numbers</p>
+        <div class="numbers-grid mt-10">
+          ${stats.map(s => `
+            <div class="numbers-stat">
+              <p class="numbers-value">${s.value}</p>
+              <p class="numbers-label">${s.label}</p>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 function renderRevealScene(scene) {
   const data = state.revealData;

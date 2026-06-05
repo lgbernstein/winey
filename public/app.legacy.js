@@ -512,11 +512,30 @@ function renderRevealAllScene(revealAll) {
   });
   return "\n    <div class=\"reveal-scene-shell reveal-all-shell\">\n      <p class=\"reveal-scene-kicker mb-6\">The Wines</p>\n      <div class=\"reveal-all-grid\">".concat(bottles.join(""), "</div>\n    </div>\n  ");
 }
-function renderGroupAccuracyScene(g) {
-  return "<div class=\"reveal-scene-shell\"></div>";
+function renderGroupAccuracyScene(groupAccuracy) {
+  var correct = groupAccuracy.correct,
+    total = groupAccuracy.total;
+  var pct = total > 0 ? correct / total : 0;
+  var comment = pct >= 0.7 ? "Impressive palates in this room." : pct >= 0.4 ? "A respectable showing." : "The wines kept their secrets well.";
+  return "\n    <div class=\"reveal-scene-shell reveal-group-accuracy\">\n      <div class=\"text-center px-8 max-w-2xl\">\n        <div class=\"reveal-scene-trophy\">\uD83C\uDFAF</div>\n        <p class=\"reveal-scene-kicker\">How Did We Do?</p>\n        <p class=\"reveal-accuracy-number\">".concat(correct, " <span class=\"reveal-accuracy-of\">of</span> ").concat(total, "</p>\n        <p class=\"reveal-accuracy-label\">grapes correctly identified</p>\n        <p class=\"reveal-scene-sub mt-6\">").concat(comment, "</p>\n      </div>\n    </div>\n  ");
 }
-function renderTheNumbersScene(n) {
-  return "<div class=\"reveal-scene-shell\"></div>";
+function renderTheNumbersScene(theNumbers) {
+  var bottleCount = theNumbers.bottleCount,
+    entryCount = theNumbers.entryCount,
+    averageRating = theNumbers.averageRating;
+  var stats = [{
+    value: bottleCount,
+    label: "bottles tasted"
+  }, {
+    value: entryCount,
+    label: "tasting notes submitted"
+  }, {
+    value: Number(averageRating).toFixed(1) + " / 5",
+    label: "average rating"
+  }];
+  return "\n    <div class=\"reveal-scene-shell reveal-the-numbers\">\n      <div class=\"text-center w-full max-w-4xl px-8\">\n        <p class=\"reveal-scene-kicker\">The Numbers</p>\n        <div class=\"numbers-grid mt-10\">\n          ".concat(stats.map(function (s) {
+    return "\n            <div class=\"numbers-stat\">\n              <p class=\"numbers-value\">".concat(s.value, "</p>\n              <p class=\"numbers-label\">").concat(s.label, "</p>\n            </div>\n          ");
+  }).join(""), "\n        </div>\n      </div>\n    </div>\n  ");
 }
 function renderRevealScene(scene) {
   var data = state.revealData;

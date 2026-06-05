@@ -684,3 +684,28 @@ dialog::backdrop {
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 1rem;
 }
+
+/* ---- Group Accuracy scene ---- */
+.reveal-accuracy-number {
+  @apply text-8xl font-bold text-amber-300 mt-4 leading-none;
+}
+.reveal-accuracy-of {
+  @apply text-4xl text-amber-100/60 font-normal;
+}
+.reveal-accuracy-label {
+  @apply text-2xl text-amber-100/70 mt-3;
+}
+
+/* ---- The Numbers scene ---- */
+.numbers-grid {
+  @apply grid grid-cols-3 gap-8;
+}
+.numbers-stat {
+  @apply flex flex-col items-center;
+}
+.numbers-value {
+  @apply text-6xl font-bold text-amber-300;
+}
+.numbers-label {
+  @apply text-xl text-amber-100/70 mt-2;
+}
