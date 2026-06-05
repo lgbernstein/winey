@@ -754,7 +754,7 @@ function render() {
       grandStandbyTimer = setInterval(function () {
         grandStandbyQuip++;
         render();
-      }, 6500);
+      }, 10000);
     }
   } else {
     if (grandStandbyTimer) {
