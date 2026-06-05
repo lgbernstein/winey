@@ -136,6 +136,8 @@ input, textarea, select {
 
 /* iPad and wider: restore side-by-side to keep form compact */
 @media (min-width: 680px) {
+  .stars button { min-height: 58px; font-size: 1.6rem; }
+  .save-btn { padding: 14px; font-size: 17px; }
   .palate-row {
     -webkit-flex-direction: row;
     flex-direction: row;
