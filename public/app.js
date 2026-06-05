@@ -507,7 +507,7 @@ function renderWelcomeScreen() {
       <p class="welcome-sub">Scan to connect, then open the kiosk to start tasting</p>
       <div class="welcome-qrs">
         <div class="welcome-qr-block">
-          <div class="welcome-qr-box"><img src="/wifi-qr.png" style="width:340px;height:340px;display:block"></div>
+          <div class="welcome-qr-box">${makeQrSvg("WIFI:T:WPA;S:LGB7;P:hello guest;;", 12)}</div>
           <p class="welcome-qr-label">📶 Join the Wi-Fi</p>
           <p class="welcome-qr-hint">LGB7</p>
         </div>
