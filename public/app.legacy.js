@@ -827,7 +827,7 @@ function render() {
       welcomeTimer = setInterval(function () {
         welcomeQuip++;
         render();
-      }, 9000);
+      }, 15000);
     }
   } else {
     if (welcomeTimer) {

@@ -1217,7 +1217,7 @@ function render() {
   }
   if (state.view === "tv" && state.bootstrap.state === "REGISTRATION") {
     if (!welcomeTimer) {
-      welcomeTimer = setInterval(() => { welcomeQuip++; render(); }, 9000);
+      welcomeTimer = setInterval(() => { welcomeQuip++; render(); }, 15000);
     }
   } else {
     if (welcomeTimer) { clearInterval(welcomeTimer); welcomeTimer = null; }
