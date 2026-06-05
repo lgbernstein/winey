@@ -168,6 +168,12 @@ function navMarkup() {
   nav.innerHTML = views.map(([id, label]) => `
     <button class="${state.view === id ? "tap-primary" : "tap-quiet"}" data-view="${id}" type="button">${label}</button>
   `).join("");
+  const isTv = state.view === "tv";
+  document.body.classList.toggle("tv-mode", isTv);
+  const headerLabel = document.getElementById("header-label");
+  if (headerLabel) {
+    headerLabel.innerHTML = isTv ? `<span class="tv-header-label">Live Standings</span>` : "";
+  }
 }
 
 function choice(name, value, label, checked = false, type = "radio") {
@@ -593,14 +599,7 @@ function tvView() {
   return `
     ${tvHeroMarkup()}
     ${panel(`
-      <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p class="kicker">Live standings</p>
-          <h2 class="screen-title">Bottle race</h2>
-          <p class="mt-2 text-amber-50/75">Sleeves move left-to-right by crowd rating. Bottle identities stay blind until reveal.</p>
-        </div>
-        ${state.demoBoard ? `<button class="tap-quiet" id="stop-demo" type="button">Stop demo</button>` : ""}
-      </div>
+      ${state.demoBoard ? `<div class="mb-5 flex justify-end"><button class="tap-quiet" id="stop-demo" type="button">Stop demo</button></div>` : ""}
       ${state.demoBoard ? `<div class="mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>` : ""}
       ${boardMarkup(state.bootstrap.leaderboard)}
     `)}

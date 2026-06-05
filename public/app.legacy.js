@@ -230,6 +230,12 @@ function navMarkup() {
       label = _ref2[1];
     return "\n    <button class=\"".concat(state.view === id ? "tap-primary" : "tap-quiet", "\" data-view=\"").concat(id, "\" type=\"button\">").concat(label, "</button>\n  ");
   }).join("");
+  var isTv = state.view === "tv";
+  document.body.classList.toggle("tv-mode", isTv);
+  var headerLabel = document.getElementById("header-label");
+  if (headerLabel) {
+    headerLabel.innerHTML = isTv ? "<span class=\"tv-header-label\">Live Standings</span>" : "";
+  }
 }
 function choice(name, value, label) {
   var checked = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
@@ -446,7 +452,7 @@ function renderTvHero() {
   }
 }
 function tvView() {
-  return "\n    ".concat(tvHeroMarkup(), "\n    ").concat(panel("\n      <div class=\"mb-5 flex flex-wrap items-end justify-between gap-3\">\n        <div>\n          <p class=\"kicker\">Live standings</p>\n          <h2 class=\"screen-title\">Bottle race</h2>\n          <p class=\"mt-2 text-amber-50/75\">Sleeves move left-to-right by crowd rating. Bottle identities stay blind until reveal.</p>\n        </div>\n        ".concat(state.demoBoard ? "<button class=\"tap-quiet\" id=\"stop-demo\" type=\"button\">Stop demo</button>" : "", "\n      </div>\n      ").concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
+  return "\n    ".concat(tvHeroMarkup(), "\n    ").concat(panel("\n      ".concat(state.demoBoard ? "<div class=\"mb-5 flex justify-end\"><button class=\"tap-quiet\" id=\"stop-demo\" type=\"button\">Stop demo</button></div>" : "", "\n      ").concat(state.demoBoard ? "<div class=\"mb-4 rounded-2xl border border-amber-200/20 bg-amber-950/20 p-4 text-amber-100\">Demo vote mode is active. Watch bottles move as the crowd ranks them.</div>" : "", "\n      ").concat(boardMarkup(state.bootstrap.leaderboard), "\n    ")), "\n    ").concat(state.bootstrap.state === "GRAND_REVEAL" || state.bootstrap.state === "ARCHIVE" ? panel("<h2 class=\"text-3xl font-semibold\">Grand reveal</h2>".concat(revealMarkup()), "mt-4") : "", "\n  ");
 }
 function hostBottleFields() {
   var _bottle$expertScore;
