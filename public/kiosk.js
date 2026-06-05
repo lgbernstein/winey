@@ -269,8 +269,11 @@ function render() {
   const alreadyRated = !!(selectedGuest && sleeve && selectedGuest.ratedBags
     && selectedGuest.ratedBags.indexOf(Number(sleeve)) >= 0);
   const repeatBanner = alreadyRated
-    ? '<div class="repeat-note"><span>🍷 Already rated sleeve #' + escapeHtml(String(sleeve)) +
-      '</span><button type="button" class="repeat-clear" data-clear-form aria-label="Clear and start over">Clear</button></div>'
+    ? '<div class="repeat-note">' +
+        '<div class="repeat-title">Already rated sleeve #' + escapeHtml(String(sleeve)) + '</div>' +
+        '<div class="repeat-sub">You\'re all set on this one 🍷</div>' +
+        '<button type="button" class="repeat-clear" data-clear-form aria-label="Clear and start over">Clear &amp; keep tasting</button>' +
+      '</div>'
     : '';
 
   const noseChips = NOSE_OPTIONS.map((o) => {
@@ -285,19 +288,25 @@ function render() {
     return '<div class="palate-row"><span class="palate-metric">' + metric + '</span><div class="chip-row palate-chips">' + chips + '</div></div>';
   }).join("");
 
+  // When this taster has already rated this sleeve, lock the form: no grape,
+  // aromas, palate, rating, or save — just the prominent banner and Clear.
+  const inputSection = alreadyRated
+    ? ''
+    : fieldButton("grape", "Grape guess", grapeLabel(), "Guess the grape") +
+      '<div class="tight-group"><label class="legend tight-legend">Aromas</label><div class="chip-row">' + noseChips + '</div></div>' +
+      '<div class="tight-group"><label class="legend tight-legend">Palate</label>' + palateRows + '</div>' +
+      '<div class="tight-group"><label class="legend tight-legend">Your rating</label><div class="stars">' + starsHtml + '</div></div>' +
+      '<button type="submit" class="save-btn"' + (canSubmit ? '' : ' disabled') + '>' + (state.submitting ? 'Saving…' : 'Save tasting') + '</button>';
+
   main.innerHTML =
     (b.nowPouring
       ? '<div class="now-pouring"><div class="label">Now pouring</div><div class="sleeve">#' + b.nowPouring + '</div></div>'
       : '') +
     '<form id="form" autocomplete="off">' +
-      repeatBanner +
       fieldButton("taster", "Taster", guestLabel(), "Pick your name") +
       fieldButton("sleeve", "Sleeve", sleeveLabel(), "Pick a sleeve") +
-      fieldButton("grape", "Grape guess", grapeLabel(), "Guess the grape") +
-      '<div class="tight-group"><label class="legend tight-legend">Aromas</label><div class="chip-row">' + noseChips + '</div></div>' +
-      '<div class="tight-group"><label class="legend tight-legend">Palate</label>' + palateRows + '</div>' +
-      '<div class="tight-group"><label class="legend tight-legend">Your rating</label><div class="stars">' + starsHtml + '</div></div>' +
-      '<button type="submit" class="save-btn"' + (canSubmit ? '' : ' disabled') + '>' + (state.submitting ? 'Saving…' : 'Save tasting') + '</button>' +
+      repeatBanner +
+      inputSection +
     '</form>';
   paintModal();
 }
