@@ -400,23 +400,61 @@ function boardMarkup(items) {
   });
   return `<ol class="tv-bottle-grid">${sorted.map((item) => `
     <li class="tv-rank tv-bottle-card${item.voting ? " voting" : ""}${item.moving ? " moving" : ""}" data-bag-number="${item.bagNumber}">
-      <div class="blind-bottle" aria-label="Sleeve ${item.bagNumber}">
-        <div class="blind-bottle-lip"></div>
-        <div class="blind-bottle-neck"></div>
-        <div class="blind-bottle-shoulders"></div>
-        <div class="blind-bottle-body"><span>#${item.bagNumber}</span></div>
+      <div class="bottle-flip">
+        <div class="bottle-flip-inner" data-flip-bag="${item.bagNumber}">
+          <div class="bottle-flip-front">
+            <div class="blind-bottle" aria-label="Sleeve ${item.bagNumber}">
+              <div class="blind-bottle-lip"></div>
+              <div class="blind-bottle-neck"></div>
+              <div class="blind-bottle-shoulders"></div>
+              <div class="blind-bottle-body"><span>#${item.bagNumber}</span></div>
+            </div>
+          </div>
+          <div class="bottle-flip-back"></div>
+        </div>
       </div>
       <p class="tv-bottle-score">${item.voteCount ? `${Number(item.averageRating).toFixed(1)} / 5` : "Awaiting ratings"}</p>
       <p class="text-sm text-amber-50/65">${item.voteCount} rating${item.voteCount === 1 ? "" : "s"}</p>
       <div class="mt-3 min-h-14">
         ${item.grapeGuesses.length ? `
           <div class="flex flex-wrap justify-center gap-1">
-            ${item.grapeGuesses.slice(0, 4).map((guess) => `<span class="tv-guess-chip">${escapeHtml(guess.label)} ${guess.count}</span>`).join("")}
+            <span class="tv-guess-chip">${escapeHtml(item.grapeGuesses[0].label)}</span>
           </div>
         ` : ""}
       </div>
     </li>
   `).join("")}</ol>`;
+}
+
+function revealedBottleMarkup(bottle) {
+  const photo = bottle.photoUrl
+    ? `<img class="revealed-bottle-photo" src="${escapeHtml(bottle.photoUrl)}" alt="${escapeHtml(bottle.bottleName || "")}" loading="lazy">`
+    : `<div class="revealed-bottle-no-photo">#${bottle.bagNumber}</div>`;
+  return `<div class="revealed-bottle">
+    ${photo}
+    <div class="revealed-bottle-info">
+      <p class="revealed-bottle-sleeve">Sleeve ${bottle.bagNumber}</p>
+      <p class="revealed-bottle-name">${escapeHtml(bottle.bottleName || "")}</p>
+      ${bottle.grape ? `<p class="revealed-bottle-grape">${escapeHtml(bottle.grape)}</p>` : ""}
+    </div>
+  </div>`;
+}
+
+let revealFlipDone = false;
+
+function triggerRevealFlip() {
+  if (revealFlipDone || !state.reveal.length) return;
+  const revealMap = new Map(state.reveal.map((b) => [String(b.bagNumber), b]));
+  const inners = document.querySelectorAll(".bottle-flip-inner");
+  if (!inners.length) return;
+  revealFlipDone = true;
+  inners.forEach((inner) => {
+    const bottle = revealMap.get(inner.dataset.flipBag);
+    if (!bottle) return;
+    inner.querySelector(".bottle-flip-back").innerHTML = revealedBottleMarkup(bottle);
+    const delay = Math.random() * 160;
+    setTimeout(() => inner.classList.add("flipped"), delay);
+  });
 }
 
 function recordTvBoardPositions() {
@@ -795,6 +833,11 @@ function render() {
     && state.reveal[0]?.id
     && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)
   ) drawCharts(state.reveal[0].id);
+  if (state.view === "tv" && ["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state) && state.reveal.length) {
+    triggerRevealFlip();
+  } else if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
+    revealFlipDone = false;
+  }
 }
 
 async function refresh({ photos = false, reveal = false, host = false } = {}) {
@@ -880,7 +923,7 @@ async function saveBottle(form) {
 
 async function seedDemo() {
   await api("/api/host/demo", { method: "POST", host: true });
-  notice("15 demo bottles loaded.");
+  notice("14 demo bottles loaded.");
   await refresh({ host: true });
   state.demoBoard = cloneDemoBoard(shuffleBoard(state.bootstrap.leaderboard));
   state.demoAnimationPending = true;

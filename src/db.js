@@ -4,22 +4,33 @@ import { DatabaseSync } from "node:sqlite";
 
 export const EVENT_STATES = ["REGISTRATION", "LIVE_TASTING", "GRAND_REVEAL", "ARCHIVE"];
 export const GRAPES = [
-  "Not sure",
-  "Cabernet Sauvignon",
-  "Merlot",
-  "Pinot Noir",
-  "Syrah / Shiraz",
-  "Malbec",
-  "Zinfandel",
-  "Sangiovese",
-  "Tempranillo",
-  "Grenache"
+  { name: "Cabernet Sauvignon", appellations: "Napa, Bordeaux blend" },
+  { name: "Cabernet Franc", appellations: "Loire, Bordeaux blend" },
+  { name: "Merlot", appellations: "Pomerol, Saint-Émilion" },
+  { name: "Pinot Noir", appellations: "Burgundy, Sancerre Rouge" },
+  { name: "Syrah / Shiraz", appellations: "Hermitage, Barossa" },
+  { name: "Malbec", appellations: "Mendoza, Cahors" },
+  { name: "Zinfandel", appellations: "California" },
+  { name: "Sangiovese", appellations: "Chianti, Brunello" },
+  { name: "Nebbiolo", appellations: "Barolo, Barbaresco" },
+  { name: "Tempranillo", appellations: "Rioja, Ribera del Duero" },
+  { name: "Grenache", appellations: "Châteauneuf-du-Pape, Priorat" },
+  { name: "Chardonnay", appellations: "Burgundy, Chablis" },
+  { name: "Sauvignon Blanc", appellations: "Sancerre, Marlborough" },
+  { name: "Riesling", appellations: "Mosel, Alsace" },
+  { name: "Pinot Gris / Grigio", appellations: "Alsace, Veneto" },
+  { name: "Chenin Blanc", appellations: "Vouvray, South Africa" },
+  { name: "Gewürztraminer", appellations: "Alsace" },
+  { name: "Red blend", appellations: "" },
+  { name: "White blend", appellations: "" },
+  { name: "Rosé", appellations: "Provence" },
+  { name: "Not sure", appellations: "" }
 ];
 
 function uniqueGrapes(grapes) {
   const seen = new Set();
   return grapes.filter((grape) => {
-    const key = grape.toLowerCase();
+    const key = grape.name.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -100,6 +111,7 @@ export function openWineDb({ dbFile }) {
       photo_url TEXT,
       professional_rating INTEGER,
       professional_commentary TEXT,
+      coach_text TEXT,
       is_revealed BOOLEAN DEFAULT FALSE,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -127,11 +139,15 @@ export function openWineDb({ dbFile }) {
 
     CREATE TABLE IF NOT EXISTS event_state (
       id INTEGER PRIMARY KEY CHECK(id = 1),
-      current_state TEXT NOT NULL
+      current_state TEXT NOT NULL,
+      now_pouring_bag_number INTEGER
     );
 
     INSERT OR IGNORE INTO event_state (id, current_state) VALUES (1, 'LIVE_TASTING');
   `);
+
+  try { sqlite.exec("ALTER TABLE wine_bottles ADD COLUMN coach_text TEXT"); } catch { /* column exists */ }
+  try { sqlite.exec("ALTER TABLE event_state ADD COLUMN now_pouring_bag_number INTEGER"); } catch { /* column exists */ }
 
   const getStateStmt = sqlite.prepare("SELECT current_state FROM event_state WHERE id = 1");
   const guestRowsStmt = sqlite.prepare("SELECT id, display_name FROM users ORDER BY display_name COLLATE NOCASE");
@@ -149,7 +165,19 @@ export function openWineDb({ dbFile }) {
     setState(state) {
       sqlite.prepare("UPDATE event_state SET current_state = ? WHERE id = 1").run(state);
       sqlite.prepare("UPDATE wine_bottles SET is_revealed = ?").run(state === "GRAND_REVEAL" || state === "ARCHIVE" ? 1 : 0);
+      if (state === "GRAND_REVEAL" || state === "ARCHIVE") {
+        sqlite.prepare("UPDATE event_state SET now_pouring_bag_number = NULL WHERE id = 1").run();
+      }
       return this.getState();
+    },
+    getNowPouring() {
+      const row = sqlite.prepare("SELECT now_pouring_bag_number FROM event_state WHERE id = 1").get();
+      return row?.now_pouring_bag_number ?? null;
+    },
+    setNowPouring(bagNumber) {
+      const value = bagNumber === null || bagNumber === undefined ? null : Number(bagNumber);
+      sqlite.prepare("UPDATE event_state SET now_pouring_bag_number = ? WHERE id = 1").run(value);
+      return value;
     },
     listGuests() {
       return guestRowsStmt.all().map((row) => ({ id: row.id, displayName: row.display_name }));
@@ -172,7 +200,7 @@ export function openWineDb({ dbFile }) {
         FROM wine_bottles
         WHERE trim(grape) <> '' AND lower(trim(grape)) <> 'unknown'
         ORDER BY grape COLLATE NOCASE
-      `).all().map((row) => row.grape.trim());
+      `).all().map((row) => ({ name: row.grape.trim(), appellations: "" }));
       return uniqueGrapes([...GRAPES, ...scanned]);
     },
     createBottle(input) {
@@ -209,8 +237,7 @@ export function openWineDb({ dbFile }) {
         { bottleName: "Bright Pinot Gris", grape: "Not sure", producer: "Meadow Lane", region: "Alsace", vintage: "2023", expertScore: 85, expertCommentary: "Crisp citrus and minerality." },
         { bottleName: "Velour Cabernet Franc", grape: "Not sure", producer: "Black Oak", region: "Loire", vintage: "2020", expertScore: 89, expertCommentary: "Red currant and savory herbs." },
         { bottleName: "Copper Mourvedre", grape: "Not sure", producer: "Iron Gate", region: "Languedoc", vintage: "2021", expertScore: 88, expertCommentary: "Spicy, earthy, and rich." },
-        { bottleName: "Sugar Plum Rosé", grape: "Not sure", producer: "Rose Hill", region: "Provence", vintage: "2023", expertScore: 84, expertCommentary: "Fresh strawberry and summer flowers." },
-        { bottleName: "Midnight Cabernet", grape: "Cabernet Sauvignon", producer: "Blackstone", region: "Sonoma", vintage: "2019", expertScore: 92, expertCommentary: "Dense, smoky, and polished." }
+        { bottleName: "Sugar Plum Rosé", grape: "Not sure", producer: "Rose Hill", region: "Provence", vintage: "2023", expertScore: 84, expertCommentary: "Fresh strawberry and summer flowers." }
       ];
       const sampleGuests = ["Ari", "Mia", "Noah", "Sam", "Jess", "Taylor", "Kai", "June", "Maria", "Hannah"];
       const sampleTastings = [
@@ -228,7 +255,6 @@ export function openWineDb({ dbFile }) {
         { guest: "Sam", bagNumber: 12, grapeGuess: "Not sure", appearance: "Garnet", nose: ["Spice / Oak (Vanilla/Pepper)"], palate: { Sweetness: "Off-Dry" } },
         { guest: "Jess", bagNumber: 13, grapeGuess: "Not sure", appearance: "Purple", nose: ["Earth / Mineral"], palate: { Tannins: "High (Grippy)" } },
         { guest: "Taylor", bagNumber: 14, grapeGuess: "Not sure", appearance: "Ruby", nose: ["Red Fruits (Cherry/Raspberry)"], palate: { Body: "Medium" } },
-        { guest: "Kai", bagNumber: 15, grapeGuess: "Cabernet Sauvignon", appearance: "Garnet", nose: ["Black Fruits (Blackberry/Plum)"], palate: { Tannins: "High (Grippy)" } },
         { guest: "June", bagNumber: 2, grapeGuess: "Cabernet Sauvignon", appearance: "Garnet", nose: ["Black Fruits (Blackberry/Plum)"], palate: { Body: "Full-Bodied" } },
         { guest: "Ari", bagNumber: 4, grapeGuess: "Syrah / Shiraz", appearance: "Purple", nose: ["Spice / Oak (Vanilla/Pepper)"], palate: { Tannins: "High (Grippy)" } },
         { guest: "Mia", bagNumber: 5, grapeGuess: "Malbec", appearance: "Purple", nose: ["Black Fruits (Blackberry/Plum)"], palate: { Body: "Full-Bodied" } }
@@ -239,7 +265,7 @@ export function openWineDb({ dbFile }) {
       try {
         sqlite.prepare("DELETE FROM tasting_entries").run();
         sqlite.prepare("DELETE FROM wine_bottles").run();
-        sqlite.prepare("UPDATE event_state SET current_state = 'LIVE_TASTING' WHERE id = 1").run();
+        sqlite.prepare("UPDATE event_state SET current_state = 'LIVE_TASTING', now_pouring_bag_number = NULL WHERE id = 1").run();
         sqlite.prepare("UPDATE wine_bottles SET is_revealed = 0").run();
 
         sampleGuests.forEach((name) => this.addGuest(name));
@@ -291,6 +317,13 @@ export function openWineDb({ dbFile }) {
         id
       );
       return bottleRow(bottleByIdStmt.get(id), true);
+    },
+    getBottleByBagNumber(bagNumber) {
+      const row = bottleByBagStmt.get(Number(bagNumber));
+      return row ? { ...bottleRow(row, true), coachText: row.coach_text || "" } : null;
+    },
+    setBottleCoachText(bottleId, coachText) {
+      sqlite.prepare("UPDATE wine_bottles SET coach_text = ? WHERE id = ?").run(coachText, bottleId);
     },
     listBlindBottles() {
       return sqlite.prepare(`
