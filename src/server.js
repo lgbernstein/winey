@@ -230,6 +230,18 @@ export function createServer({ dataDir, hostPin = process.env.HOST_PIN || "2468"
   });
   app.get("/api/leaderboard", (_req, res) => res.json(db.leaderboard()));
   app.get("/api/photos", (_req, res) => res.json(db.listPhotos()));
+  app.delete("/api/photos/:id", (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) { res.status(400).json({ error: "Invalid id." }); return; }
+    const deleted = db.deletePhoto(id);
+    if (!deleted) { res.status(404).json({ error: "Photo not found." }); return; }
+    // Best-effort file removal
+    try {
+      const { unlinkSync } = require("node:fs");
+      unlinkSync("public" + deleted.storageUrl);
+    } catch (_) {}
+    res.json({ ok: true });
+  });
   app.post("/api/photos", partyUpload.single("photo"), (req, res) => {
     if (!req.file) {
       res.status(400).json({ error: "Choose a photo to upload." });

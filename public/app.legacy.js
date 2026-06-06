@@ -347,11 +347,11 @@ function tasteView() {
 function photosMarkup() {
   if (!state.photos.length) return "<p class=\"rounded-md border border-amber-100/15 bg-stone-950/40 p-5 text-amber-50/75\">The shared album is waiting for the first party photo.</p>";
   return "<div class=\"grid gap-3 sm:grid-cols-2 lg:grid-cols-3\">".concat(state.photos.map(function (photo) {
-    return "\n    <figure class=\"overflow-hidden rounded-lg border border-amber-100/15 bg-stone-950/55\">\n      <img class=\"aspect-[4/3] w-full object-cover\" src=\"".concat(escapeHtml(photo.storageUrl), "\" alt=\"Party photo uploaded by ").concat(escapeHtml(photo.displayName), "\">\n      <figcaption class=\"px-3 py-2 text-sm text-amber-50/80\">").concat(escapeHtml(photo.displayName), "</figcaption>\n    </figure>\n  ");
+    return "\n    <figure class=\"relative overflow-hidden rounded-lg border border-amber-100/15 bg-stone-950/55\">\n      <button class=\"absolute top-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-stone-950/70 text-amber-100 hover:bg-rose-900/80\" data-delete-photo=\"".concat(photo.id, "\" title=\"Delete photo\">\u2715</button>\n      <img class=\"aspect-[4/3] w-full object-cover\" src=\"").concat(escapeHtml(photo.storageUrl), "\" alt=\"Party photo uploaded by ").concat(escapeHtml(photo.displayName), "\">\n      <figcaption class=\"px-3 py-2 text-sm text-amber-50/80\">").concat(escapeHtml(photo.displayName), "</figcaption>\n    </figure>\n  ");
   }).join(""), "</div>");
 }
 function albumView() {
-  return panel("\n    <div class=\"mb-5 grid gap-4 md:grid-cols-[1fr_auto] md:items-end\">\n      <div>\n        <p class=\"kicker\">Shared album</p>\n        <h2 class=\"screen-title\">Photos from the evening</h2>\n      </div>\n      <form id=\"photo-form\" class=\"grid gap-2 sm:grid-cols-[1fr_auto]\">\n        <input class=\"field file:mr-3 file:rounded-md file:border-0 file:bg-emerald-300 file:px-3 file:py-2 file:font-semibold file:text-stone-950\" type=\"file\" name=\"photo\" accept=\"image/*\" required>\n        <button class=\"tap-primary\" type=\"submit\">Upload</button>\n      </form>\n    </div>\n    ".concat(photosMarkup(), "\n  "));
+  return panel("\n    <div class=\"mb-5 grid gap-4 md:grid-cols-[1fr_auto] md:items-end\">\n      <div>\n        <p class=\"kicker\">Shared album</p>\n        <h2 class=\"screen-title\">Photos from the evening</h2>\n        <a href=\"/kiosk.html\" class=\"mt-1 inline-block text-sm text-amber-400/70 hover:text-amber-400\">\u2190 Back to kiosk</a>\n      </div>\n      <form id=\"photo-form\" class=\"grid gap-2 sm:grid-cols-[1fr_auto]\">\n        <input class=\"field file:mr-3 file:rounded-md file:border-0 file:bg-emerald-300 file:px-3 file:py-2 file:font-semibold file:text-stone-950\" type=\"file\" name=\"photo\" accept=\"image/*\" required>\n        <button class=\"tap-primary\" type=\"submit\">Upload</button>\n      </form>\n    </div>\n    ".concat(photosMarkup(), "\n  "));
 }
 function boardMarkup(items) {
   if (!items.length) return "<p class=\"rounded-md bg-stone-950/45 p-5 text-amber-50/75\">Host check-in will put numbered sleeves on the board.</p>";
@@ -1854,6 +1854,21 @@ document.addEventListener("submit", function (event) {
   if (event.target.id === "tasting-form") submitTasting(event.target).catch(function (error) {
     return notice(error.message);
   });
+  var deletePhotoEl = event.target.closest("[data-delete-photo]");
+  if (deletePhotoEl) {
+    var id = Number(deletePhotoEl.dataset.deletePhoto);
+    api("/api/photos/" + id, {
+      method: "DELETE"
+    }).then(function () {
+      return api("/api/photos");
+    }).then(function (photos) {
+      state.photos = photos;
+      render();
+    }).catch(function (e) {
+      return notice(e.message);
+    });
+    return;
+  }
   if (event.target.id === "photo-form") uploadPhoto(event.target).catch(function (error) {
     return notice(error.message);
   });

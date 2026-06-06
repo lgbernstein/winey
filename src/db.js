@@ -573,6 +573,12 @@ export function openWineDb({ dbFile }) {
       `).get(input.userId, bottle.id);
       return entryRow(row);
     },
+    deletePhoto(id) {
+      const row = sqlite.prepare("SELECT storage_url FROM party_photos WHERE id = ?").get(id);
+      if (!row) return null;
+      sqlite.prepare("DELETE FROM party_photos WHERE id = ?").run(id);
+      return { storageUrl: row.storage_url };
+    },
     addPhoto({ userId, storageUrl }) {
       const result = sqlite.prepare(`
         INSERT INTO party_photos (uploaded_by_user_id, storage_url) VALUES (?, ?)
