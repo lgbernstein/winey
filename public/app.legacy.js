@@ -1897,7 +1897,7 @@ window.addEventListener("resize", function () {
   if (state.view === "tv") fitTvGrid();
 });
 setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-  var _state$bootstrap5, scene, _t6;
+  var _state$bootstrap5, _state$bootstrap6, evState, scene, _t6;
   return _regenerator().w(function (_context2) {
     while (1) switch (_context2.p = _context2.n) {
       case 0:
@@ -1905,10 +1905,10 @@ setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(functio
           _context2.n = 4;
           break;
         }
-        // During static reveal scenes (host controls nothing on TV) skip polling to
-        // avoid re-triggering animations. reveal-all needs polling so Next/Prev land.
-        scene = (_state$bootstrap5 = state.bootstrap) === null || _state$bootstrap5 === void 0 ? void 0 : _state$bootstrap5.revealScene;
-        if (!(scene && scene !== "reveal-all")) {
+        // Only skip polling during static Grand Reveal scenes (not during live tasting).
+        evState = (_state$bootstrap5 = state.bootstrap) === null || _state$bootstrap5 === void 0 ? void 0 : _state$bootstrap5.state;
+        scene = (_state$bootstrap6 = state.bootstrap) === null || _state$bootstrap6 === void 0 ? void 0 : _state$bootstrap6.revealScene;
+        if (!((evState === "GRAND_REVEAL" || evState === "ARCHIVE") && scene && scene !== "reveal-all")) {
           _context2.n = 1;
           break;
         }

@@ -1703,10 +1703,10 @@ window.addEventListener("resize", () => { if (state.view === "tv") fitTvGrid(); 
 
 setInterval(async () => {
   if (state.view === "tv" && !state.demoBoard) {
-    // During static reveal scenes (host controls nothing on TV) skip polling to
-    // avoid re-triggering animations. reveal-all needs polling so Next/Prev land.
+    // Only skip polling during static Grand Reveal scenes (not during live tasting).
+    const evState = state.bootstrap?.state;
     const scene = state.bootstrap?.revealScene;
-    if (scene && scene !== "reveal-all") return;
+    if ((evState === "GRAND_REVEAL" || evState === "ARCHIVE") && scene && scene !== "reveal-all") return;
     try {
       await refresh({ reveal: true });
       if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
