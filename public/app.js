@@ -510,7 +510,8 @@ const GRAND_REVEAL_QUIPS = [
   "The results are in. Some of you will be smug. Some of you will be quiet. Both are valid.",
   "Yes, you can bring your glass. You're going to want your glass.",
   "You tasted blind. You guessed boldly. Now we find out how that went.",
-  "Some of you nailed it. Some of you picked Malbec six times. We'll never tell."
+  "Some of you nailed it. Some of you picked Malbec six times. We'll never tell.",
+  "This is either going to be a triumphant moment or a humbling one. Statistically, one of those is more likely."
 ];
 
 function makeQrSvg(data, size) {
