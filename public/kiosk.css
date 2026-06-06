@@ -59,8 +59,6 @@ input, textarea, select {
   display: flex;
   -webkit-flex-direction: column;
   flex-direction: column;
-  -webkit-flex: 1 1 auto;
-  flex: 1 1 auto;
 }
 
 .tight-group {
