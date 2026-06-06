@@ -406,7 +406,7 @@ var WELCOME_QUIPS = [{
   title: "Kiosks: tastefully placed throughout the home 🍷",
   sub: "…but we see you reaching for your phone. We see you."
 }];
-var GRAND_REVEAL_QUIPS = ["The results are in. Please pretend you weren't just guessing.", "The votes are counted. The wines have been judged. Your confidence was adorable.", "The results are in. Some of you will be smug. Some of you will be quiet. Both are valid.", "Gather round. Yes, you can bring your glass. You're going to want your glass.", "You tasted blind. You guessed boldly. Now we find out how that went.", "Some of you nailed it. Some of you picked Malbec six times. We'll never tell."];
+var GRAND_REVEAL_QUIPS = ["The results are in. Please pretend you weren't just guessing.", "The votes are counted. The wines have been judged. Your confidence was adorable.", "The results are in. Some of you will be smug. Some of you will be quiet. Both are valid.", "Yes, you can bring your glass. You're going to want your glass.", "You tasted blind. You guessed boldly. Now we find out how that went.", "Some of you nailed it. Some of you picked Malbec six times. We'll never tell."];
 function makeQrSvg(data, size) {
   if (typeof window.qrcode !== "function") return "";
   var qr = window.qrcode(0, "M");

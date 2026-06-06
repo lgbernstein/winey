@@ -508,7 +508,7 @@ const GRAND_REVEAL_QUIPS = [
   "The results are in. Please pretend you weren't just guessing.",
   "The votes are counted. The wines have been judged. Your confidence was adorable.",
   "The results are in. Some of you will be smug. Some of you will be quiet. Both are valid.",
-  "Gather round. Yes, you can bring your glass. You're going to want your glass.",
+  "Yes, you can bring your glass. You're going to want your glass.",
   "You tasted blind. You guessed boldly. Now we find out how that went.",
   "Some of you nailed it. Some of you picked Malbec six times. We'll never tell."
 ];
