@@ -485,6 +485,7 @@ let podiumTimer = null;
 let podiumSettleTimer = null;
 let grandStandbyQuip = 0;
 let grandStandbyTimer = null;
+let accuracyAnimated = false;
 let welcomeQuip = 0;
 let welcomeTimer = null;
 
@@ -844,7 +845,7 @@ function consensusGridMarkup(consensus) {
   `;
 }
 
-function renderGroupAccuracyScene(groupAccuracy) {
+function renderGroupAccuracyScene(groupAccuracy, theNumbers) {
   if (!groupAccuracy) {
     return `<div class="reveal-scene-shell reveal-group-accuracy"><p class="reveal-scene-kicker" style="opacity:0.6">Results loading…</p></div>`;
   }
@@ -855,18 +856,94 @@ function renderGroupAccuracyScene(groupAccuracy) {
     : pct >= 0.4
     ? "A respectable showing."
     : "The wines kept their secrets well.";
+
+  // "The night in numbers" band — folded in from the retired The Numbers scene.
+  let numbersBand = "";
+  if (theNumbers) {
+    const stats = [
+      { emoji: "🍷", value: Number(theNumbers.bottleCount) || 0, dec: 0, trail: "", label: "bottles tasted" },
+      { emoji: "📝", value: Number(theNumbers.entryCount) || 0, dec: 0, trail: "", label: "tasting notes" },
+      { emoji: "⭐", value: Number(theNumbers.averageRating) || 0, dec: 1, trail: " / 5", label: "avg rating" }
+    ];
+    numbersBand = `
+      <p class="hdwd-band-label">🥂 The Night in Numbers 🥂</p>
+      <div class="hdwd-numbers">
+        ${stats.map((s) => `
+          <div class="hdwd-stat">
+            <div class="hdwd-stat-emoji">${s.emoji}</div>
+            <p class="hdwd-stat-value"><span data-countup="${s.value}" data-decimals="${s.dec}">${s.value.toFixed(s.dec)}</span>${s.trail}</p>
+            <p class="hdwd-stat-label">${s.label}</p>
+          </div>`).join("")}
+      </div>`;
+  }
+
+  // "Where the room agreed" band — consensus shown as bars instead of bare numbers.
+  let consensusBand = "";
+  if (consensus) {
+    const items = [
+      ["👃", "Aromas", consensus.aromas],
+      ["🍬", "Sweetness", consensus.sweetness],
+      ["⚡", "Acidity", consensus.acidity],
+      ["🌳", "Tannins", consensus.tannins],
+      ["💪", "Body", consensus.body]
+    ];
+    consensusBand = `
+      <p class="hdwd-band-label">🎯 Where the Room Agreed 🎯</p>
+      <div class="hdwd-consensus">
+        ${items.map(([emoji, label, value]) => {
+          const v = Number(value) || 0;
+          return `
+            <div class="hdwd-bar-item">
+              <div class="hdwd-bar-emoji">${emoji}</div>
+              <p class="hdwd-bar-value"><span data-countup="${v}" data-suffix="%">${v}%</span></p>
+              <div class="hdwd-bar-track"><span class="hdwd-bar-fill" data-bar="${v}" style="width:${v}%"></span></div>
+              <p class="hdwd-bar-label">${escapeHtml(label)}</p>
+            </div>`;
+        }).join("")}
+      </div>`;
+  }
+
   return `
     <div class="reveal-scene-shell reveal-group-accuracy">
-      <div class="text-center px-8 max-w-4xl">
-        <div class="reveal-scene-trophy">🎯</div>
-        <p class="reveal-scene-kicker">How Did We Do?</p>
-        <p class="reveal-accuracy-number">${correct} <span class="reveal-accuracy-of">of</span> ${total}</p>
-        <p class="reveal-accuracy-label">grapes correctly identified</p>
-        <p class="reveal-scene-sub mt-6">${comment}</p>
-        ${consensusGridMarkup(consensus)}
+      <div class="hdwd-inner text-center w-full">
+        <div class="hdwd-festive">🍷🎉🏆🎉🍷</div>
+        <p class="reveal-scene-kicker hdwd-kicker">How Did We Do?</p>
+        <p class="reveal-accuracy-number"><span data-countup="${correct}">${correct}</span> <span class="reveal-accuracy-of">of</span> ${total}</p>
+        <p class="reveal-accuracy-label">🍇 grapes correctly identified</p>
+        <p class="reveal-scene-sub hdwd-comment">${comment}</p>
+        ${numbersBand}
+        ${consensusBand}
       </div>
     </div>
   `;
+}
+
+// Count up the numbers (and grow the consensus bars) once when the scene mounts.
+function animateRevealCounts() {
+  const nums = document.querySelectorAll(".reveal-group-accuracy [data-countup]");
+  nums.forEach((el) => {
+    const target = parseFloat(el.getAttribute("data-countup")) || 0;
+    const dec = parseInt(el.getAttribute("data-decimals") || "0", 10);
+    const suffix = el.getAttribute("data-suffix") || "";
+    const dur = 1100;
+    let startTs = null;
+    el.textContent = (0).toFixed(dec) + suffix;
+    const frame = (ts) => {
+      if (startTs === null) startTs = ts;
+      const p = Math.min((ts - startTs) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = (target * eased).toFixed(dec) + suffix;
+      if (p < 1) requestAnimationFrame(frame);
+      else el.textContent = target.toFixed(dec) + suffix;
+    };
+    requestAnimationFrame(frame);
+  });
+  const bars = document.querySelectorAll(".reveal-group-accuracy [data-bar]");
+  bars.forEach((el) => {
+    const target = parseFloat(el.getAttribute("data-bar")) || 0;
+    el.style.width = "0%";
+    requestAnimationFrame(() => { el.style.width = target + "%"; });
+  });
 }
 function renderTheNumbersScene(theNumbers) {
   if (!theNumbers) {
@@ -902,8 +979,9 @@ function renderRevealScene(scene) {
     case "sommelier": return renderSommelierScene(data.sommelier);
     case "podium": return renderPodiumScene(data.podium);
     case "reveal-all": return renderRevealAllScene(data.revealAll);
-    case "group-accuracy": return renderGroupAccuracyScene(data.groupAccuracy);
-    case "the-numbers": return renderTheNumbersScene(data.theNumbers);
+    case "group-accuracy": return renderGroupAccuracyScene(data.groupAccuracy, data.theNumbers);
+    // "the-numbers" was merged into "How Did We Do?"; keep a fallback for any stale state.
+    case "the-numbers": return renderGroupAccuracyScene(data.groupAccuracy, data.theNumbers);
     default: return `<div class="reveal-scene-shell"></div>`;
   }
 }
@@ -1030,8 +1108,7 @@ function hostView() {
               { scene: "podium",         label: "🏆 Crowd Favorites" },
               { scene: "reveal-all",     label: "🍷 Reveal All" },
               { scene: "sommelier",      label: "🏆 The Vine Whisperer" },
-              { scene: "group-accuracy", label: "🎯 How Did We Do?" },
-              { scene: "the-numbers",    label: "📊 The Numbers" }
+              { scene: "group-accuracy", label: "🎯 How Did We Do?" }
             ].map(({ scene, label }) => `
               <button
                 class="reveal-host-btn ${state.bootstrap.revealScene === scene ? "reveal-host-btn-active" : ""}"
@@ -1284,6 +1361,12 @@ function render() {
   } else {
     if (welcomeTimer) { clearInterval(welcomeTimer); welcomeTimer = null; }
     welcomeQuip = 0;
+  }
+  // Count-up + bar-grow on "How Did We Do?" — run once per mount, not on every poll.
+  if (state.view === "tv" && (state.bootstrap.revealScene === "group-accuracy" || state.bootstrap.revealScene === "the-numbers")) {
+    if (!accuracyAnimated) { accuracyAnimated = true; animateRevealCounts(); }
+  } else {
+    accuracyAnimated = false;
   }
 }
 

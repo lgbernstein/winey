@@ -922,6 +922,109 @@ dialog::backdrop {
   @apply text-xl text-amber-100/70 mt-2;
 }
 
+/* ---- How Did We Do? (merged accuracy + numbers + consensus) ---- */
+/* Raise the whole block toward the top and let the bigger content fill down. */
+.reveal-group-accuracy {
+  -webkit-align-items: flex-start;
+  align-items: flex-start;
+  padding-top: 1.5vh;
+  padding-bottom: 1vh;
+}
+.hdwd-inner {
+  max-width: 84rem;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+.hdwd-festive {
+  font-size: 3.2rem;
+  letter-spacing: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.hdwd-kicker {
+  font-size: 1.7rem !important;
+}
+.reveal-group-accuracy .reveal-accuracy-number {
+  font-size: 6.8rem;
+}
+.reveal-group-accuracy .reveal-accuracy-label {
+  font-size: 2rem;
+}
+.reveal-group-accuracy .reveal-scene-sub {
+  font-size: 2.2rem;
+  margin-top: 0.4rem;
+}
+.hdwd-band-label {
+  @apply uppercase tracking-widest;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: rgba(255, 231, 184, 0.78);
+}
+.hdwd-numbers {
+  @apply flex justify-center;
+  gap: 6rem;
+}
+.hdwd-stat {
+  @apply flex flex-col items-center;
+}
+.hdwd-stat-emoji {
+  font-size: 3.2rem;
+  line-height: 1;
+  margin-bottom: 0.4rem;
+}
+.hdwd-stat-value {
+  font-size: 5.8rem;
+  font-weight: 800;
+  color: #ffd77a;
+  line-height: 1;
+}
+.hdwd-stat-label {
+  @apply mt-3 uppercase tracking-wide;
+  font-size: 1.6rem;
+  color: rgba(255, 247, 236, 0.8);
+}
+.hdwd-consensus {
+  @apply flex justify-center items-end;
+  gap: 3.25rem;
+  margin-top: 0.5rem;
+}
+.hdwd-bar-item {
+  @apply flex flex-col items-center;
+  width: 10rem;
+}
+.hdwd-bar-emoji {
+  font-size: 2.6rem;
+  line-height: 1;
+  margin-bottom: 0.35rem;
+}
+.hdwd-bar-value {
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: #ffe7b8;
+  margin-bottom: 0.5rem;
+}
+.hdwd-bar-track {
+  width: 100%;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: rgba(255, 215, 122, 0.16);
+  overflow: hidden;
+}
+.hdwd-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e6aa42, #ffd77a);
+  transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hdwd-bar-label {
+  @apply mt-3 uppercase;
+  font-size: 1.35rem;
+  letter-spacing: 0.05em;
+  color: rgba(255, 247, 236, 0.7);
+}
+
 /* ---- Host reveal sequence panel ---- */
 .reveal-host-buttons {
   @apply flex flex-col gap-3;

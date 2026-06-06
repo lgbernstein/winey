@@ -383,6 +383,7 @@ var podiumTimer = null;
 var podiumSettleTimer = null;
 var grandStandbyQuip = 0;
 var grandStandbyTimer = null;
+var accuracyAnimated = false;
 var welcomeQuip = 0;
 var welcomeTimer = null;
 var WELCOME_QUIPS = [{
@@ -620,7 +621,7 @@ function consensusGridMarkup(consensus) {
   }).join("");
   return "\n    <p style=\"margin-top:2.5rem;text-transform:uppercase;letter-spacing:0.1em;font-size:0.9rem;color:rgba(255,231,184,0.65)\">Where the room agreed</p>\n    <div style=\"margin-top:1.1rem;display:flex;flex-wrap:wrap;justify-content:center;gap:1.5rem 2rem\">".concat(stats, "</div>\n  ");
 }
-function renderGroupAccuracyScene(groupAccuracy) {
+function renderGroupAccuracyScene(groupAccuracy, theNumbers) {
   if (!groupAccuracy) {
     return "<div class=\"reveal-scene-shell reveal-group-accuracy\"><p class=\"reveal-scene-kicker\" style=\"opacity:0.6\">Results loading\u2026</p></div>";
   }
@@ -629,7 +630,77 @@ function renderGroupAccuracyScene(groupAccuracy) {
     consensus = groupAccuracy.consensus;
   var pct = total > 0 ? correct / total : 0;
   var comment = pct >= 0.7 ? "Impressive palates in this room." : pct >= 0.4 ? "A respectable showing." : "The wines kept their secrets well.";
-  return "\n    <div class=\"reveal-scene-shell reveal-group-accuracy\">\n      <div class=\"text-center px-8 max-w-4xl\">\n        <div class=\"reveal-scene-trophy\">\uD83C\uDFAF</div>\n        <p class=\"reveal-scene-kicker\">How Did We Do?</p>\n        <p class=\"reveal-accuracy-number\">".concat(correct, " <span class=\"reveal-accuracy-of\">of</span> ").concat(total, "</p>\n        <p class=\"reveal-accuracy-label\">grapes correctly identified</p>\n        <p class=\"reveal-scene-sub mt-6\">").concat(comment, "</p>\n        ").concat(consensusGridMarkup(consensus), "\n      </div>\n    </div>\n  ");
+
+  // "The night in numbers" band — folded in from the retired The Numbers scene.
+  var numbersBand = "";
+  if (theNumbers) {
+    var stats = [{
+      emoji: "🍷",
+      value: Number(theNumbers.bottleCount) || 0,
+      dec: 0,
+      trail: "",
+      label: "bottles tasted"
+    }, {
+      emoji: "📝",
+      value: Number(theNumbers.entryCount) || 0,
+      dec: 0,
+      trail: "",
+      label: "tasting notes"
+    }, {
+      emoji: "⭐",
+      value: Number(theNumbers.averageRating) || 0,
+      dec: 1,
+      trail: " / 5",
+      label: "avg rating"
+    }];
+    numbersBand = "\n      <p class=\"hdwd-band-label\">\uD83E\uDD42 The Night in Numbers \uD83E\uDD42</p>\n      <div class=\"hdwd-numbers\">\n        ".concat(stats.map(function (s) {
+      return "\n          <div class=\"hdwd-stat\">\n            <div class=\"hdwd-stat-emoji\">".concat(s.emoji, "</div>\n            <p class=\"hdwd-stat-value\"><span data-countup=\"").concat(s.value, "\" data-decimals=\"").concat(s.dec, "\">").concat(s.value.toFixed(s.dec), "</span>").concat(s.trail, "</p>\n            <p class=\"hdwd-stat-label\">").concat(s.label, "</p>\n          </div>");
+    }).join(""), "\n      </div>");
+  }
+
+  // "Where the room agreed" band — consensus shown as bars instead of bare numbers.
+  var consensusBand = "";
+  if (consensus) {
+    var items = [["👃", "Aromas", consensus.aromas], ["🍬", "Sweetness", consensus.sweetness], ["⚡", "Acidity", consensus.acidity], ["🌳", "Tannins", consensus.tannins], ["💪", "Body", consensus.body]];
+    consensusBand = "\n      <p class=\"hdwd-band-label\">\uD83C\uDFAF Where the Room Agreed \uD83C\uDFAF</p>\n      <div class=\"hdwd-consensus\">\n        ".concat(items.map(function (_ref7) {
+      var _ref8 = _slicedToArray(_ref7, 3),
+        emoji = _ref8[0],
+        label = _ref8[1],
+        value = _ref8[2];
+      var v = Number(value) || 0;
+      return "\n            <div class=\"hdwd-bar-item\">\n              <div class=\"hdwd-bar-emoji\">".concat(emoji, "</div>\n              <p class=\"hdwd-bar-value\"><span data-countup=\"").concat(v, "\" data-suffix=\"%\">").concat(v, "%</span></p>\n              <div class=\"hdwd-bar-track\"><span class=\"hdwd-bar-fill\" data-bar=\"").concat(v, "\" style=\"width:").concat(v, "%\"></span></div>\n              <p class=\"hdwd-bar-label\">").concat(escapeHtml(label), "</p>\n            </div>");
+    }).join(""), "\n      </div>");
+  }
+  return "\n    <div class=\"reveal-scene-shell reveal-group-accuracy\">\n      <div class=\"hdwd-inner text-center w-full\">\n        <div class=\"hdwd-festive\">\uD83C\uDF77\uD83C\uDF89\uD83C\uDFC6\uD83C\uDF89\uD83C\uDF77</div>\n        <p class=\"reveal-scene-kicker hdwd-kicker\">How Did We Do?</p>\n        <p class=\"reveal-accuracy-number\"><span data-countup=\"".concat(correct, "\">").concat(correct, "</span> <span class=\"reveal-accuracy-of\">of</span> ").concat(total, "</p>\n        <p class=\"reveal-accuracy-label\">\uD83C\uDF47 grapes correctly identified</p>\n        <p class=\"reveal-scene-sub hdwd-comment\">").concat(comment, "</p>\n        ").concat(numbersBand, "\n        ").concat(consensusBand, "\n      </div>\n    </div>\n  ");
+}
+
+// Count up the numbers (and grow the consensus bars) once when the scene mounts.
+function animateRevealCounts() {
+  var nums = document.querySelectorAll(".reveal-group-accuracy [data-countup]");
+  nums.forEach(function (el) {
+    var target = parseFloat(el.getAttribute("data-countup")) || 0;
+    var dec = parseInt(el.getAttribute("data-decimals") || "0", 10);
+    var suffix = el.getAttribute("data-suffix") || "";
+    var dur = 1100;
+    var startTs = null;
+    el.textContent = 0 .toFixed(dec) + suffix;
+    var _frame = function frame(ts) {
+      if (startTs === null) startTs = ts;
+      var p = Math.min((ts - startTs) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = (target * eased).toFixed(dec) + suffix;
+      if (p < 1) requestAnimationFrame(_frame);else el.textContent = target.toFixed(dec) + suffix;
+    };
+    requestAnimationFrame(_frame);
+  });
+  var bars = document.querySelectorAll(".reveal-group-accuracy [data-bar]");
+  bars.forEach(function (el) {
+    var target = parseFloat(el.getAttribute("data-bar")) || 0;
+    el.style.width = "0%";
+    requestAnimationFrame(function () {
+      el.style.width = target + "%";
+    });
+  });
 }
 function renderTheNumbersScene(theNumbers) {
   if (!theNumbers) {
@@ -663,9 +734,10 @@ function renderRevealScene(scene) {
     case "reveal-all":
       return renderRevealAllScene(data.revealAll);
     case "group-accuracy":
-      return renderGroupAccuracyScene(data.groupAccuracy);
+      return renderGroupAccuracyScene(data.groupAccuracy, data.theNumbers);
+    // "the-numbers" was merged into "How Did We Do?"; keep a fallback for any stale state.
     case "the-numbers":
-      return renderTheNumbersScene(data.theNumbers);
+      return renderGroupAccuracyScene(data.groupAccuracy, data.theNumbers);
     default:
       return "<div class=\"reveal-scene-shell\"></div>";
   }
@@ -716,12 +788,9 @@ function hostView() {
   }, {
     scene: "group-accuracy",
     label: "🎯 How Did We Do?"
-  }, {
-    scene: "the-numbers",
-    label: "📊 The Numbers"
-  }].map(function (_ref7) {
-    var scene = _ref7.scene,
-      label = _ref7.label;
+  }].map(function (_ref9) {
+    var scene = _ref9.scene,
+      label = _ref9.label;
     return "\n              <button\n                class=\"reveal-host-btn ".concat(state.bootstrap.revealScene === scene ? "reveal-host-btn-active" : "", "\"\n                data-reveal-scene=\"").concat(scene, "\"\n                type=\"button\"\n              >").concat(label, "</button>\n            ");
   }).join(""), "\n            ").concat(state.bootstrap.revealScene === "reveal-all" ? "\n              <div class=\"reveal-all-controls\">\n                <button class=\"reveal-all-btn\" data-reveal-all-step=\"prev\">\u2190 Prev</button>\n                <span class=\"reveal-all-counter\">".concat(function (_state$revealData2) {
     var total = (((_state$revealData2 = state.revealData) === null || _state$revealData2 === void 0 ? void 0 : _state$revealData2.revealAll) || state.reveal || []).length;
@@ -877,18 +946,27 @@ function render() {
     }
     welcomeQuip = 0;
   }
+  // Count-up + bar-grow on "How Did We Do?" — run once per mount, not on every poll.
+  if (state.view === "tv" && (state.bootstrap.revealScene === "group-accuracy" || state.bootstrap.revealScene === "the-numbers")) {
+    if (!accuracyAnimated) {
+      accuracyAnimated = true;
+      animateRevealCounts();
+    }
+  } else {
+    accuracyAnimated = false;
+  }
 }
 function refresh() {
   return _refresh.apply(this, arguments);
 }
 function _refresh() {
   _refresh = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
-    var _ref10,
-      _ref10$photos,
+    var _ref12,
+      _ref12$photos,
       photos,
-      _ref10$reveal,
+      _ref12$reveal,
       reveal,
-      _ref10$host,
+      _ref12$host,
       host,
       _yield$Promise$all,
       _yield$Promise$all2,
@@ -896,7 +974,7 @@ function _refresh() {
     return _regenerator().w(function (_context4) {
       while (1) switch (_context4.n) {
         case 0:
-          _ref10 = _args4.length > 0 && _args4[0] !== undefined ? _args4[0] : {}, _ref10$photos = _ref10.photos, photos = _ref10$photos === void 0 ? false : _ref10$photos, _ref10$reveal = _ref10.reveal, reveal = _ref10$reveal === void 0 ? false : _ref10$reveal, _ref10$host = _ref10.host, host = _ref10$host === void 0 ? false : _ref10$host;
+          _ref12 = _args4.length > 0 && _args4[0] !== undefined ? _args4[0] : {}, _ref12$photos = _ref12.photos, photos = _ref12$photos === void 0 ? false : _ref12$photos, _ref12$reveal = _ref12.reveal, reveal = _ref12$reveal === void 0 ? false : _ref12$reveal, _ref12$host = _ref12.host, host = _ref12$host === void 0 ? false : _ref12$host;
           _context4.n = 1;
           return api("/api/bootstrap");
         case 1:
@@ -945,9 +1023,9 @@ function palatePayload(form) {
   return Object.fromEntries(Object.keys(state.bootstrap.tastingGrid.palate).map(function (metric) {
     var _form$querySelector;
     return [metric, (_form$querySelector = form.querySelector("[name=\"palate-".concat(metric, "\"]:checked"))) === null || _form$querySelector === void 0 ? void 0 : _form$querySelector.value];
-  }).filter(function (_ref8) {
-    var _ref9 = _slicedToArray(_ref8, 2),
-      value = _ref9[1];
+  }).filter(function (_ref0) {
+    var _ref1 = _slicedToArray(_ref0, 2),
+      value = _ref1[1];
     return value;
   }));
 }
@@ -1483,7 +1561,7 @@ function drawCharts(id) {
   }));
 }
 document.addEventListener("click", /*#__PURE__*/function () {
-  var _ref0 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
+  var _ref10 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
     var _event$target$closest, _event$target$closest2, _event$target$closest3;
     var deletePhotoEl, id, view, editId, eventState, revealAllStepEl, action, editGuestEl, saveGuestEl, _id, input, revealSceneEl, scene, pourEl, raw, bagNumber, _input, names, _t, _t2, _t3, _t4, _t5;
     return _regenerator().w(function (_context) {
@@ -1847,7 +1925,7 @@ document.addEventListener("click", /*#__PURE__*/function () {
     }, _callee, null, [[34, 36], [28, 31], [18, 20], [9, 11], [1, 4]]);
   }));
   return function (_x0) {
-    return _ref0.apply(this, arguments);
+    return _ref10.apply(this, arguments);
   };
 }());
 document.addEventListener("change", function (event) {
