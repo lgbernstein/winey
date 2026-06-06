@@ -642,8 +642,19 @@ dialog::backdrop {
 .reveal-sommelier-name {
   @apply text-6xl font-bold text-amber-300 mt-2 leading-tight;
 }
+.sommelier-festive {
+  font-size: 3rem;
+  letter-spacing: 0.5rem;
+  margin-bottom: 1rem;
+}
 .reveal-podium {
   @apply flex-col items-center pt-8 w-full px-6;
+}
+.podium-festive {
+  @apply uppercase tracking-widest text-amber-300;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 1.25rem;
 }
 .podium-rows {
   @apply flex flex-col gap-5 w-full max-w-5xl;
@@ -784,6 +795,11 @@ dialog::backdrop {
 .grand-standby {
   @apply flex-col items-center justify-center text-center px-8;
   min-height: 85vh;
+}
+.grand-standby-festive {
+  font-size: 3rem;
+  letter-spacing: 0.5rem;
+  margin-bottom: 1.25rem;
 }
 .grand-standby-glass {
   @apply mb-8;

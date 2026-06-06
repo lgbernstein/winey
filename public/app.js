@@ -556,10 +556,11 @@ function renderGrandRevealStandby() {
   const quip = GRAND_REVEAL_QUIPS[grandStandbyQuip % GRAND_REVEAL_QUIPS.length];
   return `
     <div class="reveal-scene-shell grand-standby">
+      <div class="grand-standby-festive">🍷🎉🏆🎉🍷</div>
       <div class="grand-standby-glass">🍷</div>
       <h1 class="grand-standby-title">The Grand Reveal</h1>
       <p class="grand-standby-quip">${escapeHtml(quip)}</p>
-      <p class="grand-standby-cue">Grab a glass and gather round…</p>
+      <p class="grand-standby-cue">🥂 Grab a glass and gather round… 🥂</p>
     </div>
   `;
 }
@@ -744,9 +745,10 @@ function renderSommelierScene(sommelier) {
   return `
     <div class="reveal-scene-shell reveal-sommelier">
       <div class="reveal-sommelier-inner">
+        <div class="sommelier-festive">🎉🍷🏆🍷🎉</div>
         <div class="reveal-scene-trophy">🏆</div>
         <p class="reveal-scene-kicker">The Vine Whisperer</p>
-        <h2 class="reveal-sommelier-name">${hasWinner ? winnerText : "No correct guesses"}</h2>
+        <h2 class="reveal-sommelier-name">${hasWinner ? "👑 " + winnerText + " 👑" : "No correct guesses"}</h2>
         <p class="reveal-scene-sub">${subtextBase}</p>
       </div>
     </div>
@@ -773,7 +775,7 @@ function renderPodiumScene(podium) {
     return `
       <div class="podium-row ${isLanded ? "podium-row-landed" : (isAnimating ? "podium-row-visible" : "")}">
         <div class="podium-row-rank">
-          <span class="podium-row-medal">&#127942;</span>
+          <span class="podium-row-medal">${bottle.rank === 1 ? "🥇" : bottle.rank === 2 ? "🥈" : bottle.rank === 3 ? "🥉" : "🏅"}</span>
           <span class="podium-row-sleeve">#${bottle.bagNumber}</span>
         </div>
         <div class="podium-row-body">
@@ -791,6 +793,7 @@ function renderPodiumScene(podium) {
   });
   return `
     <div class="reveal-scene-shell reveal-podium">
+      <p class="podium-festive">🎉🏆 Crowd Favorites 🏆🎉</p>
       <div class="podium-rows">${rows.join("")}</div>
     </div>
   `;
@@ -813,10 +816,10 @@ function renderRevealAllScene(revealAll) {
       <div class="reveal-one-card" key="${bottle.bagNumber}">
         ${photo}
         <div class="reveal-one-info">
-          <p class="reveal-one-sleeve">Sleeve #${bottle.bagNumber}</p>
+          <p class="reveal-one-sleeve">🍷 Sleeve #${bottle.bagNumber}</p>
           <h2 class="reveal-one-name">${escapeHtml(bottle.bottleName || `Sleeve ${bottle.bagNumber}`)}</h2>
           ${meta ? `<p class="reveal-one-meta">${escapeHtml(meta)}</p>` : ""}
-          ${bottle.grape ? `<p class="reveal-one-grape">${escapeHtml(bottle.grape)}</p>` : ""}
+          ${bottle.grape ? `<p class="reveal-one-grape">🍇 ${escapeHtml(bottle.grape)}</p>` : ""}
           <p class="reveal-one-progress">${step + 1} of ${total}</p>
         </div>
       </div>
