@@ -306,7 +306,7 @@ function render() {
   const inputSection = alreadyRated
     ? ''
     : fieldButton("grape", "Grape guess", grapeLabel(), "Guess the grape") +
-      '<div class="tight-group"><div class="chip-row">' + noseChips + '</div></div>' +
+      '<div class="tight-group"><span class="palate-metric">Aromas</span><div class="chip-row">' + noseChips + '</div></div>' +
       '<div class="tight-group">' + palateRows + '</div>' +
       '<div class="tight-group"><label class="legend tight-legend">Your rating</label><div class="stars">' + starsHtml + '</div></div>' +
       '<button type="submit" class="save-btn"' + (canSubmit ? '' : ' disabled') + '>' + (state.submitting ? 'Saving…' : 'Save tasting') + '</button>';
