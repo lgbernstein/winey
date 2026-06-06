@@ -48,17 +48,6 @@ input, textarea, select {
 #main {
   -webkit-flex: 1 1 auto;
   flex: 1 1 auto;
-  display: -webkit-flex;
-  display: flex;
-  -webkit-flex-direction: column;
-  flex-direction: column;
-}
-
-#main form {
-  display: -webkit-flex;
-  display: flex;
-  -webkit-flex-direction: column;
-  flex-direction: column;
 }
 
 .tight-group {
