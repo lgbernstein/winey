@@ -35,7 +35,7 @@ var state = {
   host: null,
   selectedGuestId: localStorage.getItem("wineGuestId") || "",
   starRating: 0,
-  view: queryParam("view") === "tv" ? "tv" : "taste",
+  view: ["tv", "album", "host", "taste"].includes(queryParam("view")) ? queryParam("view") : "taste",
   editBottleId: null,
   labelScanPending: false,
   lastLabelScan: null,
