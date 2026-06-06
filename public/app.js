@@ -482,6 +482,7 @@ function revealedBottleMarkup(bottle) {
 let revealFlipDone = false;
 let podiumStep = 0;
 let podiumTimer = null;
+let podiumSettleTimer = null;
 let grandStandbyQuip = 0;
 let grandStandbyTimer = null;
 let welcomeQuip = 0;
@@ -728,6 +729,9 @@ function renderTvHero() {
 }
 
 function renderSommelierScene(sommelier) {
+  if (!sommelier) {
+    return `<div class="reveal-scene-shell reveal-sommelier"><p class="reveal-scene-kicker" style="opacity:0.6">Results loading…</p></div>`;
+  }
   const { winners, correctCount, totalBottles } = sommelier;
   const hasWinner = correctCount > 0;
   const winnerText = winners.length === 1
@@ -748,6 +752,9 @@ function renderSommelierScene(sommelier) {
   `;
 }
 function renderPodiumScene(podium) {
+  if (!podium || !podium.length) {
+    return `<div class="reveal-scene-shell reveal-podium"><p class="reveal-scene-kicker" style="opacity:0.6">Ratings coming in — check back soon.</p></div>`;
+  }
   // Top to bottom, 1st → 2nd → 3rd; each row rises in starting with #1.
   const ordered = [...podium].sort((a, b) => a.rank - b.rank);
   const rows = ordered.map((bottle, i) => {
@@ -788,6 +795,9 @@ function renderPodiumScene(podium) {
   `;
 }
 function renderRevealAllScene(revealAll) {
+  if (!revealAll || !revealAll.length) {
+    return `<div class="reveal-scene-shell"><p class="reveal-scene-kicker">The Wines</p><p class="reveal-scene-sub" style="opacity:0.6">No bottles to display yet.</p></div>`;
+  }
   const sorted = [...revealAll].sort((a, b) => a.bagNumber - b.bagNumber);
   const step = Math.min(state.bootstrap.revealAllStep || 0, sorted.length - 1);
   const bottle = sorted[step];
@@ -835,6 +845,9 @@ function consensusGridMarkup(consensus) {
 }
 
 function renderGroupAccuracyScene(groupAccuracy) {
+  if (!groupAccuracy) {
+    return `<div class="reveal-scene-shell reveal-group-accuracy"><p class="reveal-scene-kicker" style="opacity:0.6">Results loading…</p></div>`;
+  }
   const { correct, total, consensus } = groupAccuracy;
   const pct = total > 0 ? correct / total : 0;
   const comment = pct >= 0.7
@@ -856,6 +869,9 @@ function renderGroupAccuracyScene(groupAccuracy) {
   `;
 }
 function renderTheNumbersScene(theNumbers) {
+  if (!theNumbers) {
+    return `<div class="reveal-scene-shell reveal-the-numbers"><p class="reveal-scene-kicker" style="opacity:0.6">Results loading…</p></div>`;
+  }
   const { bottleCount, entryCount, averageRating } = theNumbers;
   const stats = [
     { value: bottleCount, label: "bottles tasted" },
@@ -1228,21 +1244,28 @@ function render() {
     revealFlipDone = false;
   }
   if (state.view === "tv" && state.bootstrap.revealScene === "podium") {
-    if (!podiumTimer && podiumStep < 3) {
+    const podiumLength = (state.revealData?.podium?.length) || 3;
+    if (!podiumTimer && podiumStep < podiumLength) {
       podiumTimer = setInterval(() => {
         podiumStep++;
         render();
-        if (podiumStep >= 3) {
+        if (podiumStep >= podiumLength) {
           clearInterval(podiumTimer);
           podiumTimer = null;
           // After the last card's animation finishes, bump step to 99 so every
           // subsequent re-render treats all rows as "landed" (no animation).
-          setTimeout(() => { podiumStep = 99; }, 900);
+          // Guard: only apply if still on podium scene when callback fires.
+          clearTimeout(podiumSettleTimer);
+          podiumSettleTimer = setTimeout(() => {
+            podiumSettleTimer = null;
+            if (state.bootstrap?.revealScene === "podium") { podiumStep = 99; render(); }
+          }, 900);
         }
       }, 2500);
     }
   } else {
     if (podiumTimer) { clearInterval(podiumTimer); podiumTimer = null; }
+    clearTimeout(podiumSettleTimer); podiumSettleTimer = null;
     if (state.bootstrap.revealScene !== "podium") podiumStep = 0;
   }
   // Rotate the Grand Reveal "gather round" quips while waiting on a scene.
@@ -1582,7 +1605,7 @@ document.addEventListener("click", async (event) => {
       notice(e.message);
       return;
     }
-    await refresh({ host: true });
+    await refresh({ host: true, reveal: true });
     return;
   }
   const pourEl = event.target.closest("[data-pour-sleeve]");
@@ -1704,12 +1727,28 @@ window.addEventListener("resize", () => { if (state.view === "tv") fitTvGrid(); 
 
 setInterval(async () => {
   if (state.view === "tv" && !state.demoBoard) {
-    // Only skip polling during static Grand Reveal scenes (not during live tasting).
     const evState = state.bootstrap?.state;
     const scene = state.bootstrap?.revealScene;
-    if ((evState === "GRAND_REVEAL" || evState === "ARCHIVE") && scene && scene !== "reveal-all") return;
+    // For static reveal scenes, always poll bootstrap so scene transitions are
+    // detected promptly, but skip the heavier reveal-data fetch — data won't
+    // change between host clicks and the poll would be wasted work.
+    const isStaticRevealScene = (evState === "GRAND_REVEAL" || evState === "ARCHIVE") && scene;
     try {
-      await refresh({ reveal: true });
+      if (isStaticRevealScene) {
+        // Lightweight poll: just bootstrap to catch scene changes.
+        state.bootstrap = await api("/api/bootstrap");
+        // If the scene changed (or was cleared), fetch reveal data too.
+        const newScene = state.bootstrap?.revealScene;
+        const newEvState = state.bootstrap?.state;
+        const stillStatic = (newEvState === "GRAND_REVEAL" || newEvState === "ARCHIVE") && newScene;
+        if (!stillStatic || newScene !== scene) {
+          await refresh({ reveal: true });
+        } else {
+          render();
+        }
+      } else {
+        await refresh({ reveal: true });
+      }
       if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
         state.revealData = null;
       }

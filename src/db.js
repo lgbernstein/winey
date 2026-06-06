@@ -212,7 +212,6 @@ export function openWineDb({ dbFile }) {
           FROM wine_bottles b
           LEFT JOIN tasting_entries t ON t.bottle_id = b.id
           GROUP BY b.id
-          HAVING vote_count > 0
           ORDER BY avg_rating DESC, vote_count DESC, b.bag_number ASC
         `).all().filter((row, _i, arr) => {
           // Include all wines that share the top-3 rating levels so ties

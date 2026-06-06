@@ -380,6 +380,7 @@ function revealedBottleMarkup(bottle) {
 var revealFlipDone = false;
 var podiumStep = 0;
 var podiumTimer = null;
+var podiumSettleTimer = null;
 var grandStandbyQuip = 0;
 var grandStandbyTimer = null;
 var welcomeQuip = 0;
@@ -560,6 +561,9 @@ function renderTvHero() {
   }
 }
 function renderSommelierScene(sommelier) {
+  if (!sommelier) {
+    return "<div class=\"reveal-scene-shell reveal-sommelier\"><p class=\"reveal-scene-kicker\" style=\"opacity:0.6\">Results loading\u2026</p></div>";
+  }
   var winners = sommelier.winners,
     correctCount = sommelier.correctCount,
     totalBottles = sommelier.totalBottles;
@@ -569,6 +573,9 @@ function renderSommelierScene(sommelier) {
   return "\n    <div class=\"reveal-scene-shell reveal-sommelier\">\n      <div class=\"reveal-sommelier-inner\">\n        <div class=\"reveal-scene-trophy\">\uD83C\uDFC6</div>\n        <p class=\"reveal-scene-kicker\">The Vine Whisperer</p>\n        <h2 class=\"reveal-sommelier-name\">".concat(hasWinner ? winnerText : "No correct guesses", "</h2>\n        <p class=\"reveal-scene-sub\">").concat(subtextBase, "</p>\n      </div>\n    </div>\n  ");
 }
 function renderPodiumScene(podium) {
+  if (!podium || !podium.length) {
+    return "<div class=\"reveal-scene-shell reveal-podium\"><p class=\"reveal-scene-kicker\" style=\"opacity:0.6\">Ratings coming in \u2014 check back soon.</p></div>";
+  }
   // Top to bottom, 1st → 2nd → 3rd; each row rises in starting with #1.
   var ordered = _toConsumableArray(podium).sort(function (a, b) {
     return a.rank - b.rank;
@@ -586,6 +593,9 @@ function renderPodiumScene(podium) {
   return "\n    <div class=\"reveal-scene-shell reveal-podium\">\n      <div class=\"podium-rows\">".concat(rows.join(""), "</div>\n    </div>\n  ");
 }
 function renderRevealAllScene(revealAll) {
+  if (!revealAll || !revealAll.length) {
+    return "<div class=\"reveal-scene-shell\"><p class=\"reveal-scene-kicker\">The Wines</p><p class=\"reveal-scene-sub\" style=\"opacity:0.6\">No bottles to display yet.</p></div>";
+  }
   var sorted = _toConsumableArray(revealAll).sort(function (a, b) {
     return a.bagNumber - b.bagNumber;
   });
@@ -611,6 +621,9 @@ function consensusGridMarkup(consensus) {
   return "\n    <p style=\"margin-top:2.5rem;text-transform:uppercase;letter-spacing:0.1em;font-size:0.9rem;color:rgba(255,231,184,0.65)\">Where the room agreed</p>\n    <div style=\"margin-top:1.1rem;display:flex;flex-wrap:wrap;justify-content:center;gap:1.5rem 2rem\">".concat(stats, "</div>\n  ");
 }
 function renderGroupAccuracyScene(groupAccuracy) {
+  if (!groupAccuracy) {
+    return "<div class=\"reveal-scene-shell reveal-group-accuracy\"><p class=\"reveal-scene-kicker\" style=\"opacity:0.6\">Results loading\u2026</p></div>";
+  }
   var correct = groupAccuracy.correct,
     total = groupAccuracy.total,
     consensus = groupAccuracy.consensus;
@@ -619,6 +632,9 @@ function renderGroupAccuracyScene(groupAccuracy) {
   return "\n    <div class=\"reveal-scene-shell reveal-group-accuracy\">\n      <div class=\"text-center px-8 max-w-4xl\">\n        <div class=\"reveal-scene-trophy\">\uD83C\uDFAF</div>\n        <p class=\"reveal-scene-kicker\">How Did We Do?</p>\n        <p class=\"reveal-accuracy-number\">".concat(correct, " <span class=\"reveal-accuracy-of\">of</span> ").concat(total, "</p>\n        <p class=\"reveal-accuracy-label\">grapes correctly identified</p>\n        <p class=\"reveal-scene-sub mt-6\">").concat(comment, "</p>\n        ").concat(consensusGridMarkup(consensus), "\n      </div>\n    </div>\n  ");
 }
 function renderTheNumbersScene(theNumbers) {
+  if (!theNumbers) {
+    return "<div class=\"reveal-scene-shell reveal-the-numbers\"><p class=\"reveal-scene-kicker\" style=\"opacity:0.6\">Results loading\u2026</p></div>";
+  }
   var bottleCount = theNumbers.bottleCount,
     entryCount = theNumbers.entryCount,
     averageRating = theNumbers.averageRating;
@@ -799,17 +815,26 @@ function render() {
     revealFlipDone = false;
   }
   if (state.view === "tv" && state.bootstrap.revealScene === "podium") {
-    if (!podiumTimer && podiumStep < 3) {
+    var _state$revealData3;
+    var podiumLength = ((_state$revealData3 = state.revealData) === null || _state$revealData3 === void 0 || (_state$revealData3 = _state$revealData3.podium) === null || _state$revealData3 === void 0 ? void 0 : _state$revealData3.length) || 3;
+    if (!podiumTimer && podiumStep < podiumLength) {
       podiumTimer = setInterval(function () {
         podiumStep++;
         render();
-        if (podiumStep >= 3) {
+        if (podiumStep >= podiumLength) {
           clearInterval(podiumTimer);
           podiumTimer = null;
           // After the last card's animation finishes, bump step to 99 so every
           // subsequent re-render treats all rows as "landed" (no animation).
-          setTimeout(function () {
-            podiumStep = 99;
+          // Guard: only apply if still on podium scene when callback fires.
+          clearTimeout(podiumSettleTimer);
+          podiumSettleTimer = setTimeout(function () {
+            var _state$bootstrap5;
+            podiumSettleTimer = null;
+            if (((_state$bootstrap5 = state.bootstrap) === null || _state$bootstrap5 === void 0 ? void 0 : _state$bootstrap5.revealScene) === "podium") {
+              podiumStep = 99;
+              render();
+            }
           }, 900);
         }
       }, 2500);
@@ -819,6 +844,8 @@ function render() {
       clearInterval(podiumTimer);
       podiumTimer = null;
     }
+    clearTimeout(podiumSettleTimer);
+    podiumSettleTimer = null;
     if (state.bootstrap.revealScene !== "podium") podiumStep = 0;
   }
   // Rotate the Grand Reveal "gather round" quips while waiting on a scene.
@@ -1713,7 +1740,8 @@ document.addEventListener("click", /*#__PURE__*/function () {
         case 37:
           _context.n = 38;
           return refresh({
-            host: true
+            host: true,
+            reveal: true
           });
         case 38:
           return _context.a(2);
@@ -1897,42 +1925,67 @@ window.addEventListener("resize", function () {
   if (state.view === "tv") fitTvGrid();
 });
 setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-  var _state$bootstrap5, _state$bootstrap6, evState, scene, _t6;
+  var _state$bootstrap6, _state$bootstrap7, evState, scene, isStaticRevealScene, _state$bootstrap8, _state$bootstrap9, newScene, newEvState, stillStatic, _t6;
   return _regenerator().w(function (_context2) {
     while (1) switch (_context2.p = _context2.n) {
       case 0:
         if (!(state.view === "tv" && !state.demoBoard)) {
+          _context2.n = 9;
+          break;
+        }
+        evState = (_state$bootstrap6 = state.bootstrap) === null || _state$bootstrap6 === void 0 ? void 0 : _state$bootstrap6.state;
+        scene = (_state$bootstrap7 = state.bootstrap) === null || _state$bootstrap7 === void 0 ? void 0 : _state$bootstrap7.revealScene; // For static reveal scenes, always poll bootstrap so scene transitions are
+        // detected promptly, but skip the heavier reveal-data fetch — data won't
+        // change between host clicks and the poll would be wasted work.
+        isStaticRevealScene = (evState === "GRAND_REVEAL" || evState === "ARCHIVE") && scene;
+        _context2.p = 1;
+        if (!isStaticRevealScene) {
+          _context2.n = 6;
+          break;
+        }
+        _context2.n = 2;
+        return api("/api/bootstrap");
+      case 2:
+        state.bootstrap = _context2.v;
+        // If the scene changed (or was cleared), fetch reveal data too.
+        newScene = (_state$bootstrap8 = state.bootstrap) === null || _state$bootstrap8 === void 0 ? void 0 : _state$bootstrap8.revealScene;
+        newEvState = (_state$bootstrap9 = state.bootstrap) === null || _state$bootstrap9 === void 0 ? void 0 : _state$bootstrap9.state;
+        stillStatic = (newEvState === "GRAND_REVEAL" || newEvState === "ARCHIVE") && newScene;
+        if (!(!stillStatic || newScene !== scene)) {
           _context2.n = 4;
           break;
         }
-        // Only skip polling during static Grand Reveal scenes (not during live tasting).
-        evState = (_state$bootstrap5 = state.bootstrap) === null || _state$bootstrap5 === void 0 ? void 0 : _state$bootstrap5.state;
-        scene = (_state$bootstrap6 = state.bootstrap) === null || _state$bootstrap6 === void 0 ? void 0 : _state$bootstrap6.revealScene;
-        if (!((evState === "GRAND_REVEAL" || evState === "ARCHIVE") && scene && scene !== "reveal-all")) {
-          _context2.n = 1;
-          break;
-        }
-        return _context2.a(2);
-      case 1:
-        _context2.p = 1;
-        _context2.n = 2;
+        _context2.n = 3;
         return refresh({
           reveal: true
         });
-      case 2:
+      case 3:
+        _context2.n = 5;
+        break;
+      case 4:
+        render();
+      case 5:
+        _context2.n = 7;
+        break;
+      case 6:
+        _context2.n = 7;
+        return refresh({
+          reveal: true
+        });
+      case 7:
         if (!["GRAND_REVEAL", "ARCHIVE"].includes(state.bootstrap.state)) {
           state.revealData = null;
         }
-        _context2.n = 4;
+        _context2.n = 9;
         break;
-      case 3:
-        _context2.p = 3;
+      case 8:
+        _context2.p = 8;
         _t6 = _context2.v;
         console.error("TV refresh failed:", _t6);
-      case 4:
+      case 9:
         return _context2.a(2);
     }
-  }, _callee2, null, [[1, 3]]);
+  }, _callee2, null, [[1, 8]]);
 })), 2000);
 
 // --- Wine trivia banner (TV view only) ---
