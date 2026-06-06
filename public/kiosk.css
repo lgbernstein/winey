@@ -50,6 +50,19 @@ input, textarea, select {
   flex: 1 1 auto;
 }
 
+/* 12.9" iPad Pro (1024px wide portrait — unique among iPads): center the
+   form vertically so the tall screen doesn't leave a gap at the bottom. */
+@media (min-width: 1024px) {
+  #main {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-justify-content: center;
+    justify-content: center;
+  }
+}
+
 .tight-group {
   margin-bottom: 14px;
 }
