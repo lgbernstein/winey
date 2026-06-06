@@ -50,17 +50,17 @@ input, textarea, select {
   flex: 1 1 auto;
 }
 
-/* 12.9" iPad Pro (1024px wide portrait — unique among iPads): center the
-   form vertically so the tall screen doesn't leave a gap at the bottom. */
-@media (min-width: 1024px) {
-  #main {
-    display: -webkit-flex;
-    display: flex;
-    -webkit-flex-direction: column;
-    flex-direction: column;
-    -webkit-justify-content: center;
-    justify-content: center;
-  }
+/* White/amber uppercase section header for Aromas & Rating — matches the
+   palate metric headers (Sweetness, Body…) without the flex sizing that
+   collapsed the layout on iOS 9. */
+.section-head {
+  display: block;
+  margin-bottom: 8px;
+  color: rgba(255, 215, 122, 0.95);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
 .tight-group {
@@ -699,7 +699,7 @@ button.ghost {
   border-radius: 10px;
   color: #ffd77a;
   font-family: inherit;
-  font-size: 17px;
+  font-size: 21px;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
@@ -716,8 +716,8 @@ button.ghost {
 
 .modal-item .hint {
   display: block;
-  margin-top: 2px;
-  font-size: 13px;
+  margin-top: 3px;
+  font-size: 16px;
   font-weight: 500;
   color: rgba(255, 215, 122, 0.65);
 }
@@ -755,4 +755,36 @@ button.ghost {
 @media (max-width: 480px) {
   .now-pouring .sleeve { font-size: 54px; }
   header h1 { font-size: 18px; }
+}
+
+/* 12.9" iPad Pro (1024px wide portrait — unique among iPads): stretch the
+   form to fill the tall screen with even gaps, and scale everything up.
+   Placed last so these rules win over the 680px block. */
+@media (min-width: 1024px) {
+  #main {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+  }
+  #main form {
+    -webkit-flex: 1 1 auto;
+    flex: 1 1 auto;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+  }
+
+  /* Scale everything up for the large screen */
+  .kiosk-title { font-size: 30px; }
+  .field-group .legend { font-size: 18px; }
+  .section-head { font-size: 22px; }
+  .palate-metric { font-size: 22px; }
+  .field-button { font-size: 24px; min-height: 82px; padding: 22px 22px; }
+  .chip { font-size: 22px; min-height: 72px; }
+  .stars button { min-height: 120px; font-size: 56px; }
+  .save-btn { font-size: 28px; min-height: 100px; padding: 24px; }
 }
