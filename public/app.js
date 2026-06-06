@@ -417,7 +417,7 @@ function albumView() {
         <h2 class="screen-title">Photos from the evening</h2>
       </div>
       <form id="photo-form" class="grid gap-2 sm:grid-cols-[1fr_auto]">
-        <input class="field file:mr-3 file:rounded-md file:border-0 file:bg-emerald-300 file:px-3 file:py-2 file:font-semibold file:text-stone-950" type="file" name="photo" accept="image/*" capture="environment" required>
+        <input class="field file:mr-3 file:rounded-md file:border-0 file:bg-emerald-300 file:px-3 file:py-2 file:font-semibold file:text-stone-950" type="file" name="photo" accept="image/*" required>
         <button class="tap-primary" type="submit">Upload</button>
       </form>
     </div>

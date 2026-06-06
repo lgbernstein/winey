@@ -351,7 +351,7 @@ function photosMarkup() {
   }).join(""), "</div>");
 }
 function albumView() {
-  return panel("\n    <div class=\"mb-5 grid gap-4 md:grid-cols-[1fr_auto] md:items-end\">\n      <div>\n        <p class=\"kicker\">Shared album</p>\n        <h2 class=\"screen-title\">Photos from the evening</h2>\n      </div>\n      <form id=\"photo-form\" class=\"grid gap-2 sm:grid-cols-[1fr_auto]\">\n        <input class=\"field file:mr-3 file:rounded-md file:border-0 file:bg-emerald-300 file:px-3 file:py-2 file:font-semibold file:text-stone-950\" type=\"file\" name=\"photo\" accept=\"image/*\" capture=\"environment\" required>\n        <button class=\"tap-primary\" type=\"submit\">Upload</button>\n      </form>\n    </div>\n    ".concat(photosMarkup(), "\n  "));
+  return panel("\n    <div class=\"mb-5 grid gap-4 md:grid-cols-[1fr_auto] md:items-end\">\n      <div>\n        <p class=\"kicker\">Shared album</p>\n        <h2 class=\"screen-title\">Photos from the evening</h2>\n      </div>\n      <form id=\"photo-form\" class=\"grid gap-2 sm:grid-cols-[1fr_auto]\">\n        <input class=\"field file:mr-3 file:rounded-md file:border-0 file:bg-emerald-300 file:px-3 file:py-2 file:font-semibold file:text-stone-950\" type=\"file\" name=\"photo\" accept=\"image/*\" required>\n        <button class=\"tap-primary\" type=\"submit\">Upload</button>\n      </form>\n    </div>\n    ".concat(photosMarkup(), "\n  "));
 }
 function boardMarkup(items) {
   if (!items.length) return "<p class=\"rounded-md bg-stone-950/45 p-5 text-amber-50/75\">Host check-in will put numbered sleeves on the board.</p>";
