@@ -1247,7 +1247,7 @@ function render() {
   // Rotate the Grand Reveal "gather round" quips while waiting on a scene.
   if (state.view === "tv" && state.bootstrap.state === "GRAND_REVEAL" && !state.bootstrap.revealScene) {
     if (!grandStandbyTimer) {
-      grandStandbyTimer = setInterval(() => { grandStandbyQuip++; render(); }, 10000);
+      grandStandbyTimer = setInterval(() => { grandStandbyQuip++; render(); }, 15000);
     }
   } else {
     if (grandStandbyTimer) { clearInterval(grandStandbyTimer); grandStandbyTimer = null; }
