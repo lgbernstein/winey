@@ -10,6 +10,11 @@ try {
   }
 } catch (e) { /* unsupported, fall through */ }
 
+function isIPad() {
+  return /iPad/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
 function armNoSleep() {
   if (!noSleep || noSleepArmed) return;
   noSleepArmed = true;
@@ -321,7 +326,7 @@ function render() {
       repeatBanner +
       inputSection +
     '</form>' +
-    '<a href="/?view=album" target="_blank" class="photo-link">📸 Share a photo from the evening</a>';
+    (isIPad() ? '' : '<a href="/?view=album" target="_blank" class="photo-link">📸 Share a photo from the evening</a>');
   paintModal();
 }
 

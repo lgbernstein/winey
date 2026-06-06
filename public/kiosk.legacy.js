@@ -14,6 +14,9 @@ try {
     noSleep = new NoSleep();
   }
 } catch (e) {/* unsupported, fall through */}
+function isIPad() {
+  return /iPad/.test(navigator.userAgent) || navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+}
 function armNoSleep() {
   if (!noSleep || noSleepArmed) return;
   noSleepArmed = true;
@@ -395,7 +398,7 @@ function render() {
   // When this taster has already rated this sleeve, lock the form: no grape,
   // aromas, palate, rating, or save — just the prominent banner and Clear.
   var inputSection = alreadyRated ? '' : fieldButton("grape", "Grape guess", grapeLabel(), "Guess the grape") + '<div class="tight-group"><span class="palate-metric" style="display:block;color:rgba(255,215,122,0.95);text-transform:uppercase">Aromas</span><div class="chip-row">' + noseChips + '</div></div>' + '<div class="tight-group">' + palateRows + '</div>' + '<div class="tight-group"><span class="palate-metric" style="display:block;color:rgba(255,215,122,0.95);text-transform:uppercase">Rating</span><div class="stars">' + starsHtml + '</div></div>' + '<button type="submit" class="save-btn"' + (canSubmit ? '' : ' disabled') + '>' + (state.submitting ? 'Saving…' : 'Save tasting') + '</button>';
-  main.innerHTML = (b.nowPouring ? '<div class="now-pouring"><div class="label">Now pouring</div><div class="sleeve">#' + b.nowPouring + '</div></div>' : '') + '<form id="form" autocomplete="off">' + fieldButton("taster", "Taster", guestLabel(), "Pick your name") + fieldButton("sleeve", "Sleeve", sleeveLabel(), "Pick a sleeve") + repeatBanner + inputSection + '</form>' + '<a href="/?view=album" target="_blank" class="photo-link">📸 Share a photo from the evening</a>';
+  main.innerHTML = (b.nowPouring ? '<div class="now-pouring"><div class="label">Now pouring</div><div class="sleeve">#' + b.nowPouring + '</div></div>' : '') + '<form id="form" autocomplete="off">' + fieldButton("taster", "Taster", guestLabel(), "Pick your name") + fieldButton("sleeve", "Sleeve", sleeveLabel(), "Pick a sleeve") + repeatBanner + inputSection + '</form>' + (isIPad() ? '' : '<a href="/?view=album" target="_blank" class="photo-link">📸 Share a photo from the evening</a>');
   paintModal();
 }
 function paintModal() {
