@@ -5,25 +5,16 @@ import { DatabaseSync } from "node:sqlite";
 export const EVENT_STATES = ["REGISTRATION", "LIVE_TASTING", "GRAND_REVEAL", "ARCHIVE"];
 export const GRAPES = [
   { name: "Cabernet Sauvignon", appellations: "Napa, Bordeaux blend" },
-  { name: "Cabernet Franc", appellations: "Loire, Bordeaux blend" },
   { name: "Merlot", appellations: "Pomerol, Saint-Émilion" },
   { name: "Pinot Noir", appellations: "Burgundy, Sancerre Rouge" },
   { name: "Syrah / Shiraz", appellations: "Hermitage, Barossa" },
   { name: "Malbec", appellations: "Mendoza, Cahors" },
   { name: "Zinfandel", appellations: "California" },
-  { name: "Sangiovese", appellations: "Chianti, Brunello" },
-  { name: "Nebbiolo", appellations: "Barolo, Barbaresco" },
-  { name: "Tempranillo", appellations: "Rioja, Ribera del Duero" },
-  { name: "Grenache", appellations: "Châteauneuf-du-Pape, Priorat" },
   { name: "Chardonnay", appellations: "Burgundy, Chablis" },
   { name: "Sauvignon Blanc", appellations: "Sancerre, Marlborough" },
-  { name: "Riesling", appellations: "Mosel, Alsace" },
   { name: "Pinot Gris / Grigio", appellations: "Alsace, Veneto" },
-  { name: "Chenin Blanc", appellations: "Vouvray, South Africa" },
-  { name: "Gewürztraminer", appellations: "Alsace" },
   { name: "Red blend", appellations: "" },
   { name: "White blend", appellations: "" },
-  { name: "Rosé", appellations: "Provence" },
   { name: "Not sure", appellations: "" }
 ];
 
