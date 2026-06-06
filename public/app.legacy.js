@@ -347,7 +347,7 @@ function tasteView() {
 function photosMarkup() {
   if (!state.photos.length) return "<p class=\"rounded-md border border-amber-100/15 bg-stone-950/40 p-5 text-amber-50/75\">The shared album is waiting for the first party photo.</p>";
   return "<div class=\"grid gap-3 sm:grid-cols-2 lg:grid-cols-3\">".concat(state.photos.map(function (photo) {
-    return "\n    <figure class=\"relative overflow-hidden rounded-lg border border-amber-100/15 bg-stone-950/55\">\n      <button class=\"absolute top-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-stone-950/70 text-amber-100 hover:bg-rose-900/80\" data-delete-photo=\"".concat(photo.id, "\" title=\"Delete photo\">\u2715</button>\n      <img class=\"aspect-[4/3] w-full object-cover\" src=\"").concat(escapeHtml(photo.storageUrl), "\" alt=\"Party photo uploaded by ").concat(escapeHtml(photo.displayName), "\">\n      <figcaption class=\"px-3 py-2 text-sm text-amber-50/80\">").concat(escapeHtml(photo.displayName), "</figcaption>\n    </figure>\n  ");
+    return "\n    <figure class=\"relative overflow-hidden rounded-lg border border-amber-100/15 bg-stone-950/55\">\n      <button style=\"position:absolute;top:8px;right:8px;z-index:10;width:28px;height:28px;border-radius:50%;background:rgba(10,5,5,0.75);color:#fff7ec;font-size:14px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.2)\" data-delete-photo=\"".concat(photo.id, "\" title=\"Delete photo\">\u2715</button>\n      <img class=\"aspect-[4/3] w-full object-cover\" src=\"").concat(escapeHtml(photo.storageUrl), "\" alt=\"Party photo uploaded by ").concat(escapeHtml(photo.displayName), "\">\n      <figcaption class=\"px-3 py-2 text-sm text-amber-50/80\">").concat(escapeHtml(photo.displayName), "</figcaption>\n    </figure>\n  ");
   }).join(""), "</div>");
 }
 function albumView() {
@@ -1174,7 +1174,7 @@ function fetchCoach(_x7) {
 }
 function _fetchCoach() {
   _fetchCoach = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(bagNumber) {
-    var key, result, _t6;
+    var key, result, _t7;
     return _regenerator().w(function (_context10) {
       while (1) switch (_context10.p = _context10.n) {
         case 0:
@@ -1206,7 +1206,7 @@ function _fetchCoach() {
           break;
         case 5:
           _context10.p = 5;
-          _t6 = _context10.v;
+          _t7 = _context10.v;
           state.bottleCoach[key] = "";
         case 6:
           _context10.p = 6;
@@ -1458,70 +1458,96 @@ function drawCharts(id) {
 document.addEventListener("click", /*#__PURE__*/function () {
   var _ref0 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
     var _event$target$closest, _event$target$closest2, _event$target$closest3;
-    var view, editId, eventState, revealAllStepEl, action, editGuestEl, saveGuestEl, id, input, revealSceneEl, scene, pourEl, raw, bagNumber, _input, names, _t, _t2, _t3, _t4;
+    var deletePhotoEl, id, view, editId, eventState, revealAllStepEl, action, editGuestEl, saveGuestEl, _id, input, revealSceneEl, scene, pourEl, raw, bagNumber, _input, names, _t, _t2, _t3, _t4, _t5;
     return _regenerator().w(function (_context) {
       while (1) switch (_context.p = _context.n) {
         case 0:
+          deletePhotoEl = event.target.closest("[data-delete-photo]");
+          if (!deletePhotoEl) {
+            _context.n = 6;
+            break;
+          }
+          id = Number(deletePhotoEl.dataset.deletePhoto);
+          _context.p = 1;
+          _context.n = 2;
+          return api("/api/photos/" + id, {
+            method: "DELETE"
+          });
+        case 2:
+          _context.n = 3;
+          return api("/api/photos");
+        case 3:
+          state.photos = _context.v;
+          render();
+          _context.n = 5;
+          break;
+        case 4:
+          _context.p = 4;
+          _t = _context.v;
+          notice(_t.message);
+        case 5:
+          return _context.a(2);
+        case 6:
           view = (_event$target$closest = event.target.closest("[data-view]")) === null || _event$target$closest === void 0 ? void 0 : _event$target$closest.dataset.view;
           if (!view) {
-            _context.n = 11;
+            _context.n = 17;
             break;
           }
           state.view = view;
           history.replaceState({}, "", view === "tv" ? "?view=tv" : location.pathname);
           if (!(view === "album" && !state.photos.length)) {
-            _context.n = 2;
+            _context.n = 8;
             break;
           }
-          _context.n = 1;
+          _context.n = 7;
           return refresh({
             photos: true
           });
-        case 1:
-          _context.n = 10;
+        case 7:
+          _context.n = 16;
           break;
-        case 2:
+        case 8:
           if (!(view === "host" && hostToken())) {
-            _context.n = 7;
+            _context.n = 13;
             break;
           }
-          _context.p = 3;
-          _context.n = 4;
+          _context.p = 9;
+          _context.n = 10;
           return refresh({
             host: true
           });
-        case 4:
-          _context.n = 6;
+        case 10:
+          _context.n = 12;
           break;
-        case 5:
-          _context.p = 5;
-          _t = _context.v;
+        case 11:
+          _context.p = 11;
+          _t2 = _context.v;
           localStorage.removeItem("wineHostToken");
           state.host = null;
           notice("Host PIN changed. Please unlock again.");
           render();
-        case 6:
-          _context.n = 10;
+        case 12:
+          _context.n = 16;
           break;
-        case 7:
+        case 13:
           if (!(view === "tv")) {
-            _context.n = 9;
+            _context.n = 15;
             break;
           }
-          _context.n = 8;
+          _context.n = 14;
           return refresh({
             reveal: true
           });
-        case 8:
-          _context.n = 10;
+        case 14:
+          _context.n = 16;
           break;
-        case 9:
+        case 15:
           render();
-        case 10:
+        case 16:
           if (view === "tv" && state.demoBoard && !state.demoVoteTimer) {
             startDemoVoting();
           }
-        case 11:
+        case 17:
           if (event.target.closest("#add-guest")) addGuest(document.querySelector("#tasting-form")).catch(function (error) {
             return notice(error.message);
           });
@@ -1555,12 +1581,12 @@ document.addEventListener("click", /*#__PURE__*/function () {
           }
           revealAllStepEl = event.target.closest("[data-reveal-all-step]");
           if (!revealAllStepEl) {
-            _context.n = 17;
+            _context.n = 23;
             break;
           }
           action = revealAllStepEl.dataset.revealAllStep;
-          _context.p = 12;
-          _context.n = 13;
+          _context.p = 18;
+          _context.n = 19;
           return api("/api/host/reveal-all-step", {
             method: "PATCH",
             body: {
@@ -1568,51 +1594,51 @@ document.addEventListener("click", /*#__PURE__*/function () {
             },
             host: true
           });
-        case 13:
-          _context.n = 15;
+        case 19:
+          _context.n = 21;
           break;
-        case 14:
-          _context.p = 14;
-          _t2 = _context.v;
-          notice(_t2.message);
+        case 20:
+          _context.p = 20;
+          _t3 = _context.v;
+          notice(_t3.message);
           return _context.a(2);
-        case 15:
-          _context.n = 16;
+        case 21:
+          _context.n = 22;
           return refresh({
             host: true
           });
-        case 16:
+        case 22:
           return _context.a(2);
-        case 17:
+        case 23:
           if (!event.target.closest("#show-guest-editor")) {
-            _context.n = 18;
+            _context.n = 24;
             break;
           }
           state.showGuestEditor = true;
           state.guestEditId = null;
           render();
           return _context.a(2);
-        case 18:
+        case 24:
           if (!(event.target.closest("#close-guest-editor") || event.target.id === "guest-editor-overlay")) {
-            _context.n = 19;
+            _context.n = 25;
             break;
           }
           state.showGuestEditor = false;
           state.guestEditId = null;
           render();
           return _context.a(2);
-        case 19:
+        case 25:
           if (!event.target.closest("#cancel-guest-edit")) {
-            _context.n = 20;
+            _context.n = 26;
             break;
           }
           state.guestEditId = null;
           render();
           return _context.a(2);
-        case 20:
+        case 26:
           editGuestEl = event.target.closest("[data-edit-guest]");
           if (!editGuestEl) {
-            _context.n = 21;
+            _context.n = 27;
             break;
           }
           state.guestEditId = Number(editGuestEl.dataset.editGuest);
@@ -1622,53 +1648,53 @@ document.addEventListener("click", /*#__PURE__*/function () {
             return (_document$querySelect = document.querySelector("#guest-edit-input")) === null || _document$querySelect === void 0 ? void 0 : _document$querySelect.focus();
           }, 0);
           return _context.a(2);
-        case 21:
+        case 27:
           saveGuestEl = event.target.closest("[data-save-guest]");
           if (!saveGuestEl) {
-            _context.n = 27;
+            _context.n = 33;
             break;
           }
-          id = Number(saveGuestEl.dataset.saveGuest);
+          _id = Number(saveGuestEl.dataset.saveGuest);
           input = document.querySelector("#guest-edit-input");
           if (input) {
-            _context.n = 22;
+            _context.n = 28;
             break;
           }
           return _context.a(2);
-        case 22:
-          _context.p = 22;
-          _context.n = 23;
-          return api("/api/host/guests/".concat(id), {
+        case 28:
+          _context.p = 28;
+          _context.n = 29;
+          return api("/api/host/guests/".concat(_id), {
             method: "PATCH",
             body: {
               displayName: input.value
             },
             host: true
           });
-        case 23:
+        case 29:
           state.guestEditId = null;
-          _context.n = 24;
+          _context.n = 30;
           return refresh({
             host: true
           });
-        case 24:
-          _context.n = 26;
+        case 30:
+          _context.n = 32;
           break;
-        case 25:
-          _context.p = 25;
-          _t3 = _context.v;
-          notice(_t3.message);
-        case 26:
+        case 31:
+          _context.p = 31;
+          _t4 = _context.v;
+          notice(_t4.message);
+        case 32:
           return _context.a(2);
-        case 27:
+        case 33:
           revealSceneEl = event.target.closest("[data-reveal-scene]");
           if (!(revealSceneEl && "revealScene" in revealSceneEl.dataset)) {
-            _context.n = 33;
+            _context.n = 39;
             break;
           }
           scene = revealSceneEl.dataset.revealScene || null;
-          _context.p = 28;
-          _context.n = 29;
+          _context.p = 34;
+          _context.n = 35;
           return api("/api/host/reveal-scene", {
             method: "PATCH",
             body: {
@@ -1676,22 +1702,22 @@ document.addEventListener("click", /*#__PURE__*/function () {
             },
             host: true
           });
-        case 29:
-          _context.n = 31;
+        case 35:
+          _context.n = 37;
           break;
-        case 30:
-          _context.p = 30;
-          _t4 = _context.v;
-          notice(_t4.message);
+        case 36:
+          _context.p = 36;
+          _t5 = _context.v;
+          notice(_t5.message);
           return _context.a(2);
-        case 31:
-          _context.n = 32;
+        case 37:
+          _context.n = 38;
           return refresh({
             host: true
           });
-        case 32:
+        case 38:
           return _context.a(2);
-        case 33:
+        case 39:
           pourEl = event.target.closest("[data-pour-sleeve]");
           if (pourEl) {
             raw = pourEl.dataset.pourSleeve;
@@ -1733,26 +1759,26 @@ document.addEventListener("click", /*#__PURE__*/function () {
             render();
           }
           if (!event.target.closest("#submit-guest-bulk")) {
-            _context.n = 36;
+            _context.n = 42;
             break;
           }
           _input = document.querySelector("#guest-bulk-input");
           if (_input) {
-            _context.n = 34;
+            _context.n = 40;
             break;
           }
           return _context.a(2);
-        case 34:
+        case 40:
           names = _input.value.split(/[\n,]+/).map(function (s) {
             return s.trim();
           }).filter(Boolean);
           if (names.length) {
-            _context.n = 35;
+            _context.n = 41;
             break;
           }
           notice("Paste at least one name first.");
           return _context.a(2);
-        case 35:
+        case 41:
           state.guestBulkSubmitting = true;
           render();
           api("/api/host/guests/bulk", {
@@ -1773,7 +1799,7 @@ document.addEventListener("click", /*#__PURE__*/function () {
             render();
             notice(error.message);
           });
-        case 36:
+        case 42:
           if (event.target.closest("#seed-demo")) {
             seedDemo().catch(function (error) {
               return notice(error.message);
@@ -1787,10 +1813,10 @@ document.addEventListener("click", /*#__PURE__*/function () {
           if (event.target.closest("#stop-demo")) {
             stopDemo();
           }
-        case 37:
+        case 43:
           return _context.a(2);
       }
-    }, _callee, null, [[28, 30], [22, 25], [12, 14], [3, 5]]);
+    }, _callee, null, [[34, 36], [28, 31], [18, 20], [9, 11], [1, 4]]);
   }));
   return function (_x0) {
     return _ref0.apply(this, arguments);
@@ -1854,21 +1880,6 @@ document.addEventListener("submit", function (event) {
   if (event.target.id === "tasting-form") submitTasting(event.target).catch(function (error) {
     return notice(error.message);
   });
-  var deletePhotoEl = event.target.closest("[data-delete-photo]");
-  if (deletePhotoEl) {
-    var id = Number(deletePhotoEl.dataset.deletePhoto);
-    api("/api/photos/" + id, {
-      method: "DELETE"
-    }).then(function () {
-      return api("/api/photos");
-    }).then(function (photos) {
-      state.photos = photos;
-      render();
-    }).catch(function (e) {
-      return notice(e.message);
-    });
-    return;
-  }
   if (event.target.id === "photo-form") uploadPhoto(event.target).catch(function (error) {
     return notice(error.message);
   });
@@ -1886,7 +1897,7 @@ window.addEventListener("resize", function () {
   if (state.view === "tv") fitTvGrid();
 });
 setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-  var _state$bootstrap5, scene, _t5;
+  var _state$bootstrap5, scene, _t6;
   return _regenerator().w(function (_context2) {
     while (1) switch (_context2.p = _context2.n) {
       case 0:
@@ -1916,8 +1927,8 @@ setInterval(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(functio
         break;
       case 3:
         _context2.p = 3;
-        _t5 = _context2.v;
-        console.error("TV refresh failed:", _t5);
+        _t6 = _context2.v;
+        console.error("TV refresh failed:", _t6);
       case 4:
         return _context2.a(2);
     }

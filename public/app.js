@@ -403,7 +403,7 @@ function photosMarkup() {
   if (!state.photos.length) return `<p class="rounded-md border border-amber-100/15 bg-stone-950/40 p-5 text-amber-50/75">The shared album is waiting for the first party photo.</p>`;
   return `<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">${state.photos.map((photo) => `
     <figure class="relative overflow-hidden rounded-lg border border-amber-100/15 bg-stone-950/55">
-      <button class="absolute top-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-stone-950/70 text-amber-100 hover:bg-rose-900/80" data-delete-photo="${photo.id}" title="Delete photo">✕</button>
+      <button style="position:absolute;top:8px;right:8px;z-index:10;width:28px;height:28px;border-radius:50%;background:rgba(10,5,5,0.75);color:#fff7ec;font-size:14px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.2)" data-delete-photo="${photo.id}" title="Delete photo">✕</button>
       <img class="aspect-[4/3] w-full object-cover" src="${escapeHtml(photo.storageUrl)}" alt="Party photo uploaded by ${escapeHtml(photo.displayName)}">
       <figcaption class="px-3 py-2 text-sm text-amber-50/80">${escapeHtml(photo.displayName)}</figcaption>
     </figure>
@@ -1483,6 +1483,17 @@ function drawCharts(id) {
 }
 
 document.addEventListener("click", async (event) => {
+  const deletePhotoEl = event.target.closest("[data-delete-photo]");
+  if (deletePhotoEl) {
+    const id = Number(deletePhotoEl.dataset.deletePhoto);
+    try {
+      await api("/api/photos/" + id, { method: "DELETE" });
+      state.photos = await api("/api/photos");
+      render();
+    } catch (e) { notice(e.message); }
+    return;
+  }
+
   const view = event.target.closest("[data-view]")?.dataset.view;
   if (view) {
     state.view = view;
@@ -1681,15 +1692,6 @@ document.addEventListener("change", (event) => {
 document.addEventListener("submit", (event) => {
   event.preventDefault();
   if (event.target.id === "tasting-form") submitTasting(event.target).catch((error) => notice(error.message));
-  const deletePhotoEl = event.target.closest("[data-delete-photo]");
-  if (deletePhotoEl) {
-    const id = Number(deletePhotoEl.dataset.deletePhoto);
-    api("/api/photos/" + id, { method: "DELETE" })
-      .then(() => api("/api/photos"))
-      .then((photos) => { state.photos = photos; render(); })
-      .catch((e) => notice(e.message));
-    return;
-  }
   if (event.target.id === "photo-form") uploadPhoto(event.target).catch((error) => notice(error.message));
   if (event.target.id === "host-login") unlockHost(event.target).catch((error) => notice(error.message));
   if (event.target.id === "label-scan-form") scanLabel(event.target).catch((error) => notice(error.message));
