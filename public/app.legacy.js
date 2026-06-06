@@ -825,7 +825,7 @@ function render() {
   if (state.view === "tv" && state.bootstrap.state === "GRAND_REVEAL" && !state.bootstrap.revealScene) {
     if (!grandStandbyTimer) {
       grandStandbyTimer = setInterval(function () {
-        grandStandbyQuip++;
+        grandStandbyQuip = (grandStandbyQuip + 1 + Math.floor(Math.random() * (GRAND_REVEAL_QUIPS.length - 1))) % GRAND_REVEAL_QUIPS.length;
         render();
       }, 15000);
     }
